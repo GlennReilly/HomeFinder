@@ -24,3 +24,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Pipeline integration test (PostGIS + G-NAF fixture)
         run: pipeline/tests/test_load_gnaf.sh
+      - name: Pipeline integration test (suburbs, lots, address links)
+        run: pipeline/tests/test_lots.sh

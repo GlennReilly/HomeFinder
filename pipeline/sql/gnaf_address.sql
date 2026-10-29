@@ -2,7 +2,7 @@
 -- Variables: release, zip_sha256. Empty PSV fields load as NULL (CSV format), so retired = non-NULL date.
 BEGIN;
 
-TRUNCATE address;
+TRUNCATE address CASCADE;  -- also clears address_lot, which must be relinked afterwards
 
 INSERT INTO address (gnaf_pid, flat_number, number_first, street_name, street_type, locality_name, state,
                      postcode, legal_parcel_id, confidence, geocode_type, source_release, geom)
