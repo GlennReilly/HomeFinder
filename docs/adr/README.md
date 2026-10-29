@@ -19,4 +19,5 @@
 | [0015](0015-suburb-layers-on-the-clients.md) | Suburb outlines and names on the clients | Superseded by 0019 |
 | [0016](0016-suburb-lookup-and-report-endpoints.md) | Suburb lookup and report endpoints | Accepted |
 | [0017](0017-suburb-selection-and-card.md) | Suburb selection and the Suburb Card | Accepted |
+| [0018](0018-sales-statistics-pipeline.md) | Sales statistics pipeline (NSW Valuer General) | Accepted |
 | [0019](0019-pivot-to-web.md) | Pivot the target platform to web | Accepted |

@@ -30,6 +30,8 @@ jobs:
         run: pipeline/tests/test_load_gnaf.sh
       - name: Pipeline integration test (suburbs, lots, address links)
         run: pipeline/tests/test_lots.sh
+      - name: Pipeline integration test (sales and suburb statistics)
+        run: pipeline/tests/test_sales.sh
 
   server-db:
     runs-on: ubuntu-latest
