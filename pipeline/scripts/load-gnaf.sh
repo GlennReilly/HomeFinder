@@ -7,11 +7,12 @@ ensure_migrated
 GNAF_DIR="${1:-$RAW_DIR/gnaf/$GNAF_RELEASE/unzipped}"
 SHA_FILE="$RAW_DIR/gnaf/$GNAF_RELEASE/$GNAF_ZIP_NAME.sha256"
 ZIP_SHA="$( [[ -f "$SHA_FILE" ]] && cat "$SHA_FILE" || echo unknown )"
+# A locality is accepted when at least this share of its geocodes lies inside the same-named suburb.
+LOCALITY_MIN_SUBURB_SHARE=0.5
 TABLES=(STATE LOCALITY STREET_LOCALITY ADDRESS_DETAIL ADDRESS_DEFAULT_GEOCODE)
 
-psql_db -q -c "TRUNCATE pilot_locality"
-psql_db -q -c "\copy pilot_locality (name, postcode, expect_addresses) from stdin with (format csv, header)" \
-  < "$PIPELINE_DIR/config/pilot_localities.csv"
+[[ "$(psql_db -t -A -c "SELECT count(*) FROM suburb")" -gt 0 ]] || { echo "No suburbs loaded; run load-lga.sh then load-suburbs.sh first" >&2; exit 1; }
+load_pilot_localities
 
 for table in "${TABLES[@]}"; do
   file="$(find "$GNAF_DIR" -name "NSW_${table}_psv.psv" -print -quit)"
@@ -28,6 +29,6 @@ for table in "${TABLES[@]}"; do
   psql_db -q -c "ANALYZE $stg"
 done
 
-psql_db -q -v release="$GNAF_RELEASE" -v zip_sha256="$ZIP_SHA" < "$PIPELINE_DIR/sql/gnaf_address.sql"
+psql_db -q -v release="$GNAF_RELEASE" -v zip_sha256="$ZIP_SHA" -v min_share="$LOCALITY_MIN_SUBURB_SHARE" < "$PIPELINE_DIR/sql/gnaf_address.sql"
 psql_db -t -c "SELECT count(*) || ' addresses loaded' FROM address"
 "$(dirname "$0")/check-gnaf.sh"

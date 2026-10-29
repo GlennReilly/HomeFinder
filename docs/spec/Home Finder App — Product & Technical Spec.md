@@ -228,6 +228,7 @@ Answers to the "Ask me first" questions, recorded as they are made. Full reasoni
 | 3 | Pilot region: Newcastle and Lake Macquarie, filtered by a suburb-name list. Full G-NAF Aug 2026 GDA2020 PSV. Raw data in gitignored `data/raw`. Download script run by the user. | [0003](../adr/0003-gnaf-pilot-region-and-loading.md) |
 | 3 | No missing addresses: include every suburb overlapping either council (172), load LGA polygons, and fail the load if an in-council address is missed. | [0004](../adr/0004-gnaf-completeness-any-overlap-suburbs.md) |
 | 4 | Paged NSW web-service queries (no bulk download). Store 7844, calculate in GDA2020 / MGA 56 (7856). Link addresses to lots by legal parcel id, then point-in-polygon. | [0005](../adr/0005-lots-suburbs-crs-and-address-link.md) |
+| 4 | Same-named NSW suburbs (for example Silverwater) are told apart by requiring most of a locality's geocodes inside the official suburb. | [0006](../adr/0006-locality-identity-same-named-suburbs.md) |
 
 ## Working agreement for Claude Code
 

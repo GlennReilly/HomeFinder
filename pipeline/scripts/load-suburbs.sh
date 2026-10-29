@@ -4,6 +4,7 @@
 # Rebuilds `suburb`; this also clears `lot` and `address_lot`, so rerun load-lots.sh and link-address-lots.sh.
 source "$(dirname "$0")/common.sh"
 ensure_migrated
+load_pilot_localities
 
 SUBURB_URL="https://portal.spatial.nsw.gov.au/server/rest/services/NSW_Administrative_Boundaries_Theme/FeatureServer/2/query"
 FILE="${1:-$RAW_DIR/cadastre/suburbs.geojson}"

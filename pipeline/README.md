@@ -19,6 +19,7 @@ See [ADR 0002](../docs/adr/0002-postgis-flyway-and-credentials.md).
 ```bash
 scripts/download-gnaf.sh   # about 1.5 GB into ../data/raw (gitignored), checksum recorded
 scripts/load-lga.sh        # council polygons, needed by the completeness check
+scripts/load-suburbs.sh    # suburb boundaries (PR 4); G-NAF needs these to tell same-named suburbs apart
 scripts/load-gnaf.sh       # loads staging, rebuilds the address table, then runs scripts/check-gnaf.sh
 tests/test_load_gnaf.sh    # fixture-based integration test (needs Docker)
 ```
@@ -29,7 +30,6 @@ Commonwealth of Australia under the Open G-NAF End User Licence Agreement.
 ## Suburbs, lots and address links (PR 4)
 
 ```bash
-scripts/load-suburbs.sh        # official suburb boundaries for the pilot localities
 scripts/load-lots.sh           # cadastre lots, paged per suburb (cached in ../data/raw/cadastre)
 scripts/link-address-lots.sh   # links each address to a lot and prints match rates
 tests/test_lots.sh             # fixture-based integration test (needs Docker and jq)

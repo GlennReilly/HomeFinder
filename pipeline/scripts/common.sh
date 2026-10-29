@@ -25,3 +25,10 @@ ensure_migrated() {
   compose up -d --wait db >/dev/null
   compose run --rm migrate >/dev/null
 }
+
+# Loads the committed pilot locality list (idempotent). Needed by both the suburb and the G-NAF loads.
+load_pilot_localities() {
+  psql_db -q -c "TRUNCATE pilot_locality"
+  psql_db -q -c "\copy pilot_locality (name, postcode, expect_addresses) from stdin with (format csv, header)" \
+    < "$PIPELINE_DIR/config/pilot_localities.csv"
+}

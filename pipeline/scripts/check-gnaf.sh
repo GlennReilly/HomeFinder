@@ -57,6 +57,8 @@ JOIN pilot_locality p ON p.name = upper(l.locality_name)
 WHERE ad.date_retired IS NULL AND ad.alias_principal = 'P'
   AND NOT EXISTS (SELECT 1 FROM stg.address_default_geocode g
                   WHERE g.address_detail_pid = ad.address_detail_pid AND g.date_retired IS NULL)")"
+rejected="$(q "SELECT name || ' (' || addresses || ' addresses, ' || round(share_in_suburb * 100) || '% inside the suburb)' FROM locality_decision WHERE NOT accepted ORDER BY addresses DESC")"
+[[ -z "$rejected" ]] || { echo "INFO: same-named localities elsewhere in NSW were rejected:"; echo "$rejected"; }
 echo "INFO: $ungeocoded current principal pilot addresses have no current geocode and are not loaded."
 
 [[ $status -eq 0 ]] && echo "Completeness checks passed"
