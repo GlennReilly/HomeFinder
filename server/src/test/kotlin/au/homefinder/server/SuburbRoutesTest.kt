@@ -1,0 +1,139 @@
+package au.homefinder.server
+
+import au.homefinder.shared.api.ApiContract
+import au.homefinder.shared.api.ApiError
+import au.homefinder.shared.api.SuburbRef
+import au.homefinder.shared.model.ApiJson
+import au.homefinder.shared.model.SuburbReport
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.testing.testApplication
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+
+class SuburbRoutesTest {
+    private val key = "0123456789abcdef"
+    private val config = ServerConfig("0.0.0.0", 8080, key)
+    private val hamilton = SuburbRecord("9001", "HAMILTON", "2303", 3.512)
+
+    private class FakeDirectory(
+        private val atResult: SuburbRecord? = null,
+        private val byId: Map<String, SuburbRecord> = emptyMap(),
+        private val failure: Exception? = null,
+    ) : SuburbDirectory {
+        val atCalls = mutableListOf<Pair<Double, Double>>()
+        override suspend fun findAt(latitude: Double, longitude: Double): SuburbRecord? {
+            atCalls += latitude to longitude
+            failure?.let { throw it }
+            return atResult
+        }
+        override suspend fun find(suburbId: String): SuburbRecord? {
+            failure?.let { throw it }
+            return byId[suburbId]
+        }
+    }
+
+    private fun api(directory: SuburbDirectory?, block: suspend HttpClient.() -> Unit) = testApplication {
+        application { module(config, suburbs = directory) }
+        client.block()
+    }
+
+    private suspend fun HttpClient.get(path: String, withKey: Boolean = true): HttpResponse =
+        get(path) { if (withKey) header(ApiContract.API_KEY_HEADER, key) }
+
+    private suspend fun HttpResponse.error() = ApiJson.decodeFromString<ApiError>(bodyAsText())
+
+    private val at = ApiContract.SUBURBS_AT_PATH
+
+    @Test
+    fun `a point inside a suburb returns its reference`() = FakeDirectory(atResult = hamilton).let { fake ->
+        api(fake) {
+            val response = get("$at?lat=-32.92&lon=151.75")
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals(SuburbRef("9001", "HAMILTON", "2303"), ApiJson.decodeFromString<SuburbRef>(response.bodyAsText()))
+            assertEquals(listOf(-32.92 to 151.75), fake.atCalls)
+        }
+    }
+
+    @Test
+    fun `a point in no suburb is not found`() = api(FakeDirectory()) {
+        val response = get("$at?lat=-33.87&lon=151.21")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertEquals(ApiError(ApiError.NOT_FOUND), response.error())
+    }
+
+    @Test
+    fun `missing, malformed or out of range coordinates are a bad request`() = FakeDirectory(atResult = hamilton).let { fake ->
+        api(fake) {
+            listOf("", "?lat=-32.9", "?lon=151.7", "?lat=abc&lon=151.7", "?lat=-32.9&lon=", "?lat=91&lon=151.7", "?lat=-32.9&lon=181", "?lat=NaN&lon=151.7", "?lat=-32.9&lon=Infinity")
+                .forEach { query ->
+                    val response = get(at + query)
+                    assertEquals(HttpStatusCode.BadRequest, response.status, query)
+                    assertEquals(ApiError(ApiError.INVALID_COORDINATES), response.error(), query)
+                }
+            assertTrue(fake.atCalls.isEmpty())
+        }
+    }
+
+    @Test
+    fun `the extreme valid coordinates are accepted`() = api(FakeDirectory()) {
+        assertEquals(HttpStatusCode.NotFound, get("$at?lat=90&lon=180").status)
+        assertEquals(HttpStatusCode.NotFound, get("$at?lat=-90&lon=-180").status)
+    }
+
+    @Test
+    fun `suburb endpoints need the API key`() = api(FakeDirectory(atResult = hamilton, byId = mapOf("9001" to hamilton))) {
+        assertEquals(HttpStatusCode.Unauthorized, get("$at?lat=-32.92&lon=151.75", withKey = false).status)
+        assertEquals(HttpStatusCode.Unauthorized, get("${ApiContract.SUBURBS_PATH}/9001", withKey = false).status)
+        assertEquals(HttpStatusCode.Unauthorized, get("$at?lat=-32.92&lon=151.75&key=$key", withKey = false).status)
+    }
+
+    @Test
+    fun `a suburb report is returned with unknown statistics`() = api(FakeDirectory(byId = mapOf("9001" to hamilton))) {
+        val response = get("${ApiContract.SUBURBS_PATH}/9001")
+        assertEquals(HttpStatusCode.OK, response.status)
+        val report = ApiJson.decodeFromString<SuburbReport>(response.bodyAsText())
+        assertEquals("HAMILTON", report.name)
+        assertEquals(3.512, report.areaKm2.value)
+        assertTrue(report.medianHousePriceAud.isUnknown)
+    }
+
+    @Test
+    fun `an unknown suburb id is not found`() = api(FakeDirectory(byId = mapOf("9001" to hamilton))) {
+        val response = get("${ApiContract.SUBURBS_PATH}/424242")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertEquals(ApiError(ApiError.NOT_FOUND), response.error())
+    }
+
+    @Test
+    fun `the at path is not mistaken for a suburb id`() = api(FakeDirectory(atResult = hamilton, byId = mapOf("at" to hamilton))) {
+        assertEquals(HttpStatusCode.BadRequest, get(at).status)
+    }
+
+    @Test
+    fun `without a database the suburb endpoints are unavailable`() = api(null) {
+        assertEquals(HttpStatusCode.ServiceUnavailable, get("$at?lat=-32.92&lon=151.75").status)
+        assertEquals(HttpStatusCode.ServiceUnavailable, get("${ApiContract.SUBURBS_PATH}/9001").status)
+    }
+
+    @Test
+    fun `a failing database is unavailable and leaks nothing`() = api(FakeDirectory(failure = IllegalStateException("password=secret"), byId = mapOf("9001" to hamilton))) {
+        listOf("$at?lat=-32.92&lon=151.75", "${ApiContract.SUBURBS_PATH}/9001").forEach { path ->
+            val response = get(path)
+            assertEquals(HttpStatusCode.ServiceUnavailable, response.status, path)
+            assertTrue(!response.bodyAsText().contains("secret"))
+        }
+    }
+
+    @Test
+    fun `a suburb id is looked up exactly as given`() = api(FakeDirectory(byId = mapOf("9001" to hamilton))) {
+        assertNotNull(get("${ApiContract.SUBURBS_PATH}/9001").takeIf { it.status == HttpStatusCode.OK })
+        assertEquals(HttpStatusCode.NotFound, get("${ApiContract.SUBURBS_PATH}/9001%27%20OR%201=1").status)
+    }
+}

@@ -30,7 +30,7 @@ private const val TILE_CACHE_CONTROL = "private, max-age=300"
  * The API: an open health check and, behind the API key, everything else. [suburbTiles] is null when no database is
  * configured; tile requests then answer 503 and the health check reports the database as not configured.
  */
-fun Application.module(config: ServerConfig, suburbTiles: SuburbTileSource? = null) {
+fun Application.module(config: ServerConfig, suburbTiles: SuburbTileSource? = null, suburbs: SuburbDirectory? = null) {
     install(ContentNegotiation) { json(ApiJson) }
     routing {
         get(ApiContract.HEALTH_PATH) {
@@ -46,6 +46,7 @@ fun Application.module(config: ServerConfig, suburbTiles: SuburbTileSource? = nu
             get(ApiContract.STATUS_PATH.removePrefix(AUTHENTICATED_PREFIX)) {
                 call.respond(StatusResponse(authenticated = true))
             }
+            suburbRoutes(suburbs)
         }
         route(TileContract.TILES_PREFIX) {
             requireApiKey(config.apiKey, acceptQueryParameter = true)
