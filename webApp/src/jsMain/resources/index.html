@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Home Finder</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="map" role="application" aria-label="Map of suburbs"></div>
+  <aside id="card" hidden aria-live="polite"></aside>
+  <div id="notice" role="status" hidden></div>
+  <div id="key-prompt" hidden>
+    <form id="key-form">
+      <h2>Home Finder</h2>
+      <label for="key-input">API key</label>
+      <input id="key-input" type="password" autocomplete="off" minlength="16" required>
+      <button type="submit">Continue</button>
+    </form>
+  </div>
+  <script src="homefinder.js"></script>
+</body>
+</html>
