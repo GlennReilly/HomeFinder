@@ -24,6 +24,8 @@ for table in "${TABLES[@]}"; do
   psql_db -q -c "DROP TABLE IF EXISTS $stg" -c "CREATE TABLE $stg ($ddl)"
   # quote char \x01 effectively disables CSV quoting, as PSV files are unquoted.
   psql_db -q -c "\copy $stg ($collist) from stdin with (format csv, delimiter '|', header, quote E'\\x01')" < "$file"
+  # Fresh tables have no statistics; without this the planner can pick a very slow join order.
+  psql_db -q -c "ANALYZE $stg"
 done
 
 psql_db -q -v release="$GNAF_RELEASE" -v zip_sha256="$ZIP_SHA" < "$PIPELINE_DIR/sql/gnaf_address.sql"
