@@ -39,8 +39,9 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
-            implementation(libs.ktor.client.cio)
             runtimeOnly(libs.maplibre.runtime.opengl.linux.x64)
+            implementation(libs.ktor.client.cio)
+            implementation(libs.kotlinx.serialization.json)
         }
         jvmTest.dependencies {
             implementation(kotlin("test"))
@@ -55,6 +56,7 @@ compose.desktop {
     application {
         mainClass = "au.homefinder.app.MainKt"
         jvmArgs += "--enable-native-access=ALL-UNNAMED"
+        providers.gradleProperty("mapRenderer").orNull?.let { jvmArgs += "-Dhomefinder.map.renderer=$it" }
         javaHome = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(desktopJavaVersion) }
             .get().metadata.installationPath.asFile.absolutePath
     }
