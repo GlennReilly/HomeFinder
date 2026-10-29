@@ -7,8 +7,8 @@ TEST_PROJECT=hf-lots-test TEST_POSTGRES_PORT=55434
 source "$(dirname "$0")/lib.sh"
 
 "$HERE/../scripts/load-lga.sh" "$HERE/fixtures/gnaf/lga.geojson" >/dev/null
-"$HERE/../scripts/load-gnaf.sh" "$HERE/fixtures/gnaf" >/dev/null
 "$HERE/../scripts/load-suburbs.sh" "$HERE/fixtures/suburbs.geojson" >/dev/null
+"$HERE/../scripts/load-gnaf.sh" "$HERE/fixtures/gnaf" >/dev/null
 "$HERE/../scripts/load-lots.sh" "$HERE/fixtures/lots" >/dev/null
 lots="$(psql_db -t -A -c "SELECT string_agg(lot_id || ':' || suburb_id, ',' ORDER BY lot_id) FROM lot")"
 "$HERE/../scripts/load-lots.sh" "$HERE/fixtures/lots" >/dev/null   # rerun must be idempotent

@@ -7,3 +7,4 @@
 | [0003](0003-gnaf-pilot-region-and-loading.md) | G-NAF pilot region and loading approach | Accepted |
 | [0004](0004-gnaf-completeness-any-overlap-suburbs.md) | Include every overlapping suburb and prove completeness | Accepted |
 | [0005](0005-lots-suburbs-crs-and-address-link.md) | Lots, suburbs, projected CRS and the address-to-lot link | Accepted |
+| [0006](0006-locality-identity-same-named-suburbs.md) | Identify the right G-NAF locality when suburb names repeat | Accepted |
