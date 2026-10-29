@@ -5,8 +5,11 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
+// maplibre-compose desktop needs Java 25 or later (ADR 0008).
+val desktopJavaVersion = 25
+
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(desktopJavaVersion)
 
     androidLibrary {
         namespace = "au.homefinder.app"
@@ -24,14 +27,20 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.koin.core)
             implementation(libs.ktor.client.core)
+            implementation(libs.maplibre.compose)
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
+            runtimeOnly(libs.maplibre.runtime.opengl.android)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.client.cio)
+            runtimeOnly(libs.maplibre.runtime.opengl.linux.x64)
         }
         jvmTest.dependencies {
             implementation(kotlin("test"))
@@ -45,6 +54,9 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "au.homefinder.app.MainKt"
+        jvmArgs += "--enable-native-access=ALL-UNNAMED"
+        javaHome = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(desktopJavaVersion) }
+            .get().metadata.installationPath.asFile.absolutePath
     }
 }
 
