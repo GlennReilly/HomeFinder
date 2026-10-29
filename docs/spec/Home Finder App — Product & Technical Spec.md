@@ -229,6 +229,7 @@ Answers to the "Ask me first" questions, recorded as they are made. Full reasoni
 | 3 | No missing addresses: include every suburb overlapping either council (172), load LGA polygons, and fail the load if an in-council address is missed. | [0004](../adr/0004-gnaf-completeness-any-overlap-suburbs.md) |
 | 4 | Paged NSW web-service queries (no bulk download). Store 7844, calculate in GDA2020 / MGA 56 (7856). Link addresses to lots by legal parcel id, then point-in-polygon. | [0005](../adr/0005-lots-suburbs-crs-and-address-link.md) |
 | 4 | Same-named NSW suburbs (for example Silverwater) are told apart by requiring most of a locality's geocodes inside the official suburb. | [0006](../adr/0006-locality-identity-same-named-suburbs.md) |
+| 4 | Addresses with a geocode in the road or kerb link to the nearest lot within 30 m, marked low confidence. | [0007](../adr/0007-nearest-lot-low-confidence-link.md) |
 
 ## Working agreement for Claude Code
 

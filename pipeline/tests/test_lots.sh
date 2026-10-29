@@ -30,9 +30,12 @@ links() { psql_db -t -A -c "SELECT string_agg(gnaf_pid || '>' || lot_id || ':' |
 first="$(links)"
 "$HERE/../scripts/link-address-lots.sh" >/dev/null
 [[ "$first" == "$(links)" ]] || fail "rerun changed links"
-want="GANSW1>1001:legal_parcel_id,GANSW5>1002:legal_parcel_id,GANSW6>1003:point_in_polygon"
+want="GANSW1>1001:legal_parcel_id,GANSW5>1002:legal_parcel_id,GANSW6>1003:point_in_polygon,GANSW9>1001:nearest_lot"
 [[ "$first" == "$want" ]] || fail "expected '$want' but got '$first'"
 report="$("$HERE/../scripts/link-address-lots.sh")"
+dist="$(psql_db -t -A -c "SELECT round(distance_m) FROM address_lot WHERE gnaf_pid = 'GANSW9'")"
+[[ "$dist" -ge 5 && "$dist" -le 30 ]] || fail "expected GANSW9 nearest-lot distance between 5 and 30 m but got '$dist'"
+grep -q "nearest_lot (low confidence) | 1" <<< "$report" || fail "nearest_lot count missing: $report"
 grep -q "unmatched | 1" <<< "$report" || fail "GANSW7 should be reported as unmatched: $report"
 grep -q "point is outside the lot | 1" <<< "$report" || fail "GANSW5 should be flagged as outside its lot: $report"
 

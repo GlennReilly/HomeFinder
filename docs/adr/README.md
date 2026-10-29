@@ -8,3 +8,4 @@
 | [0004](0004-gnaf-completeness-any-overlap-suburbs.md) | Include every overlapping suburb and prove completeness | Accepted |
 | [0005](0005-lots-suburbs-crs-and-address-link.md) | Lots, suburbs, projected CRS and the address-to-lot link | Accepted |
 | [0006](0006-locality-identity-same-named-suburbs.md) | Identify the right G-NAF locality when suburb names repeat | Accepted |
+| [0007](0007-nearest-lot-low-confidence-link.md) | Nearest-lot link as a low-confidence fallback | Accepted |
