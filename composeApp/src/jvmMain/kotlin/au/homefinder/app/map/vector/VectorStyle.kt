@@ -100,7 +100,19 @@ object VectorStyle {
 
     // Labels ----------------------------------------------------------------------------------------------------
 
-    class LabelStyle(val minZoom: Double, val fontSizeSp: Float, val priority: Int, val color: Color, val italic: Boolean)
+    /**
+     * How a point label is drawn. [repeatDistancePx] keeps same-named labels (parks, spread over tiles) apart, and
+     * [dot] marks a point of interest with a small dot above its name.
+     */
+    class LabelStyle(
+        val minZoom: Double,
+        val fontSizeSp: Float,
+        val priority: Int,
+        val color: Color,
+        val italic: Boolean,
+        val repeatDistancePx: Float = 0f,
+        val dot: Boolean = false,
+    )
 
     private val placeLabels: Map<String, LabelStyle> = mapOf(
         "country" to LabelStyle(2.0, 15f, 0, Color(0xFF333333), false),
@@ -113,13 +125,52 @@ object VectorStyle {
         "neighbourhood" to LabelStyle(13.0, 11f, 7, Color(0xFF666666), false),
     )
 
+    private const val REPEAT_DISTANCE_PX = 400f
     private val waterLabel = LabelStyle(8.0, 11f, 8, Color(0xFF5C86B5), true)
+    private val parkLabel = LabelStyle(12.0, 11f, 9, Color(0xFF4C8A4A), true, REPEAT_DISTANCE_PX)
+    private val aerodromeLabel = LabelStyle(10.0, 11f, 10, Color(0xFF6A4FA0), false)
+    private val peakLabel = LabelStyle(12.0, 10f, 11, Color(0xFF8A6A4A), true)
+    private val poiLabel = LabelStyle(15.0, 10f, 40, Color(0xFF55606E), false, dot = true)
+    /** Bus stops are numerous and add clutter, so they are not labelled. */
+    private val hiddenPoiClasses: Set<String> = setOf("bus")
+    private val houseNumberLabel = LabelStyle(17.0, 9f, 50, Color(0xFF7A7A7A), false)
 
+    /** The point label style for a layer and class, or null if that feature is not labelled. */
     fun labelStyle(layer: String, cls: String?): LabelStyle? = when (layer) {
         "place" -> placeLabels[cls]
         "water_name" -> waterLabel
+        "park" -> parkLabel
+        "aerodrome_label" -> aerodromeLabel
+        "mountain_peak" -> peakLabel
+        "poi" -> if (cls in hiddenPoiClasses) null else poiLabel
+        "housenumber" -> houseNumberLabel
         else -> null
     }
 
-    val labelLayers: Set<String> = setOf("place", "water_name")
+    /** Layers whose point features carry a label, and which property holds its text. */
+    val pointLabelLayers: Set<String> = setOf("place", "water_name", "aerodrome_label", "mountain_peak", "poi", "housenumber")
+    private const val HOUSE_NUMBER_KEY = "housenumber"
+    private const val NAME_KEY = "name"
+
+    fun labelTextKey(layer: String): String = if (layer == "housenumber") HOUSE_NUMBER_KEY else NAME_KEY
+
+    /** Street names along roads, from the transportation_name layer. */
+    class StreetStyle(val minZoom: Double, val fontSizeSp: Float, val priority: Int)
+
+    private val streets: Map<String, StreetStyle> = mapOf(
+        "motorway" to StreetStyle(11.0, 11f, 20),
+        "trunk" to StreetStyle(11.0, 11f, 21),
+        "primary" to StreetStyle(12.0, 11f, 22),
+        "secondary" to StreetStyle(13.0, 10.5f, 23),
+        "tertiary" to StreetStyle(14.0, 10f, 24),
+        "minor" to StreetStyle(15.0, 10f, 25),
+        "service" to StreetStyle(16.0, 9f, 26),
+        "path" to StreetStyle(16.0, 9f, 27),
+        "track" to StreetStyle(16.0, 9f, 28),
+    )
+
+    val streetColor = Color(0xFF4A4A4A)
+    const val STREET_REPEAT_DISTANCE_PX = 300f
+
+    fun streetStyle(cls: String?): StreetStyle? = streets[cls]
 }

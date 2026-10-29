@@ -1,6 +1,6 @@
 # 0010. Desktop vector-tile renderer
 
-Status: Accepted
+Status: Accepted (labels extended by 0011)
 
 ## Context
 ADR 0008 found that maplibre-compose cannot render on this machine's GPU, and ADR 0009 added a raster-tile fallback.
