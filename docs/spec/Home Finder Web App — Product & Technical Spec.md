@@ -62,10 +62,10 @@ The Android design needed an API key because the phone reached the server over a
 | API skeleton, `/health`, `/v1/status`, shared models | Done (PR 6–7) | Android-specific parts of ADR 0013 retired |
 | Suburb vector tiles from PostGIS | Done (PR 8a) | ADR 0014 |
 | Suburb lookup (`/v1/suburbs/at`) and report endpoints | Done (PR 9a) | ADR 0016 |
-| Selection model, card rows, API client | Done (PR 9b) | ADR 0017; the Compose-free logic (about 440 lines) and its tests move to the `client` module |
-| Card UI, app shell, map composables | Done (PR 9b) in Compose | Rewritten as DOM and MapLibre GL JS code (about 400 lines of Compose go) |
+| Selection model, card rows, API client | Done (PR 9b), moved to `client` (W0a) | ADR 0017 |
+| Card UI, app shell, map | Rewritten (W0b) as DOM and MapLibre GL JS code | `webApp`; the Compose versions were removed in W1 |
 | Sales and suburb statistics pipeline | PR 10a open (#20) | ADR 0018; unaffected by the pivot |
-| Desktop and Android renderers, `androidApp`, `composeApp`, Java 25 desktop build | **Retired** | removed in W1 below |
+| Desktop and Android renderers, `androidApp`, `composeApp`, Java 25 desktop build | **Retired (W1, done)** | removed; Gradle now runs on Java 17 |
 
 ## Milestones (revised)
 

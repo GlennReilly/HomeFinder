@@ -7,32 +7,29 @@ Look up any NSW address or suburb on a map and see the factors that decide a pur
 
 | Module | Purpose |
 | --- | --- |
-| `shared` | Models and serialization (Android, JVM, JS) |
-| `client` | UI-free client logic: API client, suburb selection, Suburb Card rows (JVM + JS) |
+| `shared` | Models and serialization (JVM + JS) |
+| `client` | UI-free client logic: API client, suburb selection, Suburb Card rows and card HTML (JVM + JS) |
 | `webApp` | The web client: Kotlin/JS, MapLibre GL JS and a DOM UI ([webApp/README.md](webApp/README.md)) |
-| `composeApp` | Compose UI and the desktop entry point (Android library + JVM); being replaced by the web app ([ADR 0019](docs/adr/0019-pivot-to-web.md)) |
-| `androidApp` | Android application entry point |
 | `server` | Ktor API |
-| `pipeline` | Data pipeline (later PRs) |
+| `pipeline` | Data pipeline: PostGIS, G-NAF, suburbs, lots, sales statistics ([pipeline/README.md](pipeline/README.md)) |
 
-`androidApp` is separate from `composeApp` because AGP 9 does not allow the Android application plugin in a
-Kotlin Multiplatform module (see [ADR 0001](docs/adr/0001-gradle-module-layout.md)).
+The product is a web app ([ADR 0019](docs/adr/0019-pivot-to-web.md)); the Android and desktop clients were retired.
 
 ## Build and test
 
-Requires JDK 17 and JDK 25 (the desktop map needs Java 25; see ADR 0008) and, for Android, the Android SDK (platform 37) with `sdk.dir` in `local.properties`.
+Requires JDK 17. Gradle downloads Node and the npm packages for the web build.
 
 ```bash
 ./gradlew build
 ```
 
-```bash
-./gradlew :composeApp:run
-```
+## Run it locally
 
-Desktop draws a raster-tile fallback map by default. Other renderers are selected with `-PmapRenderer=`:
-`vector` is our own vector-tile renderer (ADR 0010) and `maplibre` is the MapLibre vector map, which needs a
-capable GPU (ADR 0008, 0009).
+Start the API (below), then the web dev server, and open http://localhost:8081. The first visit asks for the API key.
+
+```bash
+./gradlew :webApp:jsBrowserDevelopmentRun --continuous
+```
 
 ## API server
 
@@ -44,9 +41,8 @@ cp server/.env.example server/.env   # then set API_KEY (16+ characters)
 ```
 
 The server listens on `0.0.0.0:8080`. `GET /health` is open; everything under `/v1` needs the `X-API-Key` header.
-Build the Android app against it with `-PapiBaseUrl=...` (default `http://10.0.2.2:8080`, the emulator's host) and
-`-PapiKey=...`; the desktop app reads `HOMEFINDER_API_URL` and `HOMEFINDER_API_KEY`. See
-[ADR 0013](docs/adr/0013-api-skeleton-auth-and-android-link.md).
+The web app sends the key you enter in the browser. See [ADR 0013](docs/adr/0013-api-skeleton-auth-and-android-link.md)
+(its Android parts are superseded by ADR 0019).
 
 ### Suburb tiles
 
@@ -65,5 +61,5 @@ postcode, area, and every other statistic explicitly unknown until the pipeline 
 ### Selecting a suburb
 
 Tap a suburb to select it: it is highlighted and a card opens (a bottom sheet on narrow windows, a side panel on wide
-ones). Back (Android), Escape (desktop), Close or swiping the sheet away clears it. Taps need the API and its key. See
+ones). Escape or Close clears it. Taps need the API and its key. See
 [ADR 0017](docs/adr/0017-suburb-selection-and-card.md).

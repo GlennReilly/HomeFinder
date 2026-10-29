@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
 }
 
-// Client logic with no UI: API client, suburb selection and the Suburb Card rows. Shared by the Compose apps and the
+// Client logic with no UI: API client, suburb selection and the Suburb Card rows. Used by the
 // web app (ADR 0019). Tests run on the JVM; the JS target is built and its common tests run under Node.
 kotlin {
     jvmToolchain(17)
