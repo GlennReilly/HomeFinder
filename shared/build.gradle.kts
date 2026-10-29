@@ -13,6 +13,7 @@ kotlin {
         minSdk = libs.versions.androidMinSdk.get().toInt()
     }
     jvm()
+    js { nodejs() }
 
     sourceSets {
         commonMain.dependencies {
