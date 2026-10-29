@@ -25,3 +25,14 @@ tests/test_load_gnaf.sh    # fixture-based integration test (needs Docker)
 
 See [ADR 0003](../docs/adr/0003-gnaf-pilot-region-and-loading.md). Data: G-NAF © Geoscape Australia licensed by the
 Commonwealth of Australia under the Open G-NAF End User Licence Agreement.
+
+## Suburbs, lots and address links (PR 4)
+
+```bash
+scripts/load-suburbs.sh        # official suburb boundaries for the pilot localities
+scripts/load-lots.sh           # cadastre lots, paged per suburb (cached in ../data/raw/cadastre)
+scripts/link-address-lots.sh   # links each address to a lot and prints match rates
+tests/test_lots.sh             # fixture-based integration test (needs Docker and jq)
+```
+
+See [ADR 0005](../docs/adr/0005-lots-suburbs-crs-and-address-link.md). Source: NSW Spatial Services.

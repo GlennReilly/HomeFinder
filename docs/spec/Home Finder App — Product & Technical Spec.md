@@ -227,6 +227,7 @@ Answers to the "Ask me first" questions, recorded as they are made. Full reasoni
 | 2 | Migrations with Flyway (plain SQL, Docker image). Credentials in a gitignored `.env` with `.env.example`. Postgres bound to `127.0.0.1`. Image `postgis/postgis:18-3.6`. | [0002](../adr/0002-postgis-flyway-and-credentials.md) |
 | 3 | Pilot region: Newcastle and Lake Macquarie, filtered by a suburb-name list. Full G-NAF Aug 2026 GDA2020 PSV. Raw data in gitignored `data/raw`. Download script run by the user. | [0003](../adr/0003-gnaf-pilot-region-and-loading.md) |
 | 3 | No missing addresses: include every suburb overlapping either council (172), load LGA polygons, and fail the load if an in-council address is missed. | [0004](../adr/0004-gnaf-completeness-any-overlap-suburbs.md) |
+| 4 | Paged NSW web-service queries (no bulk download). Store 7844, calculate in GDA2020 / MGA 56 (7856). Link addresses to lots by legal parcel id, then point-in-polygon. | [0005](../adr/0005-lots-suburbs-crs-and-address-link.md) |
 
 ## Working agreement for Claude Code
 
