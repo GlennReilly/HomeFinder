@@ -213,7 +213,7 @@ Build the cheap, high-confidence attributes first and prove the risky ones early
 6. **M5, decisions:** shortlist, compare, hard filters and weighted score.
 7. **M6, release:** offline cache, accessibility pass, store builds, attribution screen.
 
-**Open decisions** — decided: Android and desktop ship first, then iOS and web, with local PostGIS and a thin Ktor API for the MVP (hosted PostGIS or static packs later). Still open, with the defaults this spec assumes: the price source (own model on Valuer General sales) and the launch region (one metro pilot).
+**Open decisions** — decided: Android and desktop ship first, then iOS and web, with local PostGIS and a thin Ktor API for the MVP (hosted PostGIS or static packs later). Launch region decided (Newcastle and Lake Macquarie, see the decision log). Still open, with the default this spec assumes: the price source (own model on Valuer General sales).
 
 ## Decision log
 
@@ -225,6 +225,8 @@ Answers to the "Ask me first" questions, recorded as they are made. Full reasoni
 | 1 | Versions: Kotlin 2.4.21, Compose Multiplatform 1.12.2, AGP 9.5.0, Gradle 9.8.2, compileSdk 37, JVM 17. | [0001](../adr/0001-gradle-module-layout.md) |
 | 1 | Dependencies approved: Compose MP + Material3, JUnit + MockK + coroutines-test, Ktor server + kotlinx.serialization, Koin. | [0001](../adr/0001-gradle-module-layout.md) |
 | 2 | Migrations with Flyway (plain SQL, Docker image). Credentials in a gitignored `.env` with `.env.example`. Postgres bound to `127.0.0.1`. Image `postgis/postgis:18-3.6`. | [0002](../adr/0002-postgis-flyway-and-credentials.md) |
+| 3 | Pilot region: Newcastle and Lake Macquarie, filtered by a suburb-name list. Full G-NAF Aug 2026 GDA2020 PSV. Raw data in gitignored `data/raw`. Download script run by the user. | [0003](../adr/0003-gnaf-pilot-region-and-loading.md) |
+| 3 | No missing addresses: include every suburb overlapping either council (172), load LGA polygons, and fail the load if an in-council address is missed. | [0004](../adr/0004-gnaf-completeness-any-overlap-suburbs.md) |
 
 ## Working agreement for Claude Code
 
