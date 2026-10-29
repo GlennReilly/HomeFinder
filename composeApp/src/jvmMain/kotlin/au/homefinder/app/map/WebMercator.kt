@@ -72,10 +72,13 @@ data class RasterViewport(val centre: LonLat, val zoom: Double) {
         )
     }
 
-    /** The tiles covering a [widthPx] by [heightPx] viewport. Tiles are drawn at the integer zoom below [zoom]. */
-    fun visibleTiles(widthPx: Double, heightPx: Double): List<PlacedTile> {
+    /**
+     * The tiles covering a [widthPx] by [heightPx] viewport. Tiles are drawn at the integer zoom below [zoom], capped
+     * at [maxTileZoom] (the source's deepest level), and scaled up beyond that.
+     */
+    fun visibleTiles(widthPx: Double, heightPx: Double, maxTileZoom: Int = WebMercator.MAX_ZOOM.toInt()): List<PlacedTile> {
         if (widthPx <= 0 || heightPx <= 0) return emptyList()
-        val tileZoom = floor(zoom).toInt()
+        val tileZoom = minOf(floor(zoom).toInt(), maxTileZoom)
         val scale = 2.0.pow(zoom - tileZoom)
         val centreWorld = WebMercator.toWorld(centre, tileZoom.toDouble())
         val left = centreWorld.x - widthPx / 2 / scale

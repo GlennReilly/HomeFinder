@@ -11,3 +11,4 @@
 | [0007](0007-nearest-lot-low-confidence-link.md) | Nearest-lot link as a low-confidence fallback | Accepted |
 | [0008](0008-map-library-basemap-and-desktop-finding.md) | Map library, basemap and the desktop finding | Accepted |
 | [0009](0009-desktop-raster-tile-fallback.md) | Desktop raster-tile fallback map | Accepted |
+| [0010](0010-desktop-vector-tile-renderer.md) | Desktop vector-tile renderer | Accepted |
