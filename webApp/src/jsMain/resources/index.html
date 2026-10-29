@@ -14,7 +14,9 @@
     <form id="key-form">
       <h2>Home Finder</h2>
       <label for="key-input">API key</label>
-      <input id="key-input" type="password" autocomplete="off" minlength="16" required>
+      <input id="key-input" type="password" name="homefinder-api-key" autocomplete="off" minlength="16" required
+             data-bwignore="true" data-lpignore="true" data-1p-ignore="true" aria-describedby="key-help">
+      <p id="key-help">The <code>API_KEY</code> value from <code>server/.env</code> (16 or more characters), not a saved password.</p>
       <button type="submit">Continue</button>
     </form>
   </div>

@@ -49,3 +49,4 @@ progress { width: 100%; margin: 16px 0; }
 #key-form { background: var(--surface); padding: 24px; border-radius: 12px; display: grid; gap: 10px; min-width: 260px; }
 #key-form h2 { margin: 0; }
 #key-form input { font: inherit; padding: 8px; }
+#key-help { margin: 0; font-size: .8rem; color: var(--muted); max-width: 26ch; }
