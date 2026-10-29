@@ -237,6 +237,7 @@ Answers to the "Ask me first" questions, recorded as they are made. Full reasoni
 | 6 | Dates as kotlinx-datetime LocalDate, money as whole AUD Long, enum values as listed in the ADR, every SuburbReport stat an Attribute<T>. | [0012](../adr/0012-shared-models-and-serialization.md) |
 | 7 | API on port 8080 on all interfaces, protected by an X-API-Key header (health stays open); config from environment variables; Android uses the OkHttp Ktor client with debug-only cleartext HTTP and a base URL from a Gradle property. | [0013](../adr/0013-api-skeleton-auth-and-android-link.md) |
 | 8 | Suburb tiles are served by the Ktor API from PostGIS (`ST_AsMVT`) using geometry precomputed per zoom by the pipeline; the key may be a header or, for tiles, a query parameter. Split into 8a (server) and 8b (clients). | [0014](../adr/0014-suburb-vector-tiles.md) |
+| 8 | Suburb layers on the clients: a purple outline fading from zoom 12 to 15, names to zoom 14 with bigger suburbs first. Android uses MapLibre layers (key as a query parameter, a font OpenFreeMap serves); desktop uses one overlay over both renderers. | [0015](../adr/0015-suburb-layers-on-the-clients.md) |
 
 ## Working agreement for Claude Code
 

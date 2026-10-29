@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import au.homefinder.app.map.suburb.SuburbOverlay
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
@@ -23,6 +24,7 @@ private val MAP_BACKGROUND = Color(0xFFE8E4DC)
 val RasterTileRenderer: MapRenderer = MapRenderer { config, modifier ->
     PannableMap(config.initialCamera, OsmTileFetcher.ATTRIBUTION, modifier) { viewport, size ->
         RasterTileLayer(viewport, size)
+        config.suburbs?.let { SuburbOverlay(it, viewport, size) }
     }
 }
 
