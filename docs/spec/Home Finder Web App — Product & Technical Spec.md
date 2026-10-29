@@ -40,7 +40,7 @@ Browser (Kotlin/JS)  ──same origin──►  Ktor server  ──►  PostGIS
 
 - **Language:** Kotlin/JS (IR compiler) for the client, so the models, API contract, view model and API client are the same code the server uses.
 - **Map:** MapLibre GL JS, the reference web implementation, added as an npm dependency through Gradle and called from Kotlin through hand-written `external` declarations for the small part of its API we use (map, sources, layers, camera, click events, feature state). Vector tiles for suburbs and lots served by our API; the basemap is OpenFreeMap. The `MapRenderer` seam stays, so the map can be replaced without touching the rest.
-- **UI:** plain DOM, built from Kotlin. Layout and styling in CSS, so the bottom sheet / side panel switch is a media query and accessibility (focus, headings, labels) is native HTML. The Kotlin helper for building DOM is an open decision (below).
+- **UI:** plain DOM, built from Kotlin. Layout and styling in CSS, so the bottom sheet / side panel switch is a media query and accessibility (focus, headings, labels) is native HTML. DOM is built with `kotlinx-html` (a small type-safe HTML DSL, no framework). The view model exposes state as a `StateFlow`; a `render(state)` function redraws the changed region, and the HTML output is unit-tested on the JVM.
 - **State:** unchanged one-way data flow; selection is a suburb id in `MapViewModel`, observed through Kotlin `StateFlow`. The map, search box and detail panel all render from it.
 - **Client data:** Ktor client (JS engine), kotlinx.serialization. The shortlist and recent lookups use browser storage behind a small `ShortlistStore` interface (IndexedDB), replacing SQLDelight.
 - **Backend:** unchanged: Ktor on PostGIS, pipeline run locally. The server additionally serves the compiled web bundle as static files so the page and API share one origin.
@@ -71,7 +71,7 @@ The Android design needed an API key because the phone reached the server over a
 
 Numbering continues from the PR list so history stays traceable. PRs stay small and each stands alone; every PR is based on `main`.
 
-1. **W0, web foundation and spike:** add a `js` target to `shared`; create the `client` module (moving the Compose-free logic and its tests) and the `webApp` module; render a MapLibre GL JS map with the OpenFreeMap basemap and our suburb tile layer; select a suburb by tap through `/v1/suburbs/at` and show the card in the DOM. Pass criteria: the map pans and zooms smoothly, suburb outlines and names draw with the same styling as before, the tap selects, the card shows name, postcode, area and unknown rows, and the bundle loads quickly (target below). It also settles the DOM helper (open decision) and the hand-written MapLibre `external` declarations.
+1. **W0, web foundation and spike:** add a `js` target to `shared`; create the `client` module (moving the Compose-free logic and its tests) and the `webApp` module; render a MapLibre GL JS map with the OpenFreeMap basemap and our suburb tile layer; select a suburb by tap through `/v1/suburbs/at` and show the card in the DOM. Pass criteria: the map pans and zooms smoothly, suburb outlines and names draw with the same styling as before, the tap selects, the card shows name, postcode, area and unknown rows, and the bundle loads quickly (target below). It also settles the hand-written MapLibre `external` declarations.
 2. **W1, retire the old clients:** remove `androidApp`, `composeApp` (Android and desktop targets, the vector and raster renderers and their tests), Compose and Material3 from the build, Java 25 and the `-PmapRenderer` flag; update README and CI. Done after W0 passes, so the old apps keep working until the web app does.
 3. **W2, serve the web app:** the Ktor server serves the built bundle; bind address and key behaviour per "Access and security"; one command to build and run everything locally.
 4. **PR 10b, real suburb stats on the card:** unchanged from the plan (server reads `suburb_stats` into `SuburbReport`; the card shows the real median). Not blocked by W0 because the server and tests are platform-independent, but verified in the browser once W2 lands.
@@ -91,7 +91,7 @@ Numbering continues from the PR list so history stays traceable. PRs stay small 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
 | Hand-written Kotlin `external` declarations for MapLibre GL JS | Mistakes or gaps show up only at runtime; library upgrades can break them | Keep the used API small and behind `MapRenderer`; pin the npm version; a browser smoke test in CI; fall back to a small JavaScript file if an API is awkward to declare |
-| Kotlin/JS DOM tooling is thinner than React's | Slower UI work, more hand-written code | Keep the UI small and server-driven; choose the DOM helper in W0; the logic stays in Kotlin with its tests |
+| Kotlin/JS DOM tooling is thinner than React's | Slower UI work, more hand-written code | Keep the UI small and server-driven; `kotlinx-html` output is tested on the JVM; the logic stays in Kotlin with its tests |
 | Frontend build (npm packages through Gradle) | Slower, less familiar build | One documented build command; pin versions; cache in CI |
 | API key in the browser is not secret | Anyone on the network could call the API | Same origin, localhost or private-network binding only; no public exposure |
 | Public hosting reopens data licences | PSI and OSM terms change | Out of scope; ADR 0018 requires a PSI licence before any sharing |
@@ -100,11 +100,10 @@ All risks in the old spec (brick inference, flood gaps, aspect on irregular lots
 
 ## Open decisions
 
-Decided: web only; Kotlin/JS with MapLibre GL JS (chosen over Compose for web and over React); single user, local or private; Android and desktop retired; pilot region Newcastle and Lake Macquarie; price source is our own model on Valuer General sales (personal use).
+Decided: web only; Kotlin/JS with MapLibre GL JS (chosen over Compose for web and over React); `kotlinx-html` for the DOM (chosen over Compose HTML, approved as a new dependency); single user, local or private; Android and desktop retired; pilot region Newcastle and Lake Macquarie; price source is our own model on Valuer General sales (personal use).
 
 Still open, with the default this spec assumes:
 - Whether to keep the API key on a private deployment (default: keep).
 - Browser storage mechanism for the shortlist (default: IndexedDB behind `ShortlistStore`).
-- Kotlin helper for building the DOM: `kotlinx-html` (default; a small library, no framework) or Compose HTML (declarative, heavier, reuses Compose state). Chosen in W0, and a new dependency, so I will ask before adding it.
 - How the app is run day to day: from the Gradle build on this machine (default) or in a container.
 - Load-time targets (default: 2 s cached, 4 s cold, to be measured in W0).

@@ -14,7 +14,7 @@ you alone, run locally or on a private host. An audit of the code showed which p
 - The client is Kotlin/JS with MapLibre GL JS and a plain DOM UI. It was chosen over Compose Multiplatform for web (the
   map library is Alpha there and the page would be drawn to a canvas) and over React (breaks the Kotlin-first rule).
   MapLibre GL JS is the mature web map, is called through hand-written `external` declarations behind `MapRenderer`,
-  and the DOM UI gives native accessibility and a small bundle.
+  and the DOM UI (built with `kotlinx-html`) gives native accessibility and a small bundle.
 - Kept unchanged: the whole `pipeline/`, the Ktor `server/` (it additionally serves the web bundle from the same origin),
   the `shared` models and API contract (gaining a `js` target), and the Compose-free client logic (view model, card
   rows, layout rule, API client, map config, about 440 lines with tests), which moves to a new `client` module with
@@ -31,8 +31,10 @@ you alone, run locally or on a private host. An audit of the code showed which p
 - About 400 lines of Compose UI and about 1,650 lines of renderer code (plus their tests) are replaced or deleted, and
   the Java 25 requirement goes. The map becomes a standard, widely used library.
 - The Kotlin MapLibre bindings are ours to write and maintain; the used API surface is deliberately small.
-- Frontend tooling (npm packages through Gradle, a DOM helper) is new. The helper (`kotlinx-html` or Compose HTML) is a
-  new dependency and is chosen in W0 after asking.
+- Frontend tooling (npm packages through Gradle) is new, and so is `kotlinx-html` for building the DOM, approved by you
+  over Compose HTML (smaller, no Compose in the web build, output testable on the JVM). Updates are explicit: a
+  `render(state)` function redraws the changed region, which is manageable for a small UI; if the UI grows far (compare
+  tables, filters) revisiting Compose HTML is a contained change because the view model and API client do not depend on it.
 - The server gains static file serving; CORS is not needed because the origin is shared.
 - This supersedes the client parts of ADR 0001 (module layout and Android/desktop targets), 0008 to 0011 (map library and
   desktop renderers), 0013 (the Android link and cleartext HTTP) and 0015 (client layers, replaced by MapLibre GL JS
