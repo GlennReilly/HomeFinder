@@ -215,6 +215,17 @@ Build the cheap, high-confidence attributes first and prove the risky ones early
 
 **Open decisions** — decided: Android and desktop ship first, then iOS and web, with local PostGIS and a thin Ktor API for the MVP (hosted PostGIS or static packs later). Still open, with the defaults this spec assumes: the price source (own model on Valuer General sales) and the launch region (one metro pilot).
 
+## Decision log
+
+Answers to the "Ask me first" questions, recorded as they are made. Full reasoning is in [docs/adr](../adr/README.md).
+
+| PR | Decision | ADR |
+| --- | --- | --- |
+| 1 | Repo is the existing `HomeFinder` folder. CI is GitHub Actions. Package prefix `au.homefinder`. Layout as proposed, plus a separate `androidApp` module because AGP 9 disallows the Android application plugin in a KMP module. | [0001](../adr/0001-gradle-module-layout.md) |
+| 1 | Versions: Kotlin 2.4.21, Compose Multiplatform 1.12.2, AGP 9.5.0, Gradle 9.8.2, compileSdk 37, JVM 17. | [0001](../adr/0001-gradle-module-layout.md) |
+| 1 | Dependencies approved: Compose MP + Material3, JUnit + MockK + coroutines-test, Ktor server + kotlinx.serialization, Koin. | [0001](../adr/0001-gradle-module-layout.md) |
+| 2 | Migrations with Flyway (plain SQL, Docker image). Credentials in a gitignored `.env` with `.env.example`. Postgres bound to `127.0.0.1`. Image `postgis/postgis:18-3.6`. | [0002](../adr/0002-postgis-flyway-and-credentials.md) |
+
 ## Working agreement for Claude Code
 
 These rules apply to every PR. They exist so Claude Code never builds on a guess.
