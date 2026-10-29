@@ -5,7 +5,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import au.homefinder.shared.api.TileContract
+import androidx.compose.runtime.remember
 import org.maplibre.compose.camera.CameraPosition
+import org.maplibre.compose.interaction.ClickResult
+import org.maplibre.compose.interaction.MapInteractions
 import org.maplibre.compose.expressions.dsl.asNumber
 import org.maplibre.compose.expressions.dsl.asString
 import org.maplibre.compose.expressions.dsl.const
@@ -14,6 +17,10 @@ import org.maplibre.compose.expressions.dsl.interpolate
 import org.maplibre.compose.expressions.dsl.linear
 import org.maplibre.compose.expressions.dsl.unaryMinus
 import org.maplibre.compose.expressions.dsl.zoom
+import org.maplibre.compose.expressions.dsl.collator
+import org.maplibre.compose.expressions.dsl.eq
+import org.maplibre.compose.expressions.dsl.neq
+import org.maplibre.compose.layers.FillLayer
 import org.maplibre.compose.layers.LineLayer
 import org.maplibre.compose.layers.SymbolLayer
 import org.maplibre.compose.sources.rememberVectorTileSource
@@ -27,7 +34,7 @@ import org.maplibre.spatialk.geojson.Position
  * (OpenFreeMap, OpenMapTiles, OpenStreetMap), which satisfies the data licences; [MapConfig.attribution] is the text
  * for any renderer that does not, and for the attribution screen (PR 25).
  */
-val MapLibreRenderer: MapRenderer = MapRenderer { config, modifier ->
+val MapLibreRenderer: MapRenderer = MapRenderer { config, modifier, interaction ->
     val mapState = rememberMapState(
         baseStyle = BaseStyle.Uri(config.styleUrl),
         initialCameraPosition = CameraPosition(
@@ -35,9 +42,21 @@ val MapLibreRenderer: MapRenderer = MapRenderer { config, modifier ->
             zoom = config.initialCamera.zoom,
         ),
     ) {
-        config.suburbs?.let { SuburbLayers(it) }
+        config.suburbs?.let { SuburbLayers(it, interaction.selectedSuburbId()) }
     }
-    MaplibreMap(modifier = modifier, state = mapState)
+    val interactions = remember(interaction) {
+        MapInteractions(MapInteractions.Standard) {
+            callbacks {
+                click {
+                    onEvent { event ->
+                        event.position?.let { interaction.onTap(MapTap(it.latitude, it.longitude, mapState.cameraPosition.zoom)) }
+                        ClickResult.Consume
+                    }
+                }
+            }
+        }
+    }
+    MaplibreMap(modifier = modifier, state = mapState, interactions = interactions)
 }
 
 /** The single place the rest of the app draws a map. The renderer is swappable (spec: risks table). */
@@ -46,8 +65,9 @@ fun MapView(
     modifier: Modifier = Modifier,
     config: MapConfig = MapConfig.Pilot,
     renderer: MapRenderer = MapLibreRenderer,
+    interaction: MapInteraction = MapInteraction.None,
 ) {
-    renderer.Map(config, modifier)
+    renderer.Map(config, modifier, interaction)
 }
 
 /**
@@ -55,10 +75,28 @@ fun MapView(
  * request headers, so the key travels as a query parameter (ADR 0014).
  */
 @Composable
-private fun SuburbLayers(suburbs: SuburbTileConfig) {
+private fun SuburbLayers(suburbs: SuburbTileConfig, selectedSuburbId: String?) {
     val source = rememberVectorTileSource(tiles = listOf(suburbs.tilesUrl(keyInQuery = true))) {
         minZoom = TileContract.SUBURBS_MIN_ZOOM
         maxZoom = TileContract.SUBURBS_MAX_ZOOM
+    }
+    if (selectedSuburbId != null) {
+        // The other suburbs dim slightly and the selected one is tinted, under the outlines.
+        val selected = feature.get("suburb_id").asString()
+        FillLayer(
+            id = "suburb-dim",
+            source = source,
+            sourceLayer = TileContract.SUBURB_POLYGON_LAYER,
+            filter = neq(selected, const(selectedSuburbId), collator()),
+            color = const(SuburbStyle.dimColor),
+        )
+        FillLayer(
+            id = "suburb-selected-fill",
+            source = source,
+            sourceLayer = TileContract.SUBURB_POLYGON_LAYER,
+            filter = eq(selected, const(selectedSuburbId), collator()),
+            color = const(SuburbStyle.selectedFillColor),
+        )
     }
     LineLayer(
         id = "suburb-outline",
@@ -72,6 +110,16 @@ private fun SuburbLayers(suburbs: SuburbTileConfig) {
         ),
         width = const(SuburbStyle.OUTLINE_WIDTH_DP.dp),
     )
+    if (selectedSuburbId != null) {
+        LineLayer(
+            id = "suburb-selected-outline",
+            source = source,
+            sourceLayer = TileContract.SUBURB_POLYGON_LAYER,
+            filter = eq(feature.get("suburb_id").asString(), const(selectedSuburbId), collator()),
+            color = const(SuburbStyle.outlineColor),
+            width = const(SuburbStyle.SELECTED_OUTLINE_WIDTH_DP.dp),
+        )
+    }
     SymbolLayer(
         id = "suburb-name",
         source = source,

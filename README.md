@@ -59,3 +59,9 @@ alone. The key can be the `X-API-Key` header or a `?key=` query parameter on til
 `GET /v1/suburbs/at?lat=&lon=` returns the suburb under a point and `GET /v1/suburbs/{suburbId}` its report (name,
 postcode, area, and every other statistic explicitly unknown until the pipeline computes it). Both need the
 `X-API-Key` header and the database. See [ADR 0016](docs/adr/0016-suburb-lookup-and-report-endpoints.md).
+
+### Selecting a suburb
+
+Tap a suburb to select it: it is highlighted and a card opens (a bottom sheet on narrow windows, a side panel on wide
+ones). Back (Android), Escape (desktop), Close or swiping the sheet away clears it. Taps need the API and its key. See
+[ADR 0017](docs/adr/0017-suburb-selection-and-card.md).

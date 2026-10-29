@@ -1,6 +1,7 @@
 package au.homefinder.app.map.suburb
 
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
 import au.homefinder.app.map.SuburbTileConfig
 import au.homefinder.app.map.TileId
 import au.homefinder.app.map.vector.GeometryType
@@ -22,28 +23,31 @@ import kotlinx.coroutines.withContext
 class SuburbLabel(val name: String, val x: Float, val y: Float, val areaKm2: Double)
 
 /** A suburb tile ready to draw: every boundary as one outline [Path] in tile coordinates, plus the name points. */
-class PreparedSuburbTile(val extent: Int, val outlines: Path?, val labels: List<SuburbLabel>) {
+class PreparedSuburbTile(
+    val extent: Int,
+    val outlines: Path?,
+    val labels: List<SuburbLabel>,
+    /** Each suburb's own shape by id, for the selection highlight; holes are cut out with the even-odd rule. */
+    val bySuburb: Map<String, Path> = emptyMap(),
+) {
     val isEmpty: Boolean get() = outlines == null && labels.isEmpty()
 
     companion object {
         val EMPTY = PreparedSuburbTile(VectorTileDecoder.DEFAULT_EXTENT, null, emptyList())
+        private const val ID_KEY = "suburb_id"
         private const val NAME_KEY = "name"
         private const val AREA_KEY = "area_km2"
 
         fun from(tile: VectorTile): PreparedSuburbTile {
             var outlines: Path? = null
+            val bySuburb = HashMap<String, Path>()
             for (feature in tile[TileContract.SUBURB_POLYGON_LAYER]?.features.orEmpty()) {
                 if (feature.type != GeometryType.POLYGON) continue
-                val path = outlines ?: Path().also { outlines = it }
+                val all = outlines ?: Path().also { outlines = it }
+                val own = feature.string(ID_KEY)?.let { id -> bySuburb.getOrPut(id) { Path().apply { fillType = PathFillType.EvenOdd } } }
                 for (ring in feature.geometry.parts) {
                     if (ring.size < MIN_RING_VALUES) continue
-                    path.moveTo(ring[0], ring[1])
-                    var i = 2
-                    while (i < ring.size) {
-                        path.lineTo(ring[i], ring[i + 1])
-                        i += 2
-                    }
-                    path.close()
+                    for (path in listOfNotNull(all, own)) addRing(path, ring)
                 }
             }
             val labels = tile[TileContract.SUBURB_LABEL_LAYER]?.features.orEmpty().mapNotNull { feature ->
@@ -52,7 +56,17 @@ class PreparedSuburbTile(val extent: Int, val outlines: Path?, val labels: List<
                 SuburbLabel(name, point[0], point[1], feature.properties[AREA_KEY] as? Double ?: 0.0)
             }
             val extent = tile.layers.values.firstOrNull()?.extent ?: VectorTileDecoder.DEFAULT_EXTENT
-            return PreparedSuburbTile(extent, outlines, labels)
+            return PreparedSuburbTile(extent, outlines, labels, bySuburb)
+        }
+
+        private fun addRing(path: Path, ring: FloatArray) {
+            path.moveTo(ring[0], ring[1])
+            var i = 2
+            while (i < ring.size) {
+                path.lineTo(ring[i], ring[i + 1])
+                i += 2
+            }
+            path.close()
         }
 
         private const val MIN_RING_VALUES = 6 // three points

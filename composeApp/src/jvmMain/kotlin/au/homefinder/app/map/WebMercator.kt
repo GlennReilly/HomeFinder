@@ -55,6 +55,12 @@ data class PlacedTile(val tile: TileId, val left: Float, val top: Float, val siz
 data class RasterViewport(val centre: LonLat, val zoom: Double) {
     constructor(latitude: Double, longitude: Double, zoom: Double) : this(LonLat(longitude, latitude), zoom)
 
+    /** The position under a point that is ([dxPixels], [dyPixels]) from the centre of the viewport (x right, y down). */
+    fun lonLatAt(dxPixels: Double, dyPixels: Double): LonLat {
+        val world = WebMercator.toWorld(centre, zoom)
+        return WebMercator.toLonLat(WorldPoint(world.x + dxPixels, world.y + dyPixels), zoom)
+    }
+
     fun pannedBy(dxPixels: Double, dyPixels: Double): RasterViewport {
         val world = WebMercator.toWorld(centre, zoom)
         return copy(centre = WebMercator.toLonLat(WorldPoint(world.x - dxPixels, world.y - dyPixels), zoom))

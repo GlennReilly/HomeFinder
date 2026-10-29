@@ -46,7 +46,7 @@ private val HALO_OFFSETS = listOf(
  * map underneath. Nothing is drawn below the suburb tiles' minimum zoom.
  */
 @Composable
-fun BoxScope.SuburbOverlay(config: SuburbTileConfig, viewport: RasterViewport, size: IntSize) {
+fun BoxScope.SuburbOverlay(config: SuburbTileConfig, selectedSuburbId: String?, viewport: RasterViewport, size: IntSize) {
     val scope = rememberCoroutineScope()
     val http = remember(config) { KtorBytesGet() }
     DisposableEffect(http) { onDispose { http.close() } }
@@ -64,7 +64,8 @@ fun BoxScope.SuburbOverlay(config: SuburbTileConfig, viewport: RasterViewport, s
         val candidates = ArrayList<LabelCandidate<TextLayoutResult>>()
         placed.forEach { tile ->
             val prepared = store.get(tile.tile) ?: return@forEach
-            drawOutlines(prepared, tile, viewport.zoom)
+            drawHighlight(prepared, tile, selectedSuburbId)
+            drawOutlines(prepared, tile, viewport.zoom, selectedSuburbId)
             if (SuburbStyle.labelsVisible(viewport.zoom)) collectLabels(prepared, tile, measurer, layouts, candidates)
         }
         LabelPlacer.place(candidates, this.size.width, this.size.height, LABEL_PADDING_PX).forEach { label ->
@@ -73,7 +74,23 @@ fun BoxScope.SuburbOverlay(config: SuburbTileConfig, viewport: RasterViewport, s
     }
 }
 
-private fun DrawScope.drawOutlines(prepared: PreparedSuburbTile, tile: PlacedTile, zoom: Double) {
+/** With a selection: the other suburbs dim slightly and the selected one is tinted, under the outlines. */
+private fun DrawScope.drawHighlight(prepared: PreparedSuburbTile, tile: PlacedTile, selectedSuburbId: String?) {
+    if (selectedSuburbId == null) return
+    val scale = tile.size / prepared.extent
+    clipRect(tile.left, tile.top, tile.left + tile.size, tile.top + tile.size) {
+        withTransform({
+            translate(tile.left, tile.top)
+            scale(scale, scale, Offset.Zero)
+        }) {
+            for ((id, path) in prepared.bySuburb) {
+                drawPath(path, if (id == selectedSuburbId) SuburbStyle.selectedFillColor else SuburbStyle.dimColor)
+            }
+        }
+    }
+}
+
+private fun DrawScope.drawOutlines(prepared: PreparedSuburbTile, tile: PlacedTile, zoom: Double, selectedSuburbId: String?) {
     val outlines = prepared.outlines ?: return
     val scale = tile.size / prepared.extent
     val color = SuburbStyle.outlineColor.copy(alpha = SuburbStyle.outlineOpacity(zoom))
@@ -84,6 +101,10 @@ private fun DrawScope.drawOutlines(prepared: PreparedSuburbTile, tile: PlacedTil
         }) {
             // A stroke that is a fixed width on screen even though the canvas is scaled to tile units.
             drawPath(outlines, color, style = Stroke(width = SuburbStyle.OUTLINE_WIDTH_DP * density / scale, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            // The selected suburb's outline is thick and solid, whatever the zoom.
+            selectedSuburbId?.let { prepared.bySuburb[it] }?.let { selected ->
+                drawPath(selected, SuburbStyle.outlineColor, style = Stroke(width = SuburbStyle.SELECTED_OUTLINE_WIDTH_DP * density / scale, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            }
         }
     }
 }

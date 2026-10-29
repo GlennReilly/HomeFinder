@@ -26,6 +26,11 @@ object SuburbStyle {
     val labelColor = Color(0xFF3B2F63)
     val labelHaloColor = Color(0xE6FFFFFF)
 
+    /** The selected suburb gets a tinted fill and a thick outline; the others dim slightly (spec). */
+    val selectedFillColor = Color(0x2E6D5BA6)
+    val dimColor = Color(0x1F000000)
+    const val SELECTED_OUTLINE_WIDTH_DP: Float = 3.5f
+
     const val OUTLINE_WIDTH_DP: Float = 1.2f
     const val OUTLINE_FULL_OPACITY_UNTIL_ZOOM: Double = 12.0
     const val OUTLINE_FADED_FROM_ZOOM: Double = 15.0

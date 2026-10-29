@@ -1,6 +1,7 @@
 package au.homefinder.app.map
 
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -35,7 +36,7 @@ private const val ATTRIBUTION_TEXT_SIZE_SP = 11
 
 /**
  * The interaction shared by the desktop fallback renderers: drag to pan, scroll wheel to zoom around the cursor, zoom
- * buttons and an attribution line. The renderer draws the tiles in [content] from the current viewport.
+ * buttons, an attribution line, and taps reported as coordinates. The renderer draws the tiles in [content] from the current viewport.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -43,6 +44,7 @@ fun PannableMap(
     initialCamera: MapCamera,
     attribution: String,
     modifier: Modifier = Modifier,
+    onTap: (MapTap) -> Unit = {},
     content: @Composable BoxScope.(viewport: RasterViewport, size: IntSize) -> Unit,
 ) {
     var viewport by remember {
@@ -54,6 +56,12 @@ fun PannableMap(
         modifier
             .onSizeChanged { size = it }
             .clipToBounds()
+            .pointerInput(Unit) {
+                detectTapGestures { tap ->
+                    val position = viewport.lonLatAt(tap.x - size.width / 2.0, tap.y - size.height / 2.0)
+                    onTap(MapTap(position.latitude, position.longitude, viewport.zoom))
+                }
+            }
             .pointerInput(Unit) {
                 detectDragGestures { change, drag ->
                     change.consume()

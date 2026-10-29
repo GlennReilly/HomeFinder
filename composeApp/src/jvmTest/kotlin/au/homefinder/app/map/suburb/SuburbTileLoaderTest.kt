@@ -10,6 +10,7 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -122,5 +123,46 @@ class SuburbTileLoaderTest {
         assertEquals(listOf("Valid"), labels.map { it.name })
         assertEquals(10f, labels.single().x)
         assertEquals(2.0, labels.single().areaKm2)
+    }
+}
+
+class PreparedSuburbShapesTest {
+    private val square = listOf(
+        au.homefinder.app.map.vector.ProtoWriter.command(1, 1), au.homefinder.app.map.vector.ProtoWriter.zigZag(100), au.homefinder.app.map.vector.ProtoWriter.zigZag(100),
+        au.homefinder.app.map.vector.ProtoWriter.command(2, 3), au.homefinder.app.map.vector.ProtoWriter.zigZag(200), au.homefinder.app.map.vector.ProtoWriter.zigZag(0),
+        au.homefinder.app.map.vector.ProtoWriter.zigZag(0), au.homefinder.app.map.vector.ProtoWriter.zigZag(200), au.homefinder.app.map.vector.ProtoWriter.zigZag(-200), au.homefinder.app.map.vector.ProtoWriter.zigZag(0),
+        au.homefinder.app.map.vector.ProtoWriter.command(7, 1),
+    )
+
+    private fun tile(vararg ids: String?): au.homefinder.app.map.vector.VectorTile {
+        val bytes = au.homefinder.app.map.vector.ProtoWriter().message(3) {
+            string(1, "suburb")
+            ids.forEachIndexed { i, id ->
+                message(2) { if (id != null) packed(2, listOf(0, i.toLong())); uint(3, 3); packed(4, square) }
+            }
+            string(3, "suburb_id")
+            ids.filterNotNull().forEach { id -> message(4) { string(1, id) } }
+        }.toBytes()
+        return au.homefinder.app.map.vector.VectorTileDecoder.decode(bytes)
+    }
+
+    @Test
+    fun `each suburb keeps its own shape under its id and all are in the combined outline`() {
+        val prepared = PreparedSuburbTile.from(tile("9001", "9002"))
+        assertEquals(setOf("9001", "9002"), prepared.bySuburb.keys)
+        assertNotNull(prepared.outlines)
+    }
+
+    @Test
+    fun `a polygon without an id is outlined but cannot be highlighted`() {
+        val prepared = PreparedSuburbTile.from(tile(null))
+        assertNotNull(prepared.outlines)
+        assertTrue(prepared.bySuburb.isEmpty())
+    }
+
+    @Test
+    fun `the same suburb split over features shares one shape`() {
+        val prepared = PreparedSuburbTile.from(tile("9001", "9001"))
+        assertEquals(setOf("9001"), prepared.bySuburb.keys)
     }
 }
