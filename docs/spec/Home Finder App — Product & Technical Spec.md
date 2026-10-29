@@ -232,6 +232,7 @@ Answers to the "Ask me first" questions, recorded as they are made. Full reasoni
 | 4 | Addresses with a geocode in the road or kerb link to the nearest lot within 30 m, marked low confidence. | [0007](../adr/0007-nearest-lot-low-confidence-link.md) |
 | 5 | maplibre-compose 0.20.0 with OpenFreeMap vector tiles, behind a swappable `MapRenderer`. Desktop needs Java 25. Android verified; desktop failed on the GT 710 GPU. | [0008](../adr/0008-map-library-basemap-and-desktop-finding.md) |
 | 5 | Desktop fallback: a Compose-drawn raster-tile map using OpenStreetMap tiles (Ktor client), MapLibre opt-in for capable GPUs. | [0009](../adr/0009-desktop-raster-tile-fallback.md) |
+| 5 | Second desktop fallback: our own vector-tile renderer for OpenFreeMap tiles, selectable with `-PmapRenderer=vector`. | [0010](../adr/0010-desktop-vector-tile-renderer.md) |
 
 ## Working agreement for Claude Code
 

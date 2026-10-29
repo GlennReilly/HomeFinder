@@ -93,4 +93,11 @@ class WebMercatorTest {
         assertTrue(tiles.all { it.tile.x in 0..7 })
         assertTrue(tiles.any { it.tile.x == 0 } && tiles.any { it.tile.x == 7 })
     }
+
+    @Test
+    fun `tiles beyond the source max zoom are the max zoom tiles scaled up`() {
+        val tiles = RasterViewport(newcastle, 16.0).visibleTiles(800.0, 600.0, maxTileZoom = 14)
+        assertTrue(tiles.all { it.tile.zoom == 14 })
+        assertEquals(256f * 4f, tiles.first().size, 0.01f)
+    }
 }
