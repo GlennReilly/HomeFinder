@@ -26,9 +26,11 @@ kotlin {
             implementation(compose.material3)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.koin.core)
+            implementation(libs.ktor.client.core)
             implementation(libs.maplibre.compose)
         }
         androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
             runtimeOnly(libs.maplibre.runtime.opengl.android)
         }
         commonTest.dependencies {
@@ -37,6 +39,7 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
+            implementation(libs.ktor.client.cio)
             runtimeOnly(libs.maplibre.runtime.opengl.linux.x64)
         }
         jvmTest.dependencies {

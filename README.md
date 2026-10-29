@@ -27,3 +27,25 @@ Requires JDK 17 and JDK 25 (the desktop map needs Java 25; see ADR 0008) and, fo
 ```bash
 ./gradlew :composeApp:run
 ```
+
+## API server
+
+```bash
+cp server/.env.example server/.env   # then set API_KEY (16+ characters)
+```
+```bash
+./gradlew :server:run
+```
+
+The server listens on `0.0.0.0:8080`. `GET /health` is open; everything under `/v1` needs the `X-API-Key` header.
+Build the Android app against it with `-PapiBaseUrl=...` (default `http://10.0.2.2:8080`, the emulator's host) and
+`-PapiKey=...`; the desktop app reads `HOMEFINDER_API_URL` and `HOMEFINDER_API_KEY`. See
+[ADR 0013](docs/adr/0013-api-skeleton-auth-and-android-link.md).
+
+### Suburb tiles
+
+`GET /tiles/suburbs/{z}/{x}/{y}.pbf` serves suburb boundaries and name points as vector tiles (zoom 5 to 14). They need
+the PostGIS database: set `DB_URL`, `DB_USER` and `DB_PASSWORD` in `server/.env`. Loading suburbs
+(`pipeline/scripts/load-suburbs.sh`) precomputes the tile data; `pipeline/scripts/refresh-suburb-tiles.sh` rebuilds it
+alone. The key can be the `X-API-Key` header or a `?key=` query parameter on tiles. Tile SQL tests:
+`server/tests/run-db-tests.sh` (needs Docker). See [ADR 0014](docs/adr/0014-suburb-vector-tiles.md).

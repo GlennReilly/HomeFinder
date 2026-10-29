@@ -17,7 +17,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(libs.kotlinx.datetime) // LocalDate is part of the public model
-            implementation(libs.kotlinx.serialization.json)
+            api(libs.kotlinx.serialization.json) // ApiJson exposes its Json type
             implementation(libs.kotlinx.coroutines.core)
         }
         commonTest.dependencies {

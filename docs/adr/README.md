@@ -11,3 +11,5 @@
 | [0007](0007-nearest-lot-low-confidence-link.md) | Nearest-lot link as a low-confidence fallback | Accepted |
 | [0008](0008-map-library-basemap-and-desktop-finding.md) | Map library, basemap and the desktop finding | Accepted |
 | [0012](0012-shared-models-and-serialization.md) | Shared models and serialization | Accepted |
+| [0013](0013-api-skeleton-auth-and-android-link.md) | API skeleton, API key and the Android link | Accepted |
+| [0014](0014-suburb-vector-tiles.md) | Suburb vector tiles served by the API | Accepted |
