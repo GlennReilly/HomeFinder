@@ -1,6 +1,6 @@
 # 0009. Desktop raster-tile fallback map
 
-Status: Accepted
+Status: Superseded by 0019
 
 ## Context
 ADR 0008 found that maplibre-compose cannot render on desktop on the development machine (GeForce GT 710, nouveau):

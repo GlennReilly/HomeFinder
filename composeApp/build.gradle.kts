@@ -21,6 +21,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":shared"))
+            api(project(":client")) // ApiConfig is part of the public App() signature
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)

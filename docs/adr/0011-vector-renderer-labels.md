@@ -1,6 +1,6 @@
 # 0011. Street names and other labels on the desktop vector map
 
-Status: Accepted
+Status: Superseded by 0019
 
 ## Context
 ADR 0010 listed "road names along lines, house numbers and point-of-interest symbols" as not drawn. You asked for

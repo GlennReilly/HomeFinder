@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "HomeFinder"
 
-include(":shared", ":composeApp", ":androidApp", ":server")
+include(":shared", ":client", ":webApp", ":composeApp", ":androidApp", ":server")

@@ -1,5 +1,7 @@
 # Home Finder App — Product & Technical Spec
 
+> **Superseded on 30 Oct 2026** by [Home Finder Web App — Product & Technical Spec](Home%20Finder%20Web%20App%20%E2%80%94%20Product%20%26%20Technical%20Spec.md) (web only; ADR 0019). Kept for history and for the sections the new spec refers back to.
+
 Oct 29, 2026 · @Glenn Reilly
 
 ## Overview
@@ -275,6 +277,7 @@ Twenty-five PRs take the project from empty repo to a release on Android and des
 | 9 | Suburb selection state and a basic Suburb Card | Card layout on phone and desktop | Tap or search selects a suburb with a highlight and card |
 | 10 | Suburb medians come from the NSW Valuer General sales files for personal non-commercial use (no redistribution): last 24 months, residential full-price single-property sales, matched by locality name and postcode; neighbouring councils are also read so border suburbs are not undercounted. Split into 10a (pipeline) and 10b (server and card). | [0018](../adr/0018-sales-statistics-pipeline.md) |
 | 10 | Pipeline: suburb stats (price medians, block size spread) | Price source (open decision), sales file licence check | Suburb Card shows real median price in AUD |
+| W | Target platform changed to web only (single user, local or private). UI is Kotlin/JS with MapLibre GL JS and a DOM UI (not Compose for web). Android and desktop clients are retired after the W0 foundation works. New spec: Home Finder Web App. | [0019](../adr/0019-pivot-to-web.md) |
 | 11 | Address autocomplete endpoint and search box | Search ranking, how duplicate suburb names resolve | Typing an address returns suggestions and flies the map to it |
 | 12 | Lot layer at zoom 16+, tap to resolve a lot | Lot tile source and zoom thresholds | Tapping a lot highlights it and returns its ID |
 | 13 | Pipeline: block size and slope from the DEM | DEM resolution to use, slope class thresholds | Per-lot area and slope classes stored |
