@@ -2,6 +2,7 @@
 # Loads NSW G-NAF PSV tables into staging, then rebuilds `address` for the pilot localities.
 # Usage: load-gnaf.sh [gnaf_dir]   (default: the unzipped pinned release under data/raw)
 source "$(dirname "$0")/common.sh"
+ensure_migrated
 
 GNAF_DIR="${1:-$RAW_DIR/gnaf/$GNAF_RELEASE/unzipped}"
 SHA_FILE="$RAW_DIR/gnaf/$GNAF_RELEASE/$GNAF_ZIP_NAME.sha256"

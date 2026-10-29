@@ -19,3 +19,9 @@ compose() {
 psql_db() {
   compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 "$@"
 }
+
+# Applies pending Flyway migrations (a no-op when up to date) so scripts never run against an old schema.
+ensure_migrated() {
+  compose up -d --wait db >/dev/null
+  compose run --rm migrate >/dev/null
+}

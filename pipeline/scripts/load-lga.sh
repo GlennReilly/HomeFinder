@@ -2,6 +2,7 @@
 # Loads the Newcastle and Lake Macquarie LGA polygons (GDA2020, GeoJSON) from NSW Spatial Services.
 # Usage: load-lga.sh [geojson]   (default: download to data/raw/lga/lga.geojson if absent)
 source "$(dirname "$0")/common.sh"
+ensure_migrated
 
 LGA_URL="https://portal.spatial.nsw.gov.au/server/rest/services/NSW_Administrative_Boundaries_Theme/FeatureServer/8/query?where=lganame%20in%20(%27NEWCASTLE%27,%27LAKE%20MACQUARIE%27)&outFields=lganame&outSR=7844&f=geojson"
 FILE="${1:-$RAW_DIR/lga/lga.geojson}"
