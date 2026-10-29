@@ -1,0 +1,21 @@
+# Shared setup for pipeline scripts. Source it; do not execute.
+set -euo pipefail
+
+PIPELINE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="${ENV_FILE:-$PIPELINE_DIR/.env}"
+RAW_DIR="${RAW_DIR:-$PIPELINE_DIR/../data/raw}"
+
+set -a
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+# shellcheck disable=SC1091
+. "$PIPELINE_DIR/config/gnaf-release.env"
+set +a
+
+compose() {
+  docker compose -f "$PIPELINE_DIR/docker-compose.yml" --env-file "$ENV_FILE" "$@"
+}
+
+psql_db() {
+  compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 "$@"
+}

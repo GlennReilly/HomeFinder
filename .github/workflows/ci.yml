@@ -17,3 +17,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Build and test (Android + desktop + server)
         run: ./gradlew build
+
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pipeline integration test (PostGIS + G-NAF fixture)
+        run: pipeline/tests/test_load_gnaf.sh
