@@ -36,3 +36,16 @@ tests/test_lots.sh             # fixture-based integration test (needs Docker an
 ```
 
 See [ADR 0005](../docs/adr/0005-lots-suburbs-crs-and-address-link.md). Source: NSW Spatial Services.
+
+## Sales and suburb statistics (PR 10a)
+
+```bash
+scripts/download-sales.sh       # Valuer General yearly + weekly zips into ../data/raw/sales (run it yourself)
+scripts/load-sales.sh           # applies the counting rules, rebuilds suburb_stats and prints what was excluded and why
+scripts/refresh-suburb-stats.sh # rebuilds suburb_stats alone (for example after reloading lots)
+tests/test_sales.sh             # fixture-based integration test (needs Docker and jq)
+```
+
+Rules, windows, thresholds and the licence limits (personal non-commercial use, no redistribution) are in
+[ADR 0018](../docs/adr/0018-sales-statistics-pipeline.md); thresholds and file lists in `config/sales.env`, councils in
+`config/sales_districts.csv`. Source: NSW Valuer General, Property Sales Information.

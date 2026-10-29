@@ -273,6 +273,7 @@ Twenty-five PRs take the project from empty repo to a release on Android and des
 | 7 | Ktor API skeleton with health check and config | Port, auth approach (LAN, Tailscale, API key) | API runs locally and the app reaches it from Android |
 | 8 | Suburb tiles and boundary layer with name labels | Tile server choice (PMTiles or Martin) | Suburb outlines and names draw at wide zoom |
 | 9 | Suburb selection state and a basic Suburb Card | Card layout on phone and desktop | Tap or search selects a suburb with a highlight and card |
+| 10 | Suburb medians come from the NSW Valuer General sales files for personal non-commercial use (no redistribution): last 24 months, residential full-price single-property sales, matched by locality name and postcode; neighbouring councils are also read so border suburbs are not undercounted. Split into 10a (pipeline) and 10b (server and card). | [0018](../adr/0018-sales-statistics-pipeline.md) |
 | 10 | Pipeline: suburb stats (price medians, block size spread) | Price source (open decision), sales file licence check | Suburb Card shows real median price in AUD |
 | 11 | Address autocomplete endpoint and search box | Search ranking, how duplicate suburb names resolve | Typing an address returns suggestions and flies the map to it |
 | 12 | Lot layer at zoom 16+, tap to resolve a lot | Lot tile source and zoom thresholds | Tapping a lot highlights it and returns its ID |
