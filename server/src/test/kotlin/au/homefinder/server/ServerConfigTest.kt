@@ -68,4 +68,40 @@ class ServerConfigTest {
         assertFalse(text.contains(goodKey))
         assertTrue(text.contains("port=8080"))
     }
+
+    private val db = arrayOf("DB_URL" to "jdbc:postgresql://localhost:5432/homefinder", "DB_USER" to "homefinder", "DB_PASSWORD" to "pw")
+
+    @Test
+    fun `the database is optional`() {
+        assertEquals(null, assertIs<ConfigResult.Loaded>(load("API_KEY" to goodKey)).config.database)
+    }
+
+    @Test
+    fun `a complete database configuration is loaded`() {
+        val config = assertIs<ConfigResult.Loaded>(load("API_KEY" to goodKey, *db)).config
+        assertEquals(DatabaseConfig("jdbc:postgresql://localhost:5432/homefinder", "homefinder", "pw"), config.database)
+    }
+
+    @Test
+    fun `a partial database configuration is rejected`() {
+        val problems = assertIs<ConfigResult.Invalid>(load("API_KEY" to goodKey, "DB_URL" to "jdbc:postgresql://h/db")).problems
+        assertEquals(2, problems.size)
+        assertTrue(problems.any { it.contains("DB_USER") } && problems.any { it.contains("DB_PASSWORD") })
+    }
+
+    @Test
+    fun `a database url that is not PostgreSQL is rejected`() {
+        val problems = assertIs<ConfigResult.Invalid>(
+            load("API_KEY" to goodKey, "DB_URL" to "jdbc:mysql://h/db", "DB_USER" to "u", "DB_PASSWORD" to "p"),
+        ).problems
+        assertEquals(1, problems.size)
+        assertTrue(problems.single().contains("jdbc:postgresql:"))
+    }
+
+    @Test
+    fun `the database password never appears when the config is printed`() {
+        val text = assertIs<ConfigResult.Loaded>(load("API_KEY" to goodKey, *db)).config.toString()
+        assertFalse(text.contains("pw") && text.contains("password=pw"))
+        assertTrue(text.contains("password=***"))
+    }
 }

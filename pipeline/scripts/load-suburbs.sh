@@ -23,6 +23,7 @@ psql_db -q -c "DROP TABLE IF EXISTS stg.suburb_json" -c "CREATE TABLE stg.suburb
 jq -c '.features[]' "$FILE" \
   | psql_db -q -c "\copy stg.suburb_json from stdin with (format csv, delimiter E'\\x02', quote E'\\x01')"
 psql_db -q < "$PIPELINE_DIR/sql/suburb.sql"
+psql_db -q -c "SELECT refresh_suburb_tile_data()" > /dev/null   # simplified geometry per zoom and label points, for the API tiles
 psql_db -t -A -c "SELECT count(*) || ' suburbs loaded' FROM suburb"
 
 # Every pilot locality should have an official boundary; a missing one means a name mismatch.

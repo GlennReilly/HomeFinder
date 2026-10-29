@@ -15,8 +15,12 @@ fun main() {
         }
         is ConfigResult.Loaded -> {
             val config = result.config
+            val dataSource = config.database?.let { PostgisSuburbTiles.connect(it) }
+            Runtime.getRuntime().addShutdownHook(Thread { dataSource?.close() })
             println("${ServerInfo.name} listening on http://${config.host}:${config.port}")
-            embeddedServer(Netty, host = config.host, port = config.port) { module(config) }.start(wait = true)
+            println(if (dataSource == null) "Database: not configured (tiles unavailable)" else "Database: ${config.database}")
+            val tiles = dataSource?.let { PostgisSuburbTiles(it) }
+            embeddedServer(Netty, host = config.host, port = config.port) { module(config, tiles) }.start(wait = true)
         }
     }
 }

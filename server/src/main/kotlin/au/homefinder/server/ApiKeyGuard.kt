@@ -2,6 +2,7 @@ package au.homefinder.server
 
 import au.homefinder.shared.api.ApiContract
 import au.homefinder.shared.api.ApiError
+import au.homefinder.shared.api.TileContract
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
@@ -19,10 +20,16 @@ object ApiKeyCheck {
     }
 }
 
-/** Every route under this one needs the right [ApiContract.API_KEY_HEADER]; otherwise the call ends with 401. */
-fun Route.requireApiKey(expectedKey: String) {
+/**
+ * Every route under this one needs the right [ApiContract.API_KEY_HEADER]; otherwise the call ends with 401. With
+ * [acceptQueryParameter] the key may instead come as the [TileContract.KEY_QUERY_PARAMETER] query parameter, for
+ * clients such as the Android map style that cannot set headers (the header wins if both are sent).
+ */
+fun Route.requireApiKey(expectedKey: String, acceptQueryParameter: Boolean = false) {
     intercept(ApplicationCallPipeline.Plugins) {
-        if (!ApiKeyCheck.matches(call.request.headers[ApiContract.API_KEY_HEADER], expectedKey)) {
+        val provided = call.request.headers[ApiContract.API_KEY_HEADER]
+            ?: if (acceptQueryParameter) call.request.queryParameters[TileContract.KEY_QUERY_PARAMETER] else null
+        if (!ApiKeyCheck.matches(provided, expectedKey)) {
             call.respond(HttpStatusCode.Unauthorized, ApiError(ApiError.UNAUTHORIZED))
             finish()
         }

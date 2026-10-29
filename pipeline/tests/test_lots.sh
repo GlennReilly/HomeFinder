@@ -10,6 +10,11 @@ source "$(dirname "$0")/lib.sh"
 "$HERE/../scripts/load-suburbs.sh" "$HERE/fixtures/suburbs.geojson" >/dev/null
 "$HERE/../scripts/load-gnaf.sh" "$HERE/fixtures/gnaf" >/dev/null
 "$HERE/../scripts/load-lots.sh" "$HERE/fixtures/lots" >/dev/null
+# Loading suburbs also precomputes the API tile data: one simplified geometry per served zoom (5 to 14) and a label each.
+tile_rows="$(psql_db -t -A -c "SELECT (SELECT count(*) FROM suburb_tile_geometry) || '/' || (SELECT count(*) FROM suburb_label) || '/' || (SELECT min(zoom) || '-' || max(zoom) FROM suburb_tile_geometry)")"
+[[ "$tile_rows" == "20/2/5-14" ]] || fail "expected 20 tile geometries, 2 labels, zooms 5-14 but got '$tile_rows'"
+"$HERE/../scripts/refresh-suburb-tiles.sh" >/dev/null   # refreshing again must give the same rows
+[[ "$tile_rows" == "$(psql_db -t -A -c "SELECT (SELECT count(*) FROM suburb_tile_geometry) || '/' || (SELECT count(*) FROM suburb_label) || '/' || (SELECT min(zoom) || '-' || max(zoom) FROM suburb_tile_geometry)")" ]] || fail "refresh changed the tile data"
 lots="$(psql_db -t -A -c "SELECT string_agg(lot_id || ':' || suburb_id, ',' ORDER BY lot_id) FROM lot")"
 "$HERE/../scripts/load-lots.sh" "$HERE/fixtures/lots" >/dev/null   # rerun must be idempotent
 lots2="$(psql_db -t -A -c "SELECT string_agg(lot_id || ':' || suburb_id, ',' ORDER BY lot_id) FROM lot")"
@@ -43,4 +48,5 @@ grep -q "point is outside the lot | 1" <<< "$report" || fail "GANSW5 should be f
 CHECK_MISSING_SUBURBS=fail "$HERE/../scripts/load-suburbs.sh" "$HERE/fixtures/suburbs.geojson" >/dev/null 2>&1 \
   && fail "load-suburbs.sh should fail when pilot localities have no boundary"
 [[ "$(psql_db -t -A -c "SELECT count(*) FROM lot")" == "0" ]] || fail "rebuilding suburbs should clear lots"
+[[ "$(psql_db -t -A -c "SELECT count(*) FROM suburb_tile_geometry")" == "20" ]] || fail "rebuilding suburbs should rebuild the tile data"
 echo "PASS"

@@ -26,6 +26,8 @@ dependencies {
     implementation(libs.ktor.serialization.json)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.postgresql)
+    implementation(libs.hikaricp)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.junit.jupiter)

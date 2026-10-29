@@ -2,9 +2,19 @@ package au.homefinder.server
 
 import au.homefinder.shared.api.ApiContract
 
-data class ServerConfig(val host: String, val port: Int, val apiKey: String) {
-    /** Never print the key. */
-    override fun toString(): String = "ServerConfig(host=$host, port=$port, apiKey=***)"
+/** How to reach PostGIS. The password is never printed. */
+data class DatabaseConfig(val url: String, val user: String, val password: String) {
+    override fun toString(): String = "DatabaseConfig(url=$url, user=$user, password=***)"
+}
+
+data class ServerConfig(
+    val host: String,
+    val port: Int,
+    val apiKey: String,
+    val database: DatabaseConfig? = null,
+) {
+    /** Never print the key or the database password. */
+    override fun toString(): String = "ServerConfig(host=$host, port=$port, apiKey=***, database=$database)"
 }
 
 sealed interface ConfigResult {
@@ -16,8 +26,12 @@ object ServerConfigLoader {
     const val HOST_VARIABLE: String = "API_HOST"
     const val PORT_VARIABLE: String = "API_PORT"
     const val API_KEY_VARIABLE: String = "API_KEY"
+    const val DB_URL_VARIABLE: String = "DB_URL"
+    const val DB_USER_VARIABLE: String = "DB_USER"
+    const val DB_PASSWORD_VARIABLE: String = "DB_PASSWORD"
     const val DEFAULT_HOST: String = "0.0.0.0"
     const val MIN_API_KEY_LENGTH: Int = 16
+    const val JDBC_POSTGRES_PREFIX: String = "jdbc:postgresql:"
     private const val MIN_PORT = 1
     private const val MAX_PORT = 65_535
 
@@ -42,6 +56,21 @@ object ServerConfigLoader {
             problems += "$API_KEY_VARIABLE must be at least $MIN_API_KEY_LENGTH characters"
         }
 
-        return if (problems.isEmpty()) ConfigResult.Loaded(ServerConfig(host, port, apiKey)) else ConfigResult.Invalid(problems)
+        val database = loadDatabase(env, problems)
+
+        return if (problems.isEmpty()) ConfigResult.Loaded(ServerConfig(host, port, apiKey, database)) else ConfigResult.Invalid(problems)
+    }
+
+    /** The database is optional, but if any of its variables is set all of them must be, and the URL must be PostgreSQL. */
+    private fun loadDatabase(env: Map<String, String>, problems: MutableList<String>): DatabaseConfig? {
+        val url = env[DB_URL_VARIABLE]?.trim().orEmpty()
+        val user = env[DB_USER_VARIABLE]?.trim().orEmpty()
+        val password = env[DB_PASSWORD_VARIABLE].orEmpty()
+        if (url.isEmpty() && user.isEmpty() && password.isEmpty()) return null
+        if (url.isEmpty()) problems += "$DB_URL_VARIABLE must be set when the database is configured"
+        else if (!url.startsWith(JDBC_POSTGRES_PREFIX)) problems += "$DB_URL_VARIABLE must start with $JDBC_POSTGRES_PREFIX"
+        if (user.isEmpty()) problems += "$DB_USER_VARIABLE must be set when the database is configured"
+        if (password.isEmpty()) problems += "$DB_PASSWORD_VARIABLE must be set when the database is configured"
+        return if (url.startsWith(JDBC_POSTGRES_PREFIX) && user.isNotEmpty() && password.isNotEmpty()) DatabaseConfig(url, user, password) else null
     }
 }
