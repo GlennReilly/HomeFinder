@@ -27,3 +27,4 @@ done
 
 psql_db -q -v release="$GNAF_RELEASE" -v zip_sha256="$ZIP_SHA" < "$PIPELINE_DIR/sql/gnaf_address.sql"
 psql_db -t -c "SELECT count(*) || ' addresses loaded' FROM address"
+"$(dirname "$0")/check-gnaf.sh"

@@ -18,7 +18,8 @@ See [ADR 0002](../docs/adr/0002-postgis-flyway-and-credentials.md).
 
 ```bash
 scripts/download-gnaf.sh   # about 1.5 GB into ../data/raw (gitignored), checksum recorded
-scripts/load-gnaf.sh       # loads staging and rebuilds the address table for the pilot region
+scripts/load-lga.sh        # council polygons, needed by the completeness check
+scripts/load-gnaf.sh       # loads staging, rebuilds the address table, then runs scripts/check-gnaf.sh
 tests/test_load_gnaf.sh    # fixture-based integration test (needs Docker)
 ```
 

@@ -1,6 +1,6 @@
 # 0003. G-NAF pilot region and loading approach
 
-Status: Accepted
+Status: Accepted (region filter superseded by 0004)
 
 ## Context
 PR 3 loads G-NAF addresses for the pilot region. The spec left the pilot region and the raw-data location open.

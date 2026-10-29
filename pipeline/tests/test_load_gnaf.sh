@@ -13,13 +13,14 @@ POSTGRES_USER=homefinder
 POSTGRES_PASSWORD=$(head -c 12 /dev/urandom | od -An -tx1 | tr -d ' \n')
 POSTGRES_PORT=${TEST_POSTGRES_PORT:-55433}
 ENV
-export ENV_FILE="$WORK/test.env" COMPOSE_PROJECT_NAME=hf-gnaf-test RAW_DIR="$WORK/raw"
+export CHECK_EMPTY_LOCALITIES=warn ENV_FILE="$WORK/test.env" COMPOSE_PROJECT_NAME=hf-gnaf-test RAW_DIR="$WORK/raw"
 
 docker compose -p hf-gnaf-test -f "$HERE/../docker-compose.yml" --env-file "$ENV_FILE" up -d --wait --wait-timeout 120 db
 docker compose -p hf-gnaf-test -f "$HERE/../docker-compose.yml" --env-file "$ENV_FILE" run --rm migrate
 
 # shellcheck disable=SC1091
 source "$HERE/../scripts/common.sh"
+"$HERE/../scripts/load-lga.sh" "$HERE/fixtures/gnaf/lga.geojson" >/dev/null
 "$HERE/../scripts/load-gnaf.sh" "$HERE/fixtures/gnaf" >/dev/null
 first="$(psql_db -t -A -c "SELECT string_agg(gnaf_pid, ',' ORDER BY gnaf_pid) FROM address")"
 "$HERE/../scripts/load-gnaf.sh" "$HERE/fixtures/gnaf" >/dev/null   # rerun must be idempotent
@@ -32,4 +33,7 @@ srid="$(psql_db -t -A -c "SELECT ST_SRID(geom) FROM address LIMIT 1")"
 [[ "$srid" == "7844" ]] || fail "expected SRID 7844 but got $srid"
 runs="$(psql_db -t -A -c "SELECT count(*) FROM pipeline_run WHERE stage='gnaf_address' AND input_versions->>'gnaf_release'='$GNAF_RELEASE'")"
 [[ "$runs" == "2" ]] || fail "expected 2 pipeline_run rows but got $runs"
+# The completeness check must catch a locality that is missing from the pilot list.
+psql_db -q -c "DELETE FROM pilot_locality WHERE name = 'HAMILTON'"
+if "$HERE/../scripts/check-gnaf.sh" >/dev/null 2>&1; then fail "check-gnaf.sh missed an in-LGA locality outside the list"; fi
 echo "PASS"
