@@ -9,3 +9,4 @@
 | [0005](0005-lots-suburbs-crs-and-address-link.md) | Lots, suburbs, projected CRS and the address-to-lot link | Accepted |
 | [0006](0006-locality-identity-same-named-suburbs.md) | Identify the right G-NAF locality when suburb names repeat | Accepted |
 | [0007](0007-nearest-lot-low-confidence-link.md) | Nearest-lot link as a low-confidence fallback | Accepted |
+| [0012](0012-shared-models-and-serialization.md) | Shared models and serialization | Accepted |
