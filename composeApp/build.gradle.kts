@@ -31,6 +31,7 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidx.activity.compose)
             runtimeOnly(libs.maplibre.runtime.opengl.android)
         }
         commonTest.dependencies {
@@ -45,6 +46,7 @@ kotlin {
         }
         jvmTest.dependencies {
             implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
             implementation(libs.junit.jupiter)
             implementation(libs.mockk)
             runtimeOnly(libs.junit.platform.launcher)

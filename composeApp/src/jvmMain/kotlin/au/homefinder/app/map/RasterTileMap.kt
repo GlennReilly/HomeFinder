@@ -21,10 +21,10 @@ private const val MAX_CACHED_TILES = 512
 private val MAP_BACKGROUND = Color(0xFFE8E4DC)
 
 /** Desktop fallback: a raster-tile map drawn on a Compose canvas, so it needs no GPU interop (ADR 0009). */
-val RasterTileRenderer: MapRenderer = MapRenderer { config, modifier ->
-    PannableMap(config.initialCamera, OsmTileFetcher.ATTRIBUTION, modifier) { viewport, size ->
+val RasterTileRenderer: MapRenderer = MapRenderer { config, modifier, interaction ->
+    PannableMap(config.initialCamera, OsmTileFetcher.ATTRIBUTION, modifier, interaction.onTap) { viewport, size ->
         RasterTileLayer(viewport, size)
-        config.suburbs?.let { SuburbOverlay(it, viewport, size) }
+        config.suburbs?.let { SuburbOverlay(it, interaction.selectedSuburbId(), viewport, size) }
     }
 }
 

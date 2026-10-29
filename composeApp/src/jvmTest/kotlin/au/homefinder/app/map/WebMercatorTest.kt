@@ -100,4 +100,34 @@ class WebMercatorTest {
         assertTrue(tiles.all { it.tile.zoom == 14 })
         assertEquals(256f * 4f, tiles.first().size, 0.01f)
     }
+
+    @Test
+    fun `the centre of the viewport is the centre position`() {
+        val at = RasterViewport(newcastle, 10.0).lonLatAt(0.0, 0.0)
+        assertEquals(newcastle.longitude, at.longitude, 1e-9)
+        assertEquals(newcastle.latitude, at.latitude, 1e-9)
+    }
+
+    @Test
+    fun `a tap to the right is east and a tap below is south`() {
+        val view = RasterViewport(newcastle, 12.0)
+        assertTrue(view.lonLatAt(100.0, 0.0).longitude > newcastle.longitude)
+        assertTrue(view.lonLatAt(0.0, 100.0).latitude < newcastle.latitude)
+    }
+
+    @Test
+    fun `the position under a tap is where panning by that much puts the centre`() {
+        val view = RasterViewport(newcastle, 13.5)
+        val tapped = view.lonLatAt(120.0, -75.0)
+        val panned = view.pannedBy(-120.0, 75.0).centre
+        assertEquals(panned.longitude, tapped.longitude, 1e-9)
+        assertEquals(panned.latitude, tapped.latitude, 1e-9)
+    }
+
+    @Test
+    fun `a tap offset covers fewer degrees when zoomed in`() {
+        val wide = RasterViewport(newcastle, 8.0).lonLatAt(100.0, 0.0).longitude - newcastle.longitude
+        val close = RasterViewport(newcastle, 14.0).lonLatAt(100.0, 0.0).longitude - newcastle.longitude
+        assertTrue(wide > close * 32)
+    }
 }

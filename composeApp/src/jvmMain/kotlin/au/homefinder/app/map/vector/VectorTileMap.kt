@@ -49,10 +49,10 @@ private val HALO_OFFSETS = listOf(
  * Desktop fallback: OpenFreeMap vector tiles decoded and drawn by us on a Compose canvas with a simplified style,
  * so it needs no GPU interop and matches Android's data (ADR 0010).
  */
-val VectorTileRenderer: MapRenderer = MapRenderer { config, modifier ->
-    PannableMap(config.initialCamera, VectorTileFetcher.ATTRIBUTION, modifier) { viewport, size ->
+val VectorTileRenderer: MapRenderer = MapRenderer { config, modifier, interaction ->
+    PannableMap(config.initialCamera, VectorTileFetcher.ATTRIBUTION, modifier, interaction.onTap) { viewport, size ->
         VectorTileLayer(viewport, size)
-        config.suburbs?.let { SuburbOverlay(it, viewport, size) }
+        config.suburbs?.let { SuburbOverlay(it, interaction.selectedSuburbId(), viewport, size) }
     }
 }
 
