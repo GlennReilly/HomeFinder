@@ -13,3 +13,6 @@
 | [0009](0009-desktop-raster-tile-fallback.md) | Desktop raster-tile fallback map | Accepted |
 | [0010](0010-desktop-vector-tile-renderer.md) | Desktop vector-tile renderer | Accepted |
 | [0011](0011-vector-renderer-labels.md) | Street names and other labels on the desktop vector map | Accepted |
+| [0012](0012-shared-models-and-serialization.md) | Shared models and serialization | Accepted |
+| [0013](0013-api-skeleton-auth-and-android-link.md) | API skeleton, API key and the Android link | Accepted |
+| [0014](0014-suburb-vector-tiles.md) | Suburb vector tiles served by the API | Accepted |
