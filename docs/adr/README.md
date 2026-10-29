@@ -10,3 +10,4 @@
 | [0006](0006-locality-identity-same-named-suburbs.md) | Identify the right G-NAF locality when suburb names repeat | Accepted |
 | [0007](0007-nearest-lot-low-confidence-link.md) | Nearest-lot link as a low-confidence fallback | Accepted |
 | [0012](0012-shared-models-and-serialization.md) | Shared models and serialization | Accepted |
+| [0013](0013-api-skeleton-auth-and-android-link.md) | API skeleton, API key and the Android link | Accepted |

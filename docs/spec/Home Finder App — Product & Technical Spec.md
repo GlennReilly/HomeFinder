@@ -231,6 +231,7 @@ Answers to the "Ask me first" questions, recorded as they are made. Full reasoni
 | 4 | Same-named NSW suburbs (for example Silverwater) are told apart by requiring most of a locality's geocodes inside the official suburb. | [0006](../adr/0006-locality-identity-same-named-suburbs.md) |
 | 4 | Addresses with a geocode in the road or kerb link to the nearest lot within 30 m, marked low confidence. | [0007](../adr/0007-nearest-lot-low-confidence-link.md) |
 | 6 | Dates as kotlinx-datetime LocalDate, money as whole AUD Long, enum values as listed in the ADR, every SuburbReport stat an Attribute<T>. | [0012](../adr/0012-shared-models-and-serialization.md) |
+| 7 | API on port 8080 on all interfaces, protected by an X-API-Key header (health stays open); config from environment variables; Android uses the OkHttp Ktor client with debug-only cleartext HTTP and a base URL from a Gradle property. | [0013](../adr/0013-api-skeleton-auth-and-android-link.md) |
 
 ## Working agreement for Claude Code
 
