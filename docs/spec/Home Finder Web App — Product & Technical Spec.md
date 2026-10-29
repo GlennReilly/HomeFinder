@@ -9,8 +9,8 @@ The target platform is now **a web app**, for one user (you), served from this m
 | Area | Old spec | This spec |
 | --- | --- | --- |
 | Clients | Android, iOS, desktop, web | Web only (browser, desktop and phone widths) |
-| UI | Compose Multiplatform, all targets | Compose Multiplatform for web (Wasm), with a spike to prove the map first |
-| Map | MapLibre behind `MapView`, per-target renderers | maplibre-compose in the browser (WebGL). No custom renderers |
+| UI | Compose Multiplatform, all targets | Kotlin/JS, ordinary DOM (HTML and CSS). No Compose UI |
+| Map | MapLibre behind `MapView`, per-target renderers | MapLibre GL JS in the browser (WebGL), driven from Kotlin through a thin interop layer. No custom renderers |
 | Client storage | SQLDelight on device | Browser storage (IndexedDB / localStorage), shortlist stays in the browser |
 | Access | API key on the LAN or Tailscale | Same-origin web app and API on a private host; key handling in "Access and security" |
 | Audience | One buyer, possible sharing later | One user, local or private. Sharing or a public site is out of scope |
@@ -31,20 +31,20 @@ Unchanged. See the old spec for the attribute table, the aspect convention, the 
 ## Architecture
 
 ```
-Browser (Compose for web, Wasm)  ──same origin──►  Ktor server  ──►  PostGIS  ◄──  offline pipeline
-  maplibre-compose (WebGL map)                      /v1 JSON API                     (SQL + bash, GDAL, tippecanoe)
-  view model, Suburb / Property cards               /tiles/*.pbf
-                                                    static web bundle
+Browser (Kotlin/JS)  ──same origin──►  Ktor server  ──►  PostGIS  ◄──  offline pipeline
+  MapLibre GL JS map (WebGL)            /v1 JSON API                   (SQL + bash, GDAL, tippecanoe)
+  DOM UI: search, Suburb / Property     /tiles/*.pbf
+  cards, shortlist                      static web bundle
+  client logic in Kotlin (view model, API client)
 ```
 
-- **UI:** Compose Multiplatform targeting `wasmJs`. One responsive layout; no per-platform code.
-- **Map:** maplibre-compose (web is Alpha in 0.20; see Risks). Vector tiles for suburbs and lots served by our API; the basemap is OpenFreeMap. The `MapRenderer` interface stays, so a different renderer can be swapped in if needed (the fallback is below).
-- **State:** unchanged one-way data flow; selection is a suburb id in `MapViewModel`.
+- **Language:** Kotlin/JS (IR compiler) for the client, so the models, API contract, view model and API client are the same code the server uses.
+- **Map:** MapLibre GL JS, the reference web implementation, added as an npm dependency through Gradle and called from Kotlin through hand-written `external` declarations for the small part of its API we use (map, sources, layers, camera, click events, feature state). Vector tiles for suburbs and lots served by our API; the basemap is OpenFreeMap. The `MapRenderer` seam stays, so the map can be replaced without touching the rest.
+- **UI:** plain DOM, built from Kotlin. Layout and styling in CSS, so the bottom sheet / side panel switch is a media query and accessibility (focus, headings, labels) is native HTML. The Kotlin helper for building DOM is an open decision (below).
+- **State:** unchanged one-way data flow; selection is a suburb id in `MapViewModel`, observed through Kotlin `StateFlow`. The map, search box and detail panel all render from it.
 - **Client data:** Ktor client (JS engine), kotlinx.serialization. The shortlist and recent lookups use browser storage behind a small `ShortlistStore` interface (IndexedDB), replacing SQLDelight.
 - **Backend:** unchanged: Ktor on PostGIS, pipeline run locally. The server additionally serves the compiled web bundle as static files so the page and API share one origin.
-- **Models:** the `shared` module gains a `wasmJs` target alongside `jvm`; the Android target is removed.
-
-**Fallback if the spike fails.** If maplibre-compose cannot be made to work in the browser, the UI becomes Kotlin/JS (or a Compose canvas page) that hosts a MapLibre GL JS map through a thin JS interop layer behind `MapRenderer`. The server, pipeline and shared models are unaffected either way.
+- **Modules:** `shared` (models and API contract) gains a `js` target next to `jvm`. The client logic that has no UI (view model, card rows, layout rule, API client, map config) moves into a new `client` module with `jvm` and `js` targets so its existing tests keep running on the JVM. A new `webApp` module holds the DOM UI, the MapLibre interop and the bundle. `composeApp` and `androidApp` are removed.
 
 ## Access and security
 
@@ -52,7 +52,7 @@ The Android design needed an API key because the phone reached the server over a
 
 - The server serves the web bundle and the API from the **same origin**. No CORS.
 - The server listens on **localhost by default**. To reach it from a phone or another machine, bind it to a private interface or put it behind Tailscale; do not expose it to the internet.
-- The API key stays as a defence-in-depth check: you enter it once in the browser, it is kept in `localStorage`, sent as `X-API-Key`, and as `?key=` for tile URLs via MapLibre's `transformRequest` where headers are awkward. **Open decision:** whether to keep this at all given the private binding (default: keep, it is already built and tested).
+- The API key stays as a defence-in-depth check: you enter it once in the browser, it is kept in `localStorage`, sent as `X-API-Key`, and attached to tile requests by MapLibre's `transformRequest` (as the header, so the `?key=` form is no longer needed). **Open decision:** whether to keep this at all given the private binding (default: keep, it is already built and tested).
 
 ## What is already built (kept)
 
@@ -62,16 +62,17 @@ The Android design needed an API key because the phone reached the server over a
 | API skeleton, `/health`, `/v1/status`, shared models | Done (PR 6–7) | Android-specific parts of ADR 0013 retired |
 | Suburb vector tiles from PostGIS | Done (PR 8a) | ADR 0014 |
 | Suburb lookup (`/v1/suburbs/at`) and report endpoints | Done (PR 9a) | ADR 0016 |
-| Selection model, card rows, card UI, API client | Done (PR 9b), UI shell in Compose | ADR 0017; reused in the web UI |
+| Selection model, card rows, API client | Done (PR 9b) | ADR 0017; the Compose-free logic (about 440 lines) and its tests move to the `client` module |
+| Card UI, app shell, map composables | Done (PR 9b) in Compose | Rewritten as DOM and MapLibre GL JS code (about 400 lines of Compose go) |
 | Sales and suburb statistics pipeline | PR 10a open (#20) | ADR 0018; unaffected by the pivot |
-| Desktop and Android renderers, `androidApp`, Java 25 desktop build | **Retired** | removed in W1 below |
+| Desktop and Android renderers, `androidApp`, `composeApp`, Java 25 desktop build | **Retired** | removed in W1 below |
 
 ## Milestones (revised)
 
 Numbering continues from the PR list so history stays traceable. PRs stay small and each stands alone; every PR is based on `main`.
 
-1. **W0, web feasibility spike (first, small, throwaway-allowed):** add a `wasmJs` target to `shared` and `composeApp`; render the MapLibre map with the OpenFreeMap basemap and our suburb tile layer in a browser; select a suburb and show the card. Pass criteria: map pans and zooms smoothly, suburb outline and names draw, a tap selects through `/v1/suburbs/at`, and the bundle loads in a reasonable time (target below). If it fails, record an ADR and switch to the fallback.
-2. **W1, retire the old clients:** remove `androidApp`, the Android target, the desktop (JVM) entry point, the vector and raster renderers and their tests; drop Java 25 and the `-PmapRenderer` flag; update README and CI. Port the kept tests (view model, card rows, layout, API client) to run on the new targets. Done after W0 passes.
+1. **W0, web foundation and spike:** add a `js` target to `shared`; create the `client` module (moving the Compose-free logic and its tests) and the `webApp` module; render a MapLibre GL JS map with the OpenFreeMap basemap and our suburb tile layer; select a suburb by tap through `/v1/suburbs/at` and show the card in the DOM. Pass criteria: the map pans and zooms smoothly, suburb outlines and names draw with the same styling as before, the tap selects, the card shows name, postcode, area and unknown rows, and the bundle loads quickly (target below). It also settles the DOM helper (open decision) and the hand-written MapLibre `external` declarations.
+2. **W1, retire the old clients:** remove `androidApp`, `composeApp` (Android and desktop targets, the vector and raster renderers and their tests), Compose and Material3 from the build, Java 25 and the `-PmapRenderer` flag; update README and CI. Done after W0 passes, so the old apps keep working until the web app does.
 3. **W2, serve the web app:** the Ktor server serves the built bundle; bind address and key behaviour per "Access and security"; one command to build and run everything locally.
 4. **PR 10b, real suburb stats on the card:** unchanged from the plan (server reads `suburb_stats` into `SuburbReport`; the card shows the real median). Not blocked by W0 because the server and tests are platform-independent, but verified in the browser once W2 lands.
 5. **PR 11 onward** (address and suburb search, lots layer at zoom 16+, Property Card, flood, schools, price range, brick estimate, shortlist, compare, release) proceed as in M2–M6 of the old spec, with the web client as the only client. The old "store builds" item becomes "production web build and attribution screen".
@@ -80,19 +81,18 @@ Numbering continues from the PR list so history stays traceable. PRs stay small 
 
 - Address lookup returns a full Property Card in under 800 ms at p95 on a warm cache (unchanged).
 - Map pan and zoom hold 60 fps on a mid-range laptop at lot zoom and stay usable on a recent phone browser. *(Replaces the mid-range phone target.)*
-- **Initial load:** the Wasm bundle should be interactive in under 5 s on a home broadband connection after the first visit, with the bundle cached. Proposed target; the W0 spike measures the real size and may change it.
+- **Initial load:** the page should be interactive in under 2 s on a home broadband connection once cached, and under 4 s cold. MapLibre GL JS is about 0.8 MB gzipped and the Kotlin/JS bundle is small, so this should be easy; W0 measures it.
 - Shortlist and last viewed properties persist in the browser and work offline once loaded (service worker, M6). Search queries and the shortlist stay in the browser.
-- Browsers: current Chrome, Firefox and Safari. Compose for web needs a Wasm-GC capable browser; anything older shows a plain "unsupported browser" message.
-- Accessibility: unchanged (list-view equivalent of the map, screen-reader labels on cards, colour never the only indicator). Compose for web draws to a canvas, so W0 also checks keyboard navigation and screen-reader output on the card; if it is inadequate, the card can be built in DOM.
+- Browsers: current Chrome, Firefox, Safari and Edge, desktop and phone, with WebGL. Without WebGL the page shows a plain message.
+- Accessibility: unchanged (list-view equivalent of the map, screen-reader labels on cards, colour never the only indicator). The card and controls are real HTML, so keyboard and screen-reader support come from the browser; the map canvas needs the list-view equivalent.
 
 ## Risks (changed or new)
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| maplibre-compose web is Alpha and depends on Compose/Skia internals | The map may not work or may break on upgrades | W0 spike first; pin versions; `MapRenderer` seam; documented fallback to MapLibre GL JS |
-| Large Wasm bundle | Slow first load | Measure in W0; cache, compress, lazy-load heavy screens |
-| Canvas-drawn UI limits accessibility and text selection | Weaker accessibility than DOM | Check in W0; build the card in DOM if needed |
-| Compose for web browser support | Older browsers cannot run it | State supported browsers; clear unsupported message |
+| Hand-written Kotlin `external` declarations for MapLibre GL JS | Mistakes or gaps show up only at runtime; library upgrades can break them | Keep the used API small and behind `MapRenderer`; pin the npm version; a browser smoke test in CI; fall back to a small JavaScript file if an API is awkward to declare |
+| Kotlin/JS DOM tooling is thinner than React's | Slower UI work, more hand-written code | Keep the UI small and server-driven; choose the DOM helper in W0; the logic stays in Kotlin with its tests |
+| Frontend build (npm packages through Gradle) | Slower, less familiar build | One documented build command; pin versions; cache in CI |
 | API key in the browser is not secret | Anyone on the network could call the API | Same origin, localhost or private-network binding only; no public exposure |
 | Public hosting reopens data licences | PSI and OSM terms change | Out of scope; ADR 0018 requires a PSI licence before any sharing |
 
@@ -100,10 +100,11 @@ All risks in the old spec (brick inference, flood gaps, aspect on irregular lots
 
 ## Open decisions
 
-Decided: web only; Compose Multiplatform for web with a spike; single user, local or private; Android and desktop retired; pilot region Newcastle and Lake Macquarie; price source is our own model on Valuer General sales (personal use).
+Decided: web only; Kotlin/JS with MapLibre GL JS (chosen over Compose for web and over React); single user, local or private; Android and desktop retired; pilot region Newcastle and Lake Macquarie; price source is our own model on Valuer General sales (personal use).
 
 Still open, with the default this spec assumes:
 - Whether to keep the API key on a private deployment (default: keep).
 - Browser storage mechanism for the shortlist (default: IndexedDB behind `ShortlistStore`).
+- Kotlin helper for building the DOM: `kotlinx-html` (default; a small library, no framework) or Compose HTML (declarative, heavier, reuses Compose state). Chosen in W0, and a new dependency, so I will ask before adding it.
 - How the app is run day to day: from the Gradle build on this machine (default) or in a container.
-- Bundle size and load-time target (default: 5 s, to be measured in W0).
+- Load-time targets (default: 2 s cached, 4 s cold, to be measured in W0).

@@ -276,7 +276,7 @@ Twenty-five PRs take the project from empty repo to a release on Android and des
 | 8 | Suburb tiles and boundary layer with name labels | Tile server choice (PMTiles or Martin) | Suburb outlines and names draw at wide zoom |
 | 9 | Suburb selection state and a basic Suburb Card | Card layout on phone and desktop | Tap or search selects a suburb with a highlight and card |
 | 10 | Pipeline: suburb stats (price medians, block size spread) | Price source (open decision), sales file licence check | Suburb Card shows real median price in AUD |
-| W | Target platform changed to web only (single user, local or private). UI is Compose Multiplatform for web, proven by a W0 spike with a MapLibre GL JS fallback. Android and desktop clients are retired after the spike. New spec: Home Finder Web App. | [0019](../adr/0019-pivot-to-web.md) |
+| W | Target platform changed to web only (single user, local or private). UI is Kotlin/JS with MapLibre GL JS and a DOM UI (not Compose for web). Android and desktop clients are retired after the W0 foundation works. New spec: Home Finder Web App. | [0019](../adr/0019-pivot-to-web.md) |
 | 11 | Address autocomplete endpoint and search box | Search ranking, how duplicate suburb names resolve | Typing an address returns suggestions and flies the map to it |
 | 12 | Lot layer at zoom 16+, tap to resolve a lot | Lot tile source and zoom thresholds | Tapping a lot highlights it and returns its ID |
 | 13 | Pipeline: block size and slope from the DEM | DEM resolution to use, slope class thresholds | Per-lot area and slope classes stored |
