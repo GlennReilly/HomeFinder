@@ -43,4 +43,14 @@ class ApiContractTest {
         assertTrue(TileContract.SUBURBS_MIN_ZOOM < TileContract.SUBURBS_MAX_ZOOM)
         assertEquals(".pbf", TileContract.TILE_SUFFIX)
     }
+
+    @Test
+    fun `suburb endpoints and a reference round trip`() {
+        assertEquals("/v1/suburbs/at", ApiContract.SUBURBS_AT_PATH)
+        assertTrue(ApiContract.SUBURBS_AT_PATH.startsWith(ApiContract.SUBURBS_PATH))
+        val ref = SuburbRef("9001", "HAMILTON", "2303")
+        assertEquals(ref, ApiJson.decodeFromString<SuburbRef>(ApiJson.encodeToString(ref)))
+        val noPostcode = ApiJson.encodeToString(SuburbRef("9002", "LAKE MACQUARIE", null))
+        assertTrue(noPostcode.contains("\"postcode\":null"), noPostcode)
+    }
 }

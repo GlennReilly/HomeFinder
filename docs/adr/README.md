@@ -17,3 +17,4 @@
 | [0013](0013-api-skeleton-auth-and-android-link.md) | API skeleton, API key and the Android link | Accepted |
 | [0014](0014-suburb-vector-tiles.md) | Suburb vector tiles served by the API | Accepted |
 | [0015](0015-suburb-layers-on-the-clients.md) | Suburb outlines and names on the clients | Accepted |
+| [0016](0016-suburb-lookup-and-report-endpoints.md) | Suburb lookup and report endpoints | Accepted |

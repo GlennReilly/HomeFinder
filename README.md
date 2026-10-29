@@ -53,3 +53,9 @@ the PostGIS database: set `DB_URL`, `DB_USER` and `DB_PASSWORD` in `server/.env`
 (`pipeline/scripts/load-suburbs.sh`) precomputes the tile data; `pipeline/scripts/refresh-suburb-tiles.sh` rebuilds it
 alone. The key can be the `X-API-Key` header or a `?key=` query parameter on tiles. Tile SQL tests:
 `server/tests/run-db-tests.sh` (needs Docker). See [ADR 0014](docs/adr/0014-suburb-vector-tiles.md).
+
+### Suburb endpoints
+
+`GET /v1/suburbs/at?lat=&lon=` returns the suburb under a point and `GET /v1/suburbs/{suburbId}` its report (name,
+postcode, area, and every other statistic explicitly unknown until the pipeline computes it). Both need the
+`X-API-Key` header and the database. See [ADR 0016](docs/adr/0016-suburb-lookup-and-report-endpoints.md).

@@ -238,6 +238,7 @@ Answers to the "Ask me first" questions, recorded as they are made. Full reasoni
 | 7 | API on port 8080 on all interfaces, protected by an X-API-Key header (health stays open); config from environment variables; Android uses the OkHttp Ktor client with debug-only cleartext HTTP and a base URL from a Gradle property. | [0013](../adr/0013-api-skeleton-auth-and-android-link.md) |
 | 8 | Suburb tiles are served by the Ktor API from PostGIS (`ST_AsMVT`) using geometry precomputed per zoom by the pipeline; the key may be a header or, for tiles, a query parameter. Split into 8a (server) and 8b (clients). | [0014](../adr/0014-suburb-vector-tiles.md) |
 | 8 | Suburb layers on the clients: a purple outline fading from zoom 12 to 15, names to zoom 14 with bigger suburbs first. Android uses MapLibre layers (key as a query parameter, a font OpenFreeMap serves); desktop uses one overlay over both renderers. | [0015](../adr/0015-suburb-layers-on-the-clients.md) |
+| 9 | Cards: bottom sheet under 600 dp and a side panel on wider windows. A tap finds its suburb on the server (`GET /v1/suburbs/at`), the card shows name, postcode, area and every other row as unknown until computed, and search waits for PR 11. Split into 9a (server) and 9b (client). | [0016](../adr/0016-suburb-lookup-and-report-endpoints.md) |
 
 ## Working agreement for Claude Code
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs the PostGIS integration tests of the tile SQL against a throwaway, migrated database (needs Docker).
+# Runs the PostGIS integration tests (tile SQL and suburb lookups) against a throwaway, migrated database (needs Docker).
 # Usage: server/tests/run-db-tests.sh
 set -euo pipefail
 
@@ -25,4 +25,4 @@ export HOMEFINDER_TEST_DB_URL="jdbc:postgresql://127.0.0.1:$PORT/homefinder"
 export HOMEFINDER_TEST_DB_USER=homefinder
 export HOMEFINDER_TEST_DB_PASSWORD="$PASSWORD"
 cd "$REPO"
-./gradlew :server:test --tests '*PostgisSuburbTilesIntegrationTest*' --rerun-tasks
+./gradlew :server:test --tests '*IntegrationTest*' --rerun-tasks

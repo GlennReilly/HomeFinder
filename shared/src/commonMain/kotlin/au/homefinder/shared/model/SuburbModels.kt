@@ -51,6 +51,7 @@ data class SuburbReport(
     val suburbId: String,
     val name: String,
     val postcode: String?,
+    val areaKm2: Attribute<Double>,
     val medianHousePriceAud: Attribute<Long>,
     val medianUnitPriceAud: Attribute<Long>,
     val priceChange12MonthsPercent: Attribute<Double>,

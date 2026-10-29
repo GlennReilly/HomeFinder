@@ -7,6 +7,12 @@ object ApiContract {
     const val HEALTH_PATH: String = "/health"
     const val STATUS_PATH: String = "/v1/status"
     const val API_KEY_HEADER: String = "X-API-Key"
+
+    /** Suburb endpoints: `GET /v1/suburbs/at?lat=&lon=` finds the suburb under a point, `GET /v1/suburbs/{suburbId}` reports on one. */
+    const val SUBURBS_PATH: String = "/v1/suburbs"
+    const val SUBURBS_AT_PATH: String = "/v1/suburbs/at"
+    const val LATITUDE_PARAMETER: String = "lat"
+    const val LONGITUDE_PARAMETER: String = "lon"
     const val DEFAULT_PORT: Int = 8080
 }
 
@@ -48,6 +54,10 @@ data class HealthResponse(
 }
 
 /** Authenticated endpoint: reaching it with the right API key proves the key works. */
+/** A suburb as the map knows it: enough to select it and name it before its full report is loaded. */
+@Serializable
+data class SuburbRef(val suburbId: String, val name: String, val postcode: String?)
+
 @Serializable
 data class StatusResponse(val authenticated: Boolean)
 
@@ -55,6 +65,8 @@ data class StatusResponse(val authenticated: Boolean)
 data class ApiError(val error: String) {
     companion object {
         const val UNAUTHORIZED: String = "unauthorized"
+        const val INVALID_COORDINATES: String = "invalid_coordinates"
+        const val NOT_FOUND: String = "not_found"
         const val INVALID_TILE: String = "invalid_tile"
         const val UNKNOWN_LAYER: String = "unknown_layer"
         const val UNAVAILABLE: String = "unavailable"
