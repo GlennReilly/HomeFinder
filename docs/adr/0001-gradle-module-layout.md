@@ -10,7 +10,7 @@ The spec proposed `shared`, `composeApp` (Android + desktop), `server`, `pipelin
 - `shared` and `composeApp` are KMP modules (`com.android.kotlin.multiplatform.library` + `jvm()`).
 - `androidApp` is a plain Android application module that depends on `composeApp`.
 - Desktop entry point lives in `composeApp` jvmMain.
-- Pins: Kotlin 2.4.21, Compose Multiplatform 1.12.2, AGP 9.5.0, Gradle 9.8.2, compileSdk 37, minSdk 26, JVM 17.
+- Pins (also in the spec decision log): Kotlin 2.4.21, Compose Multiplatform 1.12.2, AGP 9.5.0, Gradle 9.8.2, compileSdk 37, minSdk 26, JVM 17.
 - Tests: JUnit 6 (Jupiter) and MockK. Koin and Ktor are wired as dependencies only.
 - CI: GitHub Actions.
 
