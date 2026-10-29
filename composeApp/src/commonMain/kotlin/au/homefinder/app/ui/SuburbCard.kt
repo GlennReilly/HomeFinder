@@ -90,8 +90,9 @@ fun SuburbCardContent(
 private fun CardRowView(row: CardRow) {
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Text(row.label, style = MaterialTheme.typography.labelMedium)
-        if (row.value != null) {
-            Text(row.value, style = MaterialTheme.typography.bodyLarge)
+        val value = row.value
+        if (value != null) {
+            Text(value, style = MaterialTheme.typography.bodyLarge)
         } else {
             Text(
                 SuburbCardRows.UNKNOWN,

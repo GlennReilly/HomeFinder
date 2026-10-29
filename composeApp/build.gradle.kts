@@ -21,6 +21,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":shared"))
+            implementation(project(":client"))
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
