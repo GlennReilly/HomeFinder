@@ -9,6 +9,7 @@ Look up any NSW address or suburb on a map and see the factors that decide a pur
 | --- | --- |
 | `shared` | Models and serialization (Android, JVM, JS) |
 | `client` | UI-free client logic: API client, suburb selection, Suburb Card rows (JVM + JS) |
+| `webApp` | The web client: Kotlin/JS, MapLibre GL JS and a DOM UI ([webApp/README.md](webApp/README.md)) |
 | `composeApp` | Compose UI and the desktop entry point (Android library + JVM); being replaced by the web app ([ADR 0019](docs/adr/0019-pivot-to-web.md)) |
 | `androidApp` | Android application entry point |
 | `server` | Ktor API |

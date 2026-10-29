@@ -14,6 +14,7 @@ kotlin {
         commonMain.dependencies {
             api(project(":shared"))
             api(libs.ktor.client.core)
+            api(libs.kotlinx.html)
             implementation(libs.kotlinx.coroutines.core)
         }
         commonTest.dependencies {
