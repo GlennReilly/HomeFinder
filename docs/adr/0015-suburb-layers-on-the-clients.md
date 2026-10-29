@@ -1,6 +1,6 @@
 # 0015. Suburb outlines and names on the clients
 
-Status: Accepted
+Status: Superseded by 0019 (client layers)
 
 ## Context
 PR 8b draws the suburb tiles of ADR 0014 on every client: Android through MapLibre, and the two desktop fallbacks

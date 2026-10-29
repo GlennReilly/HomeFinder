@@ -1,6 +1,6 @@
 # 0008. Map library, basemap and the desktop finding
 
-Status: Accepted
+Status: Superseded by 0019
 
 ## Context
 PR 5 proves a map renders and pans on Android and desktop (spec milestone M0). The spec asks which map library and

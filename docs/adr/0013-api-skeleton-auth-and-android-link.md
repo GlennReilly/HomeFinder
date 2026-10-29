@@ -1,6 +1,6 @@
 # 0013. API skeleton, API key and the Android link
 
-Status: Accepted
+Status: Accepted — Partly superseded by 0019 (Android link)
 
 ## Context
 PR 7 adds the Ktor API with a health check and configuration, and makes the Android app reach it. The spec lists LAN,

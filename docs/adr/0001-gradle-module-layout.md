@@ -1,6 +1,6 @@
 # 0001. Gradle module layout and version pins
 
-Status: Accepted
+Status: Accepted — partly superseded by 0019 (client modules)
 
 ## Context
 The spec proposed `shared`, `composeApp` (Android + desktop), `server`, `pipeline`, `docs`. AGP 9 does not allow
