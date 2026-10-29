@@ -12,3 +12,4 @@
 | [0008](0008-map-library-basemap-and-desktop-finding.md) | Map library, basemap and the desktop finding | Accepted |
 | [0009](0009-desktop-raster-tile-fallback.md) | Desktop raster-tile fallback map | Accepted |
 | [0010](0010-desktop-vector-tile-renderer.md) | Desktop vector-tile renderer | Accepted |
+| [0011](0011-vector-renderer-labels.md) | Street names and other labels on the desktop vector map | Accepted |

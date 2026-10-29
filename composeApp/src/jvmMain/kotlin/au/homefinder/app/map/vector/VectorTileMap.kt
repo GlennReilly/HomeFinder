@@ -27,6 +27,9 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 import au.homefinder.app.map.PannableMap
 import au.homefinder.app.map.PlacedTile
 import au.homefinder.app.map.RasterViewport
@@ -56,7 +59,15 @@ private class LabelKey(val text: String, val sizeSp: Float, val italic: Boolean)
     override fun hashCode() = 31 * (31 * text.hashCode() + sizeSp.hashCode()) + italic.hashCode()
 }
 
-private class ScreenLabel(val text: String, val style: VectorStyle.LabelStyle, val layout: TextLayoutResult)
+/** A label ready to draw: its text layout, colour, rotation, and the size of the box it occupies on screen. */
+private class ScreenLabel(
+    val layout: TextLayoutResult,
+    val color: Color,
+    val angleDegrees: Float,
+    val boxWidth: Float,
+    val boxHeight: Float,
+    val dot: Boolean,
+)
 
 @Composable
 private fun BoxScope.VectorTileLayer(viewport: RasterViewport, size: IntSize) {
@@ -85,7 +96,7 @@ private fun BoxScope.VectorTileLayer(viewport: RasterViewport, size: IntSize) {
             collectLabels(prepared, tile, viewport.zoom, measurer, layouts, candidates)
         }
         LabelPlacer.place(candidates, this.size.width, this.size.height, LABEL_PADDING_PX).forEach { label ->
-            drawLabel(label.item, Offset(label.left, label.top))
+            drawLabel(label.item, label.left, label.top)
         }
     }
 }
@@ -125,6 +136,10 @@ private fun DrawScope.drawTile(prepared: PreparedTile, tile: PlacedTile, zoom: D
 private fun stroke(widthPx: Float, scale: Float) =
     Stroke(width = widthPx / scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
+private const val DOT_RADIUS_PX = 2.5f
+private const val DOT_SPACE_PX = 7f
+private const val MAX_BEND_FRACTION = 0.6f
+
 private fun collectLabels(
     prepared: PreparedTile,
     tile: PlacedTile,
@@ -134,29 +149,68 @@ private fun collectLabels(
     out: MutableList<LabelCandidate<ScreenLabel>>,
 ) {
     val scale = tile.size / prepared.extent
-    for (label in prepared.labels) {
-        if (zoom < label.style.minZoom) continue
-        val key = LabelKey(label.text, label.style.fontSizeSp, label.style.italic)
-        val layout = layouts.getOrPut(key) {
+    fun layoutFor(text: String, sizeSp: Float, italic: Boolean): TextLayoutResult =
+        layouts.getOrPut(LabelKey(text, sizeSp, italic)) {
             measurer.measure(
-                label.text,
-                TextStyle(fontSize = label.style.fontSizeSp.sp, fontStyle = if (label.style.italic) FontStyle.Italic else FontStyle.Normal),
+                text,
+                TextStyle(fontSize = sizeSp.sp, fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal),
             )
         }
+
+    for (label in prepared.labels) {
+        if (zoom < label.style.minZoom) continue
+        val layout = layoutFor(label.text, label.style.fontSizeSp, label.style.italic)
+        val width = layout.size.width.toFloat()
+        val height = layout.size.height.toFloat() + if (label.style.dot) DOT_SPACE_PX else 0f
         out.add(
             LabelCandidate(
-                ScreenLabel(label.text, label.style, layout),
+                ScreenLabel(layout, label.style.color, 0f, width, height, label.style.dot),
                 tile.left + label.x * scale,
                 tile.top + label.y * scale,
-                layout.size.width.toFloat(),
-                layout.size.height.toFloat(),
+                width,
+                height,
                 label.style.priority,
+                key = label.text.takeIf { label.style.repeatDistancePx > 0f },
+                minSameKeyDistance = label.style.repeatDistancePx,
+            ),
+        )
+    }
+
+    for (street in prepared.streets) {
+        if (zoom < street.style.minZoom) continue
+        val layout = layoutFor(street.text, street.style.fontSizeSp, false)
+        val textWidth = layout.size.width.toFloat()
+        val textHeight = layout.size.height.toFloat()
+        val screenPoints = FloatArray(street.points.size) { i ->
+            if (i % 2 == 0) tile.left + street.points[i] * scale else tile.top + street.points[i] * scale
+        }
+        val anchor = StreetLabelGeometry.anchorAlongLine(screenPoints, textWidth, textHeight * MAX_BEND_FRACTION) ?: continue
+        val radians = Math.toRadians(anchor.angleDegrees.toDouble())
+        val boxWidth = (abs(textWidth * cos(radians)) + abs(textHeight * sin(radians))).toFloat()
+        val boxHeight = (abs(textWidth * sin(radians)) + abs(textHeight * cos(radians))).toFloat()
+        out.add(
+            LabelCandidate(
+                ScreenLabel(layout, VectorStyle.streetColor, anchor.angleDegrees, boxWidth, boxHeight, false),
+                anchor.x,
+                anchor.y,
+                boxWidth,
+                boxHeight,
+                street.style.priority,
+                key = street.text,
+                minSameKeyDistance = VectorStyle.STREET_REPEAT_DISTANCE_PX,
             ),
         )
     }
 }
 
-private fun DrawScope.drawLabel(label: ScreenLabel, topLeft: Offset) {
-    HALO_OFFSETS.forEach { offset -> drawText(label.layout, color = HALO_COLOR, topLeft = topLeft + offset) }
-    drawText(label.layout, color = label.style.color, topLeft = topLeft)
+private fun DrawScope.drawLabel(label: ScreenLabel, left: Float, top: Float) {
+    val centre = Offset(left + label.boxWidth / 2, top + label.boxHeight / 2)
+    val textTop = if (label.dot) top + DOT_SPACE_PX else centre.y - label.layout.size.height / 2
+    val textLeft = centre.x - label.layout.size.width / 2
+    if (label.dot) drawCircle(label.color, DOT_RADIUS_PX, Offset(centre.x, top + DOT_RADIUS_PX + 1f))
+    withTransform({ rotate(label.angleDegrees, pivot = centre) }) {
+        val topLeft = Offset(textLeft, textTop)
+        HALO_OFFSETS.forEach { offset -> drawText(label.layout, color = HALO_COLOR, topLeft = topLeft + offset) }
+        drawText(label.layout, color = label.color, topLeft = topLeft)
+    }
 }

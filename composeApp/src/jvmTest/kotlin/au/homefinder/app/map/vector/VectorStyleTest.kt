@@ -54,12 +54,29 @@ class VectorStyleTest {
         assertEquals(4.0, assertNotNull(VectorStyle.labelStyle("place", "city")).minZoom)
         assertEquals(11.0, assertNotNull(VectorStyle.labelStyle("place", "suburb")).minZoom)
         assertNull(VectorStyle.labelStyle("place", "continent"))
-        assertNull(VectorStyle.labelStyle("poi", "shop"))
+        assertNotNull(VectorStyle.labelStyle("poi", "shop"))
+        assertNull(VectorStyle.labelStyle("poi", "bus"))
     }
 
     @Test
     fun `every drawn layer is either a polygon or a line layer`() {
         val known = VectorStyle.polygonLayers + VectorStyle.lineLayers
         assertTrue(VectorStyle.steps.all { it.layer in known })
+    }
+
+    @Test
+    fun `street names appear for bigger roads first`() {
+        assertEquals(11.0, assertNotNull(VectorStyle.streetStyle("motorway")).minZoom)
+        assertEquals(15.0, assertNotNull(VectorStyle.streetStyle("minor")).minZoom)
+        assertTrue(assertNotNull(VectorStyle.streetStyle("primary")).priority < assertNotNull(VectorStyle.streetStyle("minor")).priority)
+        assertNull(VectorStyle.streetStyle("rail"))
+    }
+
+    @Test
+    fun `house numbers read from their own property and appear last`() {
+        assertEquals("housenumber", VectorStyle.labelTextKey("housenumber"))
+        assertEquals("name", VectorStyle.labelTextKey("poi"))
+        assertEquals(17.0, assertNotNull(VectorStyle.labelStyle("housenumber", null)).minZoom)
+        assertTrue(assertNotNull(VectorStyle.labelStyle("housenumber", null)).priority > assertNotNull(VectorStyle.labelStyle("poi", "shop")).priority)
     }
 }

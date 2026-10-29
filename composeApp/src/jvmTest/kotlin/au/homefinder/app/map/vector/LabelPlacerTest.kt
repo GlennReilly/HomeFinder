@@ -34,4 +34,14 @@ class LabelPlacerTest {
     fun `labels partly on screen are kept`() {
         assertEquals(listOf("edge"), placed(label("edge", 5f, 100f, 1)))
     }
+
+    @Test
+    fun `labels with the same key stay apart by the minimum distance`() {
+        val near = LabelCandidate("a", 100f, 100f, 20f, 8f, 1, key = "Main St", minSameKeyDistance = 200f)
+        val alsoNear = LabelCandidate("b", 250f, 100f, 20f, 8f, 2, key = "Main St", minSameKeyDistance = 200f)
+        val far = LabelCandidate("c", 350f, 100f, 20f, 8f, 3, key = "Main St", minSameKeyDistance = 200f)
+        val other = LabelCandidate("d", 250f, 200f, 20f, 8f, 4, key = "High St", minSameKeyDistance = 200f)
+        val result = LabelPlacer.place(listOf(near, alsoNear, far, other), 400f, 300f, 2f).map { it.item }
+        assertEquals(listOf("a", "c", "d"), result)
+    }
 }
