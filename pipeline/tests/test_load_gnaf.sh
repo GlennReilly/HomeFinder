@@ -36,4 +36,9 @@ runs="$(psql_db -t -A -c "SELECT count(*) FROM pipeline_run WHERE stage='gnaf_ad
 # The completeness check must catch a locality that is missing from the pilot list.
 psql_db -q -c "DELETE FROM pilot_locality WHERE name = 'HAMILTON'"
 if "$HERE/../scripts/check-gnaf.sh" >/dev/null 2>&1; then fail "check-gnaf.sh missed an in-LGA locality outside the list"; fi
+# Restoring the list must pass; a locality flagged as empty must still exist in G-NAF.
+psql_db -q -c "INSERT INTO pilot_locality (name, postcode) VALUES ('HAMILTON', '2303')"
+"$HERE/../scripts/check-gnaf.sh" >/dev/null 2>&1 || fail "check-gnaf.sh failed on a complete list"
+psql_db -q -c "UPDATE pilot_locality SET expect_addresses = false WHERE name = 'ADAMSTOWN'"
+if "$HERE/../scripts/check-gnaf.sh" >/dev/null 2>&1; then fail "check-gnaf.sh accepted an empty locality that is not in G-NAF"; fi
 echo "PASS"

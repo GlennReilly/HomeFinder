@@ -10,7 +10,7 @@ ZIP_SHA="$( [[ -f "$SHA_FILE" ]] && cat "$SHA_FILE" || echo unknown )"
 TABLES=(STATE LOCALITY STREET_LOCALITY ADDRESS_DETAIL ADDRESS_DEFAULT_GEOCODE)
 
 psql_db -q -c "TRUNCATE pilot_locality"
-psql_db -q -c "\copy pilot_locality (name, postcode) from stdin with (format csv, header)" \
+psql_db -q -c "\copy pilot_locality (name, postcode, expect_addresses) from stdin with (format csv, header)" \
   < "$PIPELINE_DIR/config/pilot_localities.csv"
 
 for table in "${TABLES[@]}"; do
