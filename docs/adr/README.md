@@ -9,3 +9,4 @@
 | [0005](0005-lots-suburbs-crs-and-address-link.md) | Lots, suburbs, projected CRS and the address-to-lot link | Accepted |
 | [0006](0006-locality-identity-same-named-suburbs.md) | Identify the right G-NAF locality when suburb names repeat | Accepted |
 | [0007](0007-nearest-lot-low-confidence-link.md) | Nearest-lot link as a low-confidence fallback | Accepted |
+| [0008](0008-map-library-basemap-and-desktop-finding.md) | Map library, basemap and the desktop finding | Accepted |

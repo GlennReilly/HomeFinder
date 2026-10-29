@@ -18,7 +18,7 @@ Kotlin Multiplatform module (see [ADR 0001](docs/adr/0001-gradle-module-layout.m
 
 ## Build and test
 
-Requires JDK 17+ and, for Android, the Android SDK (platform 37) with `sdk.dir` in `local.properties`.
+Requires JDK 17 and JDK 25 (the desktop map needs Java 25; see ADR 0008) and, for Android, the Android SDK (platform 37) with `sdk.dir` in `local.properties`.
 
 ```bash
 ./gradlew build
