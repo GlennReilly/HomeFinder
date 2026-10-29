@@ -13,6 +13,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.http.content.staticFiles
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
@@ -22,9 +23,14 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CancellationException
+import java.io.File
 
 private const val AUTHENTICATED_PREFIX = "/v1"
 private const val TILE_CACHE_CONTROL = "private, max-age=300"
+private const val WEB_INDEX = "index.html"
+
+/** The web bundle has no content hashes in its file names, so browsers must revalidate it on every load. */
+private const val WEB_CACHE_CONTROL = "no-cache"
 
 /**
  * The API: an open health check and, behind the API key, everything else. [suburbTiles] is null when no database is
@@ -51,6 +57,12 @@ fun Application.module(config: ServerConfig, suburbTiles: SuburbTileSource? = nu
         route(TileContract.TILES_PREFIX) {
             requireApiKey(config.apiKey, acceptQueryParameter = true)
             get("/{layer}/{z}/{x}/{y}") { respondWithTile(call, suburbTiles) }
+        }
+        // Registered last: the API routes above are more specific, so they win; this only answers what is left.
+        config.webRoot?.let { root ->
+            staticFiles("/", File(root), index = WEB_INDEX) {
+                cacheControl { listOf(io.ktor.http.CacheControl.NoCache(null)) }
+            }
         }
     }
 }

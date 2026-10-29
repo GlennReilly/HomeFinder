@@ -12,17 +12,17 @@ class ServerConfigTest {
     private fun load(vararg env: Pair<String, String>) = ServerConfigLoader.fromEnv(mapOf(*env))
 
     @Test
-    fun `defaults are all interfaces on port 8080`() {
+    fun `defaults are this machine only on port 8080`() {
         val config = assertIs<ConfigResult.Loaded>(load("API_KEY" to goodKey)).config
-        assertEquals(ServerConfig("0.0.0.0", 8080, goodKey), config)
+        assertEquals(ServerConfig("127.0.0.1", 8080, goodKey), config)
     }
 
     @Test
     fun `host port and key can be set`() {
         val config = assertIs<ConfigResult.Loaded>(
-            load("API_HOST" to "127.0.0.1", "API_PORT" to "9090", "API_KEY" to goodKey),
+            load("API_HOST" to "0.0.0.0", "API_PORT" to "9090", "API_KEY" to goodKey),
         ).config
-        assertEquals("127.0.0.1", config.host)
+        assertEquals("0.0.0.0", config.host)
         assertEquals(9090, config.port)
     }
 
@@ -31,7 +31,14 @@ class ServerConfigTest {
         val config = assertIs<ConfigResult.Loaded>(
             load("API_HOST" to "  ", "API_PORT" to " ", "API_KEY" to "  $goodKey  "),
         ).config
-        assertEquals(ServerConfig("0.0.0.0", 8080, goodKey), config)
+        assertEquals(ServerConfig("127.0.0.1", 8080, goodKey), config)
+    }
+
+    @Test
+    fun `the web root is optional and trimmed`() {
+        assertEquals(null, assertIs<ConfigResult.Loaded>(load("API_KEY" to goodKey)).config.webRoot)
+        assertEquals(null, assertIs<ConfigResult.Loaded>(load("API_KEY" to goodKey, "WEB_ROOT" to "  ")).config.webRoot)
+        assertEquals("/srv/web", assertIs<ConfigResult.Loaded>(load("API_KEY" to goodKey, "WEB_ROOT" to " /srv/web ")).config.webRoot)
     }
 
     @Test
@@ -64,7 +71,7 @@ class ServerConfigTest {
 
     @Test
     fun `the key never appears when the config is printed`() {
-        val text = ServerConfig("0.0.0.0", 8080, goodKey).toString()
+        val text = ServerConfig("127.0.0.1", 8080, goodKey).toString()
         assertFalse(text.contains(goodKey))
         assertTrue(text.contains("port=8080"))
     }
