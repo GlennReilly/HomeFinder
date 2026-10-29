@@ -1,6 +1,6 @@
 # 0005. Lots, suburbs, projected CRS and the address-to-lot link
 
-Status: Accepted
+Status: Accepted (link fallback extended by 0007)
 
 ## Context
 PR 4 loads cadastre lots and official suburb boundaries for the pilot region. The spec left open whether to use a bulk

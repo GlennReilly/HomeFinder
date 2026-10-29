@@ -12,7 +12,7 @@ first="$(psql_db -t -A -c "SELECT string_agg(gnaf_pid, ',' ORDER BY gnaf_pid) FR
 "$HERE/../scripts/load-gnaf.sh" "$HERE/fixtures/gnaf" >/dev/null   # rerun must be idempotent
 second="$(psql_db -t -A -c "SELECT string_agg(gnaf_pid, ',' ORDER BY gnaf_pid) FROM address")"
 
-[[ "$first" == "GANSW1,GANSW5,GANSW6,GANSW7" ]] || fail "expected GANSW1,GANSW5,GANSW6,GANSW7 but got '$first'"
+[[ "$first" == "GANSW1,GANSW5,GANSW6,GANSW7,GANSW9" ]] || fail "expected GANSW1,GANSW5,GANSW6,GANSW7,GANSW9 but got '$first'"
 [[ "$first" == "$second" ]] || fail "rerun changed output: '$second'"
 # A same-named Hamilton elsewhere in NSW (GANSW8) is rejected because its geocode is outside the Hamilton suburb.
 decision="$(psql_db -t -A -c "SELECT string_agg(locality_pid || ':' || accepted, ',' ORDER BY locality_pid) FROM locality_decision")"
