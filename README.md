@@ -27,3 +27,6 @@ Requires JDK 17 and JDK 25 (the desktop map needs Java 25; see ADR 0008) and, fo
 ```bash
 ./gradlew :composeApp:run
 ```
+
+Desktop draws a raster-tile fallback map. To try the MapLibre vector map on a machine with a capable GPU, add
+`-PmapRenderer=maplibre` (see ADR 0009).
