@@ -35,6 +35,7 @@ import au.homefinder.app.map.PlacedTile
 import au.homefinder.app.map.RasterViewport
 import au.homefinder.app.map.MapRenderer
 import au.homefinder.app.map.TileStore
+import au.homefinder.app.map.suburb.SuburbOverlay
 
 private const val MAX_CACHED_TILES = 192
 private const val LABEL_PADDING_PX = 4f
@@ -51,6 +52,7 @@ private val HALO_OFFSETS = listOf(
 val VectorTileRenderer: MapRenderer = MapRenderer { config, modifier ->
     PannableMap(config.initialCamera, VectorTileFetcher.ATTRIBUTION, modifier) { viewport, size ->
         VectorTileLayer(viewport, size)
+        config.suburbs?.let { SuburbOverlay(it, viewport, size) }
     }
 }
 

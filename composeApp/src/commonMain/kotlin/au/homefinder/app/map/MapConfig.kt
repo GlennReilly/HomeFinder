@@ -8,6 +8,8 @@ data class MapConfig(
     val styleUrl: String,
     val initialCamera: MapCamera,
     val attribution: String,
+    /** Suburb outlines and names drawn over the base map; null when there is no API to serve them. */
+    val suburbs: SuburbTileConfig? = null,
 ) {
     companion object {
         const val OPEN_FREE_MAP_STYLE_URL: String = "https://tiles.openfreemap.org/styles/liberty"
