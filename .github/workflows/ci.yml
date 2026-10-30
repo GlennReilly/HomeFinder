@@ -30,6 +30,8 @@ jobs:
         run: pipeline/tests/test_lots.sh
       - name: Pipeline integration test (sales and suburb statistics)
         run: pipeline/tests/test_sales.sh
+      - name: Pipeline integration test (OpenStreetMap proximity)
+        run: pipeline/tests/test_osm.sh
 
   server-db:
     runs-on: ubuntu-latest
