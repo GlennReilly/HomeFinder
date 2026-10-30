@@ -35,7 +35,7 @@ private suspend fun lotAt(call: RoutingCall, directory: LotDirectory?) {
 
 private suspend fun lotReport(call: RoutingCall, directory: LotDirectory?) {
     val lotId = call.parameters["lotId"].orEmpty()
-    respondLot(call, directory) { dir -> dir.find(lotId)?.let(LotReportFactory::build) }
+    respondLot(call, directory) { dir -> dir.find(lotId)?.let { LotReportFactory.build(it, dir.proximity(lotId)) } }
 }
 
 /** Runs a lookup: 503 without a database or when it fails, 404 when nothing is found, otherwise the result as JSON. */

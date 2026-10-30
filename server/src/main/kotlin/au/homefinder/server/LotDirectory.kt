@@ -1,6 +1,8 @@
 package au.homefinder.server
 
 import au.homefinder.shared.model.LotRef
+import kotlinx.datetime.LocalDate
+import java.sql.SQLException
 import javax.sql.DataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -25,6 +27,9 @@ interface LotDirectory {
     suspend fun findAt(latitude: Double, longitude: Double): LotRecord?
 
     suspend fun find(lotId: String): LotRecord?
+
+    /** The OpenStreetMap proximity of a lot, or null when the pipeline has not produced it (no import, or the tables are missing). */
+    suspend fun proximity(lotId: String): LotProximity? = null
 }
 
 /** Reads the `lot`, `suburb`, `address_lot` and `address` tables loaded by the pipeline (ADR 0005). */
@@ -43,6 +48,36 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
 
     override suspend fun find(lotId: String): LotRecord? = withContext(Dispatchers.IO) {
         dataSource.connection.use { load(it, lotId) }
+    }
+
+    override suspend fun proximity(lotId: String): LotProximity? = withContext(Dispatchers.IO) {
+        try {
+            dataSource.connection.use { connection ->
+                val asOf = connection.prepareStatement(IMPORT_SQL).use { statement ->
+                    statement.executeQuery().use { rows ->
+                        if (!rows.next()) return@use null to false
+                        rows.getDate("as_of")?.toLocalDate()?.let { LocalDate(it.year, it.monthValue, it.dayOfMonth) } to true
+                    }
+                }
+                if (!asOf.second) return@use null
+                val nearest = connection.prepareStatement(NEAREST_SQL).use { statement ->
+                    statement.setString(1, lotId)
+                    statement.executeQuery().use { rows ->
+                        buildList {
+                            while (rows.next()) add(NearFeature(rows.getString("kind"), rows.getInt("rank"), rows.getString("name"), rows.getDouble("distance_m")))
+                        }
+                    }
+                }
+                val parkArea = connection.prepareStatement(AMENITY_SQL).use { statement ->
+                    statement.setString(1, lotId)
+                    statement.executeQuery().use { rows -> if (rows.next()) rows.getDouble("park_area_radius_m2") else null }
+                }
+                LotProximity(nearest, parkArea, asOf.first)
+            }
+        } catch (failure: SQLException) {
+            // Before the first OSM load the tables hold nothing or do not exist; that is "no data", not an outage.
+            if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
+        }
     }
 
     private fun load(connection: java.sql.Connection, lotId: String): LotRecord? {
@@ -84,6 +119,7 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
 
     private companion object {
         private const val GDA2020_SRID = 7844
+        private const val UNDEFINED_TABLE = "42P01"
 
         /** A strata plan can carry hundreds of addresses; the card lists the first few. */
         const val MAX_ADDRESSES = 50
@@ -93,6 +129,12 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
             WHERE ST_Covers(l.geom, ST_SetSRID(ST_MakePoint(?, ?), $GDA2020_SRID))
             ORDER BY l.area_m2, l.lot_id LIMIT 1
         """.trimIndent()
+
+        val IMPORT_SQL = "SELECT (COALESCE(osm_base, imported_at) AT TIME ZONE 'UTC')::date AS as_of FROM osm_import"
+
+        val NEAREST_SQL = "SELECT kind, rank, name, distance_m FROM lot_nearest WHERE lot_id = ? ORDER BY kind, rank"
+
+        val AMENITY_SQL = "SELECT park_area_radius_m2 FROM lot_amenity WHERE lot_id = ?"
 
         val LOT_SQL = """
             SELECT l.lot_id, l.lot_id_string, l.parcel_key, l.suburb_id, s.name, s.postcode, l.area_m2

@@ -9,6 +9,9 @@ import au.homefinder.shared.model.ApiJson
 import au.homefinder.shared.model.Attribute
 import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.LotReport
+import au.homefinder.shared.model.ParkAccess
+import au.homefinder.shared.model.Proximity
+import au.homefinder.shared.model.ProximityList
 import au.homefinder.shared.model.SuburbReport
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
@@ -161,5 +164,36 @@ class LotSelectionTest {
         assertEquals("561 m²", rows.first().value)
         assertEquals(11, rows.size)
         assertTrue(rows.drop(1).all { it.isUnknown && it.confidence == Confidence.NONE && it.source == "src" })
+    }
+
+    @Test
+    fun `proximity factors read as distance, estimated walk and park area`() {
+        val base = report("1001", "12 MAIN STREET, HAMILTON NSW 2303")
+        val withProximity = base.copy(
+            beach = Attribute(Proximity("Ocean Beach", "ocean beach", 1794, walkingMinutes = 29), Confidence.MEDIUM, "OSM"),
+            parks = Attribute(
+                ParkAccess(listOf(Proximity("Big Park", "park", 187, walkingMinutes = 3), Proximity(null, "park", 374, walkingMinutes = 6)), 50_170.0),
+                Confidence.MEDIUM, "OSM",
+            ),
+            shopping = Attribute(
+                ProximityList(listOf(Proximity("Near Supermarket", "supermarket", 1112, walkingMinutes = 18), Proximity("Hamilton Mall", "shopping centre", 561))),
+                Confidence.MEDIUM, "OSM",
+            ),
+        )
+        val rows = LotCardRows.of(withProximity).associateBy { it.label }
+        assertEquals("Ocean Beach, 1.8 km away, about 29 min walk (estimated)", rows.getValue("Distance to the beach").value)
+        assertEquals(
+            "Big Park, 187 m away, about 3 min walk (estimated); Unnamed park, 374 m away, about 6 min walk (estimated); 50,170 m² of park within 800 m",
+            rows.getValue("Parks").value,
+        )
+        assertEquals(
+            "Supermarket: Near Supermarket, 1.1 km away, about 18 min walk (estimated); Shopping centre: Hamilton Mall, 561 m away",
+            rows.getValue("Shopping").value,
+        )
+        // A walking time is left out beyond an hour: only the distance is said.
+        val far = LotCardRows.of(base.copy(beach = Attribute(Proximity("Far Beach", "ocean beach", 10_500, walkingMinutes = 171), Confidence.MEDIUM, "OSM")))
+        assertEquals("Far Beach, 10.5 km away", far.first { it.label == "Distance to the beach" }.value)
+        assertEquals("999 m", Formats.distance(999))
+        assertEquals("1.0 km", Formats.distance(1000))
     }
 }
