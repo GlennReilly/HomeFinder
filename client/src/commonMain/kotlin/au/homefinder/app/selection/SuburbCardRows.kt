@@ -78,7 +78,7 @@ object SuburbCardRows {
         row("Transport", report.transport, ::transport),
     )
 
-    private fun <T> row(label: String, attribute: Attribute<T>, format: (T) -> String): CardRow = CardRow(
+    internal fun <T> row(label: String, attribute: Attribute<T>, format: (T) -> String): CardRow = CardRow(
         label = label,
         value = attribute.value?.let(format),
         source = attribute.source,

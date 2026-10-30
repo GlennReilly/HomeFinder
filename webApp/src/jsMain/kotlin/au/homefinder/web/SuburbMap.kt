@@ -42,7 +42,8 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
     }
 
     private var loaded = false
-    private var pendingSelection: String? = null
+    private var pendingSuburb: String? = null
+    private var pendingLot: String? = null
 
     init {
         // maplibreCss is read so webpack keeps the stylesheet import.
@@ -52,18 +53,24 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
         map.on("load") {
             map.addSource(SuburbStyle.SOURCE_ID, SuburbStyle.source(apiOrigin + TileContract.suburbsPath() + "/{z}/{x}/{y}" + TileContract.TILE_SUFFIX))
             SuburbStyle.layers().forEach { map.addLayer(it) }
+            map.addSource(LotStyle.SOURCE_ID, LotStyle.source(apiOrigin + TileContract.lotsPath() + "/{z}/{x}/{y}" + TileContract.TILE_SUFFIX))
+            LotStyle.layers().forEach { map.addLayer(it) }
             loaded = true
-            showSelection(pendingSelection)
+            showSelection(pendingSuburb, pendingLot)
         }
         map.on("click") { event ->
             onTap(event.lngLat.lat as Double, event.lngLat.lng as Double, map.getZoom())
         }
     }
 
-    /** Highlights the selected suburb and dims the rest; null clears it. */
-    fun showSelection(suburbId: String?) {
-        pendingSelection = suburbId
+    /** Highlights the selected suburb or lot and dims the rest; null clears each. */
+    fun showSelection(suburbId: String?, lotId: String?) {
+        pendingSuburb = suburbId
+        pendingLot = lotId
         if (!loaded) return
+        map.setFilter(LotStyle.DIM_LAYER, LotStyle.dimFilter(lotId))
+        map.setFilter(LotStyle.SELECTED_FILL_LAYER, LotStyle.selectedFilter(lotId))
+        map.setFilter(LotStyle.SELECTED_OUTLINE_LAYER, LotStyle.selectedFilter(lotId))
         map.setFilter(SuburbStyle.DIM_LAYER, SuburbStyle.dimFilter(suburbId))
         map.setFilter(SuburbStyle.SELECTED_FILL_LAYER, SuburbStyle.selectedFilter(suburbId))
         map.setFilter(SuburbStyle.SELECTED_OUTLINE_LAYER, SuburbStyle.selectedFilter(suburbId))

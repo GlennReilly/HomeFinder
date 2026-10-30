@@ -50,3 +50,5 @@ progress { width: 100%; margin: 16px 0; }
 #key-form h2 { margin: 0; }
 #key-form input { font: inherit; padding: 8px; }
 #key-help { margin: 0; font-size: .8rem; color: var(--muted); max-width: 26ch; }
+.addresses { margin: 12px 0 0; padding-left: 20px; }
+.addresses li { margin: 2px 0; }
