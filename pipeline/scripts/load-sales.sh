@@ -12,7 +12,7 @@ DIR="${1:-$RAW_DIR/sales}"
 [[ -n "$(find "$DIR" -iname '*.dat' -print -quit 2>/dev/null)" ]] || { echo "No .DAT files under $DIR; run download-sales.sh" >&2; exit 1; }
 
 psql_db -q -c "DROP TABLE IF EXISTS stg.sale_raw" -c "DROP TABLE IF EXISTS stg.sale_district" \
-  -c "CREATE TABLE stg.sale_district (code text, name text)" \
+  -c "CREATE TABLE stg.sale_district (code text, name text, name_only_match boolean)" \
   -c "CREATE TABLE stg.sale_raw ($(seq -s ', ' -f 'c%.0f text' 1 25), source_file text)"
 psql_db -q -c "\copy stg.sale_district from stdin with (format csv, header)" < "$PIPELINE_DIR/config/sales_districts.csv"
 
