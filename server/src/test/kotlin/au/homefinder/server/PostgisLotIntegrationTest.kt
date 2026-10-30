@@ -145,4 +145,53 @@ class PostgisLotIntegrationTest {
         assertNull(directory.find("1001' OR '1'='1"))
         assertNull(directory.find(""))
     }
+
+    private fun execute(vararg statements: String) = DriverManager.getConnection(url, user, password).use { connection ->
+        connection.createStatement().use { statement -> statements.forEach { statement.execute(it) } }
+    }
+
+    @Test
+    fun `proximity is read nearest first with the park area and the data's date`() = withLots { directory, _ ->
+        execute(
+            "TRUNCATE osm_import, lot_nearest, lot_amenity",
+            "INSERT INTO osm_import (imported_at, osm_base, features) VALUES ('2026-10-30 08:00+00', '2026-10-29 22:00+00', 7)",
+            "INSERT INTO lot_nearest (lot_id, kind, rank, osm_type, osm_id, name, distance_m) VALUES " +
+                "('1001', 'park', 2, 'way', 2, NULL, 374.2), ('1001', 'park', 1, 'way', 1, 'Big Park', 187.5), " +
+                "('1001', 'beach', 1, 'way', 3, 'Ocean Beach', 1794.0), ('1002', 'mall', 1, 'way', 4, 'Mall', 50.0)",
+            "INSERT INTO lot_amenity (lot_id, park_area_radius_m2) VALUES ('1001', 50170.5)",
+        )
+        val proximity = assertNotNull(directory.proximity("1001"))
+        assertEquals(java.time.LocalDate.of(2026, 10, 29).let { kotlinx.datetime.LocalDate(it.year, it.monthValue, it.dayOfMonth) }, proximity.osmAsOf)
+        assertEquals(50170.5, proximity.parkAreaM2)
+        assertEquals(listOf("Big Park", null), proximity.of("park").map { it.name })
+        assertEquals(187.5, proximity.of("park").first().distanceM)
+        assertEquals("Ocean Beach", proximity.of("beach").single().name)
+        assertEquals(emptyList(), proximity.of("supermarket"))
+        // Another lot sees only its own rows; a lot with none still gets the import date and no park area.
+        assertEquals(listOf("Mall"), assertNotNull(directory.proximity("1002")).of("mall").map { it.name })
+        assertNull(assertNotNull(directory.proximity("1003")).parkAreaM2)
+        assertEquals(emptyList(), assertNotNull(directory.proximity("1003")).nearest)
+    }
+
+    @Test
+    fun `without an import there is no proximity data`() = withLots { directory, _ ->
+        execute("TRUNCATE osm_import")
+        assertNull(directory.proximity("1001"))
+    }
+
+    @Test
+    fun `a database without the proximity tables has no proximity rather than an error`() = withLots { directory, _ ->
+        execute("ALTER TABLE osm_import RENAME TO osm_import_hidden")
+        try {
+            assertNull(directory.proximity("1001"))
+        } finally {
+            execute("ALTER TABLE osm_import_hidden RENAME TO osm_import")
+        }
+    }
+
+    @Test
+    fun `a hostile lot id finds nothing`() = withLots { directory, _ ->
+        execute("TRUNCATE osm_import", "INSERT INTO osm_import (imported_at, osm_base, features) VALUES (now(), NULL, 0)")
+        assertEquals(emptyList(), assertNotNull(directory.proximity("1001' OR '1'='1")).nearest)
+    }
 }

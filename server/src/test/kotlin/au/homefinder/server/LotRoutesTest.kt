@@ -15,6 +15,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -30,6 +31,7 @@ class LotRoutesTest {
         private val atResult: LotRecord? = null,
         private val byId: Map<String, LotRecord> = emptyMap(),
         private val failure: Exception? = null,
+        private val proximity: Map<String, LotProximity> = emptyMap(),
     ) : LotDirectory {
         val atCalls = mutableListOf<Pair<Double, Double>>()
         override suspend fun findAt(latitude: Double, longitude: Double): LotRecord? {
@@ -41,6 +43,7 @@ class LotRoutesTest {
             failure?.let { throw it }
             return byId[lotId]
         }
+        override suspend fun proximity(lotId: String): LotProximity? = proximity[lotId]
     }
 
     private class FakeLotTiles(var bytes: ByteArray) : LotTileSource {
@@ -135,5 +138,19 @@ class LotRoutesTest {
     fun `an unknown tile layer is still not found`() = api(tiles = FakeLotTiles(tileBytes)) {
         assertEquals(HttpStatusCode.NotFound, get("${TileContract.TILES_PREFIX}/parcels/16/60296/39263.pbf").status)
         assertTrue(TileContract.lotsPath().endsWith("/lots"))
+    }
+
+    @Test
+    fun `a lot report carries the nearby beach when the proximity data exists`() {
+        val proximity = LotProximity(listOf(NearFeature("beach", 1, "Ocean Beach", 1794.0)), 1000.0, LocalDate(2026, 10, 29))
+        api(FakeLots(byId = mapOf("1001" to lot), proximity = mapOf("1001" to proximity))) {
+            val report = ApiJson.decodeFromString<LotReport>(get("${ApiContract.LOTS_PATH}/1001").bodyAsText())
+            assertEquals("Ocean Beach", report.beach.value?.name)
+            assertEquals(1794, report.beach.value?.straightLineM)
+        }
+        api(FakeLots(byId = mapOf("1001" to lot))) {
+            val report = ApiJson.decodeFromString<LotReport>(get("${ApiContract.LOTS_PATH}/1001").bodyAsText())
+            assertEquals(LotReportFactory.OSM_NOT_LOADED_NOTE, report.beach.note)
+        }
     }
 }

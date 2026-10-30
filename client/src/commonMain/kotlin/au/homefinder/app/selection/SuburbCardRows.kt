@@ -55,6 +55,9 @@ object Formats {
 
     fun kilometres(metres: Int): String = decimal(metres / METRES_PER_KM, 1) + " km"
 
+    /** Whole metres under a kilometre, otherwise kilometres to one place. */
+    fun distance(metres: Int): String = if (metres < METRES_PER_KM.toInt()) "$metres m" else kilometres(metres)
+
     fun squareMetres(value: Double): String = grouped(value.roundToLong()) + " m²"
 }
 

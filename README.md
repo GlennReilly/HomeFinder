@@ -68,8 +68,8 @@ postcode, area, the sales and block-size statistics once `pipeline/scripts/load-
 ### Lots
 
 `GET /tiles/lots/{z}/{x}/{y}.pbf` serves lot boundaries for zoom 16 to 18, `GET /v1/lots/at?lat=&lon=` finds the lot under a
-point and `GET /v1/lots/{lotId}` returns the basic lot card (lot, suburb, addresses, measured area; other factors
-unknown). They need the database and the key. See [ADR 0022](docs/adr/0022-lot-tiles-and-lookup.md).
+point and `GET /v1/lots/{lotId}` returns the basic lot card (lot, suburb, addresses, measured area, and once `pipeline/scripts/load-osm.sh` has run the nearest beach, parks and shops; other factors
+unknown). They need the database and the key. See [ADR 0022](docs/adr/0022-lot-tiles-and-lookup.md) and [ADR 0024](docs/adr/0024-proximity-in-the-lot-report.md).
 
 ### Selecting a suburb
 
