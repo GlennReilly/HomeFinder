@@ -10,6 +10,7 @@ Look up any NSW address or suburb on a map and see the factors that decide a pur
 | `shared` | Models and serialization (JVM + JS) |
 | `client` | UI-free client logic: API client, suburb selection, Suburb Card rows and card HTML (JVM + JS) |
 | `webApp` | The web client: Kotlin/JS, MapLibre GL JS and a DOM UI ([webApp/README.md](webApp/README.md)) |
+| `e2e` | Browser smoke tests (Playwright for Java driving Chrome against a fake of the API), run with `./gradlew :e2e:e2eTest` |
 | `server` | Ktor API |
 | `pipeline` | Data pipeline: PostGIS, G-NAF, suburbs, lots, sales statistics ([pipeline/README.md](pipeline/README.md)) |
 
@@ -22,6 +23,16 @@ Requires JDK 17. Gradle downloads Node and the npm packages for the web build.
 ```bash
 ./gradlew build
 ```
+
+## Browser smoke tests
+
+```bash
+./gradlew :e2e:e2eTest
+```
+
+Builds the web app, serves it with a small fake of the API and drives the installed Chrome through it: the key prompt, a tap on the map,
+search, and saving and removing a Homely score. Needs Google Chrome (set `E2E_BROWSER_CHANNEL` to use another, for example `msedge`).
+They are not part of `./gradlew build`; CI runs them as their own job. See [ADR 0032](docs/adr/0032-browser-smoke-tests.md).
 
 ## Run it locally
 
