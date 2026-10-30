@@ -6,6 +6,7 @@ import au.homefinder.app.selection.SuburbCardState
 import au.homefinder.shared.model.Confidence
 import kotlinx.html.FlowContent
 import kotlinx.html.ButtonType
+import kotlinx.html.a
 import kotlinx.html.button
 import kotlinx.html.dd
 import kotlinx.html.div
@@ -22,6 +23,9 @@ object CardActions {
     const val CLOSE: String = "close"
     const val RETRY: String = "retry"
 }
+
+/** The link's words say where it goes: it leaves this app. */
+const val HOMELY_LINK_TEXT: String = "Reviews on Homely (opens homely.com.au)"
 
 const val CARD_DISCLAIMER: String =
     "Indicative only. Verify against the contract of sale, a council planning certificate and a building inspection."
@@ -81,6 +85,14 @@ fun FlowContent.suburbCard(card: SuburbCardState) {
             }
             is SuburbCardState.Loaded -> {
                 dl("rows") { SuburbCardRows.of(card.report).forEach { cardRow(it) } }
+                ExternalLinks.homelySuburbProfile(card.report.name, card.report.postcode)?.let { url ->
+                    p("external") {
+                        a(href = url, target = "_blank", classes = "external-link") {
+                            attributes["rel"] = "noopener noreferrer"
+                            +HOMELY_LINK_TEXT
+                        }
+                    }
+                }
                 p("disclaimer") { +CARD_DISCLAIMER }
             }
         }

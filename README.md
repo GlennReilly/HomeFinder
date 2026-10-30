@@ -79,6 +79,9 @@ unknown). They need the database and the key. See [ADR 0022](docs/adr/0022-lot-t
 
 ### Selecting a suburb
 
+The Suburb Card ends with a link to the suburb's Homely page (no Homely data is fetched or shown; [ADR 0027](docs/adr/0027-link-out-to-homely-no-extraction.md)).
+
+
 Tap a suburb to select it: it is highlighted and a card opens (a bottom sheet on narrow windows, a side panel on wide
 ones). Escape or Close clears it. From zoom 16 a tap selects a lot instead (outlines appear at the same zoom) and opens the basic lot card. Taps need the API and its key. See
 [ADR 0017](docs/adr/0017-suburb-selection-and-card.md).
