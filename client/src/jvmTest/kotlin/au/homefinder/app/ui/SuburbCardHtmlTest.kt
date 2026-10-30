@@ -65,4 +65,14 @@ class SuburbCardHtmlTest {
         val out = html(SuburbCardState.Failed("1", "<script>alert(1)</script>"))
         assertFalse("<script>" in out)
     }
+
+    @Test
+    fun `a loaded card links to the suburb's Homely page in a new tab without copying anything from it`() {
+        val out = html(SuburbCardState.Loaded(report))
+        assertTrue("""href="https://www.homely.com.au/suburb-profile/hamilton-nsw-2303"""" in out, out)
+        assertTrue("""target="_blank"""" in out && """rel="noopener noreferrer"""" in out)
+        assertTrue(HOMELY_LINK_TEXT in out)
+        assertFalse("Homely" in html(SuburbCardState.Loaded(report.copy(postcode = null))), "no postcode, no link")
+        assertFalse("homely.com.au" in html(SuburbCardState.Loading("9001", SuburbRef("9001", "HAMILTON", "2303"))))
+    }
 }
