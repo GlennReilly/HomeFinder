@@ -19,11 +19,11 @@ for file in "${FILES[@]}"; do
     printf "SET postgis.gdal_enabled_drivers = 'GTiff';\n"
     printf "INSERT INTO stg.dem_raw (src, rast) VALUES ('%s', ST_FromGDALRaster(decode('" "$(basename "$file")"
     od -An -v -tx1 "$file" | tr -d ' \n'
-    printf "', 'hex'), %s));\n" "$DEM_SRID"
+    printf "', 'hex'), %s));\n" "$DEM_REQUEST_SRID"
   } | psql_db -q || { echo "Could not read $file as a GeoTIFF" >&2; exit 1; }
 done
 
-psql_db -q -v srid="$DEM_SRID" -v tile_px="$DEM_TILE_PX" -v min_m="$DEM_MIN_M" -v max_m="$DEM_MAX_M" \
+psql_db -q -v srid="$DEM_SRID" -v pixel_m="$DEM_PIXEL_M" -v tile_px="$DEM_TILE_PX" -v min_m="$DEM_MIN_M" -v max_m="$DEM_MAX_M" \
   < "$PIPELINE_DIR/sql/terrain.sql"
 psql_db -q -c "DROP TABLE IF EXISTS stg.dem_raw"
 

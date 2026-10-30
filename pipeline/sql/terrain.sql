@@ -1,5 +1,6 @@
--- Builds lot_terrain from stg.dem_raw. Run with: psql -v srid=28356 -v tile_px=256 -v min_m=-50 -v max_m=1500
--- Tiles outside every pilot suburb are dropped. Heights outside min_m..max_m (fill values) count as no data. Slope comes from
+-- Builds lot_terrain from stg.dem_raw. Run with: psql -v srid=28356 -v pixel_m=5 -v tile_px=256 -v min_m=-50 -v max_m=1500
+-- The service gives degrees (GDA94), so each file is first resampled (bilinear) to a pixel_m metre grid in MGA zone 56; slope is
+-- measured on that grid. Tiles outside every pilot suburb are dropped. Heights outside min_m..max_m (fill values) count as no data. Slope comes from
 -- the 3x3 neighbourhood of each tile (percent, rise over run), so a strip one pixel wide along each tile edge has no slope and
 -- those pixels are left out of the slope figures. A lot's figures are over the pixels whose centre lies inside it; a lot too
 -- small to hold a pixel centre takes the pixel under its representative point. The cadastre is GDA2020 and the DEM GDA94: the
@@ -9,15 +10,21 @@ BEGIN;
 CREATE TEMP TABLE pilot_area ON COMMIT DROP AS
 SELECT ST_Union(ST_Transform(geom, :srid)) AS geom FROM suburb;
 
+-- The service declares no no-data value and its fill pixels can be NaN or absurd, so anything outside min_m..max_m is first set
+-- to -9999, declared as no data, and only then resampled, so that fill never blends into heights or becomes a zero height.
+CREATE TEMP TABLE dem_clean ON COMMIT DROP AS
+SELECT ST_Transform(
+           ST_MapAlgebra(
+               ST_SetBandNoDataValue(rast, 1, -9999), 1, '32BF',
+               'CASE WHEN [rast] BETWEEN ' || :min_m || ' AND ' || :max_m || ' THEN [rast] ELSE -9999 END', -9999
+           ), :srid, :pixel_m, :pixel_m, 'Bilinear') AS rast
+FROM stg.dem_raw;
+
 CREATE TEMP TABLE dem_tile ON COMMIT DROP AS
 SELECT t.tile_id, t.height, ST_Slope(t.height, 1, '32BF', 'PERCENT') AS slope
 FROM (
-    SELECT row_number() OVER () AS tile_id,
-           ST_MapAlgebra(
-               ST_SetBandNoDataValue(ST_SetSRID(tile, :srid), 1, -9999), 1, '32BF',
-               'CASE WHEN [rast] BETWEEN ' || :min_m || ' AND ' || :max_m || ' THEN [rast] ELSE NULL END', -9999
-           ) AS height
-    FROM (SELECT ST_Tile(rast, :tile_px, :tile_px) AS tile FROM stg.dem_raw) x
+    SELECT row_number() OVER () AS tile_id, ST_SetBandNoDataValue(ST_SetSRID(tile, :srid), 1, -9999) AS height
+    FROM (SELECT ST_Tile(rast, :tile_px, :tile_px) AS tile FROM dem_clean) x
 ) t, pilot_area p
 WHERE t.height IS NOT NULL AND ST_Intersects(ST_ConvexHull(t.height), p.geom);
 

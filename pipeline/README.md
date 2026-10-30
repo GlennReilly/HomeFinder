@@ -71,8 +71,9 @@ scripts/load-dem.sh       # loads the GeoTIFFs and works out each lot's height a
 tests/test_terrain.sh     # integration test on a synthetic DEM and a stand-in WCS (needs Docker)
 ```
 
-Source: Geoscience Australia, "DEM of Australia derived from LiDAR 5 Metre Grid" (CC BY 4.0). The download asks the service for
-5 km squares that touch a suburb. If the service offers several coverages it uses the one with "DEM" in its name; if that is still unclear it lists them and you set `DEM_COVERAGE`. Slope is rise over
+Source: Geoscience Australia, "DEM of Australia derived from LiDAR 5 Metre Grid" (CC BY 4.0). The download asks the service (which answers only in degrees, in GDA94)
+for 0.05 degree squares (about 4.7 by 5.5 km) that touch a suburb; the loader resamples them to a 5 m metre grid before measuring slope. The service's one coverage is named `1`;
+if it ever offers several, the script lists them and you set `DEM_COVERAGE`. Slope is rise over
 run between neighbouring pixels (percent), averaged over the lot's pixels. See [ADR 0036](../docs/adr/0036-lot-height-and-slope-from-dem.md).
 
 ## Schools (ICSEA)
