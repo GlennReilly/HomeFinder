@@ -93,13 +93,14 @@ fun FlowContent.suburbCard(card: SuburbCardState) {
             }
             is SuburbCardState.Loaded -> {
                 val rows = SuburbCardRows.of(card.report)
-                // The Homely score you entered, when there is one, sits right under the area.
+                // The Homely score you entered (when there is one) and its entry form sit right under the price change.
+                val split = rows.indexOfFirst { it.label == SuburbCardRows.PRICE_CHANGE_LABEL } + 1
                 dl("rows") {
-                    rows.firstOrNull()?.let { cardRow(it) }
+                    rows.take(split).forEach { cardRow(it) }
                     SuburbCardRows.homely(card.report)?.let { cardRow(it) }
-                    rows.drop(1).forEach { cardRow(it) }
                 }
                 ratingForm(card.report)
+                dl("rows") { rows.drop(split).forEach { cardRow(it) } }
                 ExternalLinks.homelySuburbProfile(card.report.name, card.report.postcode)?.let { url ->
                     p("external") {
                         a(href = url, target = "_blank", classes = "external-link") {

@@ -64,12 +64,15 @@ object Formats {
 object SuburbCardRows {
     const val UNKNOWN: String = "Unknown"
 
+    /** The row the Homely score and its entry form sit under (ADR 0030). */
+    const val PRICE_CHANGE_LABEL: String = "Price change, 12 months"
+
     /** The rows in the order the spec lists the Suburb Card contents. */
     fun of(report: SuburbReport): List<CardRow> = listOf(
         row("Area", report.areaKm2) { Formats.decimal(it, 2) + " km²" },
         row("Median house price", report.medianHousePriceAud, Formats::dollars),
         row("Median unit price", report.medianUnitPriceAud, Formats::dollars),
-        row("Price change, 12 months", report.priceChange12MonthsPercent, Formats::signedPercent),
+        row(PRICE_CHANGE_LABEL, report.priceChange12MonthsPercent, Formats::signedPercent),
         row("Sales behind the prices", report.salesCount) { Formats.grouped(it.toLong()) },
         row("Typical block size", report.blockSize, ::blockSize),
         row("Flood", report.floodShare, ::flood),
