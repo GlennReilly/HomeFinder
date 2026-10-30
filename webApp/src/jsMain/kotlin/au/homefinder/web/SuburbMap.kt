@@ -77,6 +77,7 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
             SuburbStyle.layers().forEach { map.addLayer(it) }
             map.addSource(LotStyle.SOURCE_ID, LotStyle.source(apiOrigin + TileContract.lotsPath() + "/{z}/{x}/{y}" + TileContract.TILE_SUFFIX))
             LotStyle.layers().forEach { map.addLayer(it) }
+            map.addLayer(RatingStyle.farNameLayer())
             map.addSource(RatingStyle.SOURCE_ID, RatingStyle.emptySource())
             map.addLayer(RatingStyle.layer())
             loaded = true
@@ -109,6 +110,7 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
         pendingRatings = points
         if (!loaded) return
         map.setFilter(SuburbStyle.NAME_LAYER, RatingStyle.unratedFilter(points))
+        map.setFilter(RatingStyle.FAR_NAME_LAYER, RatingStyle.ratedFilter(points))
         placeRatingLabels()
     }
 

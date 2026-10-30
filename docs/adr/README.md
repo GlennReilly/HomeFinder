@@ -32,3 +32,4 @@
 | [0028](0028-manual-homely-rating.md) | A Homely star score you enter by hand | Accepted |
 | [0029](0029-rated-suburb-labels-follow-the-view.md) | Rated suburb labels follow the view | Accepted |
 | [0030](0030-homely-rating-under-price-change.md) | The Homely score sits under the price change | Accepted |
+| [0031](0031-rated-label-after-two-zoom-taps.md) | The score label waits until you have zoomed in two taps | Accepted |

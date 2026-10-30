@@ -94,16 +94,17 @@ class SuburbCardHtmlTest {
     }
 
     @Test
-    fun `with a rating the row sits under the price change, the form right under that and the other rows follow`() {
+    fun `under the price change come the Homely link, then the rating, then its form, and the other rows follow`() {
         val out = html(SuburbCardState.Loaded(withRating(2.1, 7)))
         assertTrue("2.1 ★ (7 reviews)" in out)
         val area = out.indexOf("Area</dt>")
         val unit = out.indexOf("Median unit price</dt>")
         val change = out.indexOf("Price change, 12 months</dt>")
+        val link = out.indexOf("homely.com.au/suburb-profile")
         val homely = out.indexOf("Homely rating</dt>")
         val form = out.indexOf("data-rating-form")
         val sales = out.indexOf("Sales behind the prices</dt>")
-        assertTrue(area in 0 until unit && unit < change && change < homely && homely < form && form < sales, "order: $area $unit $change $homely $form $sales")
+        assertTrue(area in 0 until unit && unit < change && change < link && link < homely && homely < form && form < sales, "order: $area $unit $change $link $homely $form $sales")
         assertTrue("Source: Homely (entered by you) · as of 2026-10-30 · low confidence" in out)
         val formHtml = out.substringAfter("data-rating-form")
         assertTrue("value=\"2.1\"" in formHtml && "value=\"7\"" in formHtml)
@@ -111,12 +112,13 @@ class SuburbCardHtmlTest {
     }
 
     @Test
-    fun `without a rating only the form sits under the price change`() {
+    fun `without a rating the link and then the form sit under the price change`() {
         val out = html(SuburbCardState.Loaded(report))
         val change = out.indexOf("Price change, 12 months</dt>")
+        val link = out.indexOf("homely.com.au/suburb-profile")
         val form = out.indexOf("data-rating-form")
         val sales = out.indexOf("Sales behind the prices</dt>")
-        assertTrue(change in 0 until form && form < sales, "order: $change $form $sales")
+        assertTrue(change in 0 until link && link < form && form < sales, "order: $change $link $form $sales")
         assertFalse("Homely rating</dt>" in out)
     }
 
