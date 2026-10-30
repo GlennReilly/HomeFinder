@@ -17,19 +17,19 @@ source "$(dirname "$0")/lib.sh"
 report="$("$HERE/../scripts/load-sales.sh" "$HERE/fixtures/sales")"
 q() { psql_db -t -A -c "$1"; }
 
-# 27 B records in configured districts (district 999 is ignored); one is repeated in a later file, leaving 26.
-[[ "$(q "SELECT count(*) FROM sale")" == "26" ]] || fail "expected 26 sales but got $(q "SELECT count(*) FROM sale")"
+# 30 B records in configured districts (district 999 is ignored); one is repeated in a later file, leaving 29.
+[[ "$(q "SELECT count(*) FROM sale")" == "29" ]] || fail "expected 29 sales but got $(q "SELECT count(*) FROM sale")"
 [[ "$(q "SELECT count(*) FROM sale WHERE district_code = '999'")" == "0" ]] || fail "unconfigured district was loaded"
 [[ "$(q "SELECT source_file FROM sale WHERE property_id = '1007'")" == *20260601* ]] || fail "the later file should win for a repeated sale"
 reasons="$(q "SELECT string_agg(COALESCE(exclusion_reason, 'counted') || '=' || n, ',' ORDER BY COALESCE(exclusion_reason, 'counted')) FROM (SELECT exclusion_reason, count(*) n FROM sale GROUP BY 1) t")"
-want="counted=16,low_price=1,multi_property=2,no_contract_date=1,no_price=1,no_suburb_match=2,not_residential=2,part_interest=1"
+want="counted=18,low_price=1,multi_property=2,no_contract_date=1,no_price=1,no_suburb_match=3,not_residential=2,part_interest=1"
 [[ "$reasons" == "$want" ]] || fail "expected '$want' but got '$reasons'"
 grep -q "multi_property | 2" <<< "$report" || fail "report should list exclusion reasons: $report"
 
 stats() { q "SELECT $1 FROM suburb_stats WHERE suburb_id = '$2'"; }
 # Hamilton houses: current window 700k, 800k, 900k; previous 600k, 640k, 680k and 1m on the boundary day (a sale exactly
 # 12 months back belongs to the previous window, one exactly 24 months back to neither).
-[[ "$(stats "house_sales || '/' || house_median_aud" 9001)" == "3/800000" ]] || fail "Hamilton house stats: $(stats "house_sales || '/' || house_median_aud" 9001)"
+[[ "$(stats "house_sales || '/' || house_median_aud" 9001)" == "4/800000" ]] || fail "Hamilton house stats: $(stats "house_sales || '/' || house_median_aud" 9001)"
 [[ "$(stats "house_prev_sales || '/' || house_prev_median_aud" 9001)" == "4/660000" ]] || fail "Hamilton previous house stats"
 [[ "$(stats "house_change_pct" 9001)" == "21.2" ]] || fail "Hamilton house change: $(stats "house_change_pct" 9001)"
 [[ "$(stats "unit_sales || '/' || unit_median_aud" 9001)" == "3/450000" ]] || fail "Hamilton unit stats"
@@ -53,5 +53,15 @@ q "UPDATE lot SET parcel_key = 'SP12345' WHERE lot_id = '1003'" >/dev/null
 before="$(q "SELECT md5(string_agg(s::text, '|' ORDER BY suburb_id)) FROM suburb_stats s")"
 "$HERE/../scripts/load-sales.sh" "$HERE/fixtures/sales" >/dev/null
 [[ "$before" == "$(q "SELECT md5(string_agg(s::text, '|' ORDER BY suburb_id)) FROM suburb_stats s")" ]] || fail "rerun changed the statistics"
-[[ "$(q "SELECT count(*) FROM sale")" == "26" ]] || fail "rerun changed the sale count"
+[[ "$(q "SELECT count(*) FROM sale")" == "29" ]] || fail "rerun changed the sale count"
+# A blank postcode: matched by name in a pilot council, left alone in a neighbouring one.
+blank() { q "SELECT COALESCE(suburb_id, 'none') || '/' || COALESCE(exclusion_reason, 'counted') FROM sale WHERE property_id = '$1'"; }
+[[ "$(blank 3011)" == "9001/counted" ]] || fail "a blank-postcode Hamilton sale in Newcastle should match by name: $(blank 3011)"
+[[ "$(blank 4004)" == "9002/counted" ]] || fail "a blank-postcode Belmont sale in Lake Macquarie should match by name: $(blank 4004)"
+[[ "$(blank 5001)" == "none/no_suburb_match" ]] || fail "a blank-postcode sale in Maitland must stay unmatched: $(blank 5001)"
+# A name shared by two suburbs is ambiguous, so it is not guessed.
+q "INSERT INTO suburb (suburb_id, name, postcode, geom) SELECT '9099', name, '2999', geom FROM suburb WHERE suburb_id = '9002'" >/dev/null
+"$HERE/../scripts/load-sales.sh" "$HERE/fixtures/sales" >/dev/null
+[[ "$(blank 4004)" == "none/no_suburb_match" ]] || fail "an ambiguous suburb name must not be guessed: $(blank 4004)"
+[[ "$(blank 4001)" == "9002/counted" ]] || fail "a sale with its postcode still matches exactly: $(blank 4001)"
 echo "PASS"

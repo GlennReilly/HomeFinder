@@ -8,3 +8,5 @@ neighbouring council cannot slip in. Drop the last four rows to use only the two
 
 Codes come from the Valuer General's "Property Sales Data File (District Codes and Names)" fact sheet (May 2020); council
 codes can change with amalgamations, so check it if a council's sales stop appearing.
+
+`name_only_match` marks the pilot councils. A sale there with a blank postcode is matched by locality name alone when exactly one suburb has that name (ADR 0025). In the neighbouring councils a blank postcode stays unmatched, because the locality might be a same-named suburb outside the pilot area.

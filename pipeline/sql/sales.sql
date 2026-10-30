@@ -55,6 +55,11 @@ UPDATE sale s SET suburb_id = m.suburb_id
 FROM (SELECT upper(name) AS name, postcode, min(suburb_id) AS suburb_id
       FROM suburb WHERE postcode IS NOT NULL GROUP BY upper(name), postcode HAVING count(*) = 1) m
 WHERE m.name = s.locality AND m.postcode = s.postcode;
+-- A sale in a pilot council with no postcode matches by locality name alone, when exactly one suburb has that name (ADR 0025).
+UPDATE sale s SET suburb_id = m.suburb_id
+FROM (SELECT upper(name) AS name, min(suburb_id) AS suburb_id FROM suburb GROUP BY upper(name) HAVING count(*) = 1) m
+WHERE s.suburb_id IS NULL AND s.postcode IS NULL AND m.name = s.locality
+  AND s.district_code IN (SELECT code FROM stg.sale_district WHERE name_only_match);
 UPDATE sale SET exclusion_reason = 'no_suburb_match' WHERE exclusion_reason IS NULL AND suburb_id IS NULL;
 
 ANALYZE sale;
