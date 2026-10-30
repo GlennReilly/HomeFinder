@@ -42,7 +42,8 @@ data class SlopeSummary(
     val meanPercent: Double,
     val maxPercent: Double,
     val slopeClass: SlopeClass,
-    val fall: FallDirection,
+    /** Which way the lot falls; null until that is worked out (it needs the street side of the lot). */
+    val fall: FallDirection? = null,
 ) {
     init {
         require(meanPercent >= 0.0 && maxPercent >= meanPercent) { "Slope must satisfy 0 <= mean <= max" }

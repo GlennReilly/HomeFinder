@@ -12,6 +12,8 @@ import au.homefinder.shared.model.LotReport
 import au.homefinder.shared.model.ParkAccess
 import au.homefinder.shared.model.Proximity
 import au.homefinder.shared.model.ProximityList
+import au.homefinder.shared.model.SlopeClass
+import au.homefinder.shared.model.SlopeSummary
 import au.homefinder.shared.model.SuburbReport
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
@@ -162,8 +164,23 @@ class LotSelectionTest {
         val rows = LotCardRows.of(report("1001", "12 MAIN STREET, HAMILTON NSW 2303"))
         assertEquals("Block size", rows.first().label)
         assertEquals("561 m²", rows.first().value)
-        assertEquals(11, rows.size)
-        assertTrue(rows.drop(1).all { it.isUnknown && it.confidence == Confidence.NONE && it.source == "src" })
+        assertEquals(12, rows.size)
+        assertEquals("Height above sea level", rows[5].label, "right after the slope")
+        assertTrue(rows.drop(1).all { it.isUnknown && it.confidence == Confidence.NONE })
+        assertTrue(rows.drop(1).filter { it.label != "Height above sea level" }.all { it.source == "src" })
+    }
+
+    @Test
+    fun `height and slope read as metres and a class with the figures behind it`() {
+        val base = report("1001", "12 MAIN STREET, HAMILTON NSW 2303")
+        val rows = LotCardRows.of(
+            base.copy(
+                slope = Attribute(SlopeSummary(12.04, 21.3, SlopeClass.MODERATE), Confidence.MEDIUM, "DEM"),
+                elevationM = Attribute(35.04, Confidence.MEDIUM, "DEM"),
+            ),
+        ).associateBy { it.label }
+        assertEquals("Moderate, 12.0% on average (steepest 21.3%)", rows.getValue("Slope").value)
+        assertEquals("35.0 m", rows.getValue("Height above sea level").value)
     }
 
     @Test

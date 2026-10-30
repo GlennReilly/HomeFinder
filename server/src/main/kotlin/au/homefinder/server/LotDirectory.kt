@@ -30,6 +30,9 @@ interface LotDirectory {
 
     /** The OpenStreetMap proximity of a lot, or null when the pipeline has not produced it (no import, or the tables are missing). */
     suspend fun proximity(lotId: String): LotProximity? = null
+
+    /** The DEM-derived height and slope of a lot, or null when no DEM has been loaded (or the table is missing). */
+    suspend fun terrain(lotId: String): LotTerrainData? = null
 }
 
 /** Reads the `lot`, `suburb`, `address_lot` and `address` tables loaded by the pipeline (ADR 0005). */
@@ -76,6 +79,27 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
             }
         } catch (failure: SQLException) {
             // Before the first OSM load the tables hold nothing or do not exist; that is "no data", not an outage.
+            if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
+        }
+    }
+
+    override suspend fun terrain(lotId: String): LotTerrainData? = withContext(Dispatchers.IO) {
+        try {
+            dataSource.connection.use { connection ->
+                connection.prepareStatement(TERRAIN_SQL).use { statement ->
+                    statement.setString(1, lotId)
+                    statement.executeQuery().use { rows ->
+                        if (!rows.next()) return@use null
+                        val loaded = rows.getDate("loaded_on")?.toLocalDate() ?: return@use null
+                        fun double(column: String): Double? = rows.getDouble(column).takeIf { !rows.wasNull() }
+                        val elevation = double("elevation_m")
+                        val terrain = elevation?.let { LotTerrain(it, double("mean_slope_pct"), double("max_slope_pct"), rows.getInt("pixels")) }
+                        LotTerrainData(terrain, LocalDate(loaded.year, loaded.monthValue, loaded.dayOfMonth))
+                    }
+                }
+            }
+        } catch (failure: SQLException) {
+            // Before the first DEM load the table does not exist; that is "no data", not an outage.
             if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
         }
     }
@@ -131,6 +155,12 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
         """.trimIndent()
 
         val IMPORT_SQL = "SELECT (COALESCE(osm_base, imported_at) AT TIME ZONE 'UTC')::date AS as_of FROM osm_import"
+
+        /** One row whose load date is NULL when nothing has been loaded; the lot's own columns are NULL when it has no coverage. */
+        val TERRAIN_SQL = """
+            SELECT (SELECT max(dem_loaded_on) FROM lot_terrain) AS loaded_on, t.elevation_m, t.mean_slope_pct, t.max_slope_pct, t.pixels
+            FROM (SELECT 1) one LEFT JOIN lot_terrain t ON t.lot_id = ?
+        """.trimIndent()
 
         val NEAREST_SQL = "SELECT kind, rank, name, distance_m FROM lot_nearest WHERE lot_id = ? ORDER BY kind, rank"
 

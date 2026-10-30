@@ -6,6 +6,8 @@ import au.homefinder.shared.model.LotReport
 import au.homefinder.shared.model.ParkAccess
 import au.homefinder.shared.model.Proximity
 import au.homefinder.shared.model.ProximityList
+import au.homefinder.shared.model.SlopeClass
+import au.homefinder.shared.model.SlopeSummary
 import kotlin.math.roundToInt
 
 /**
@@ -31,7 +33,13 @@ object LotReportFactory {
     private const val PARK_RADIUS_NOTE = "within 800 m"
     private const val FLOOD_SOURCE = "NSW Flood Data Portal and council studies"
     private const val ASPECT_SOURCE = "NSW cadastre lot, building footprint and road centrelines"
-    private const val SLOPE_SOURCE = "Geoscience Australia ELVIS"
+    const val DEM_SOURCE: String = "Geoscience Australia 5 m LiDAR DEM (CC BY 4.0)"
+    const val DEM_NOT_LOADED_NOTE: String = "Elevation data not loaded yet"
+    const val DEM_NO_COVERAGE_NOTE: String = "No elevation data covers this lot (the LiDAR surveys behind the model do not reach everywhere)"
+    const val ELEVATION_NOTE: String =
+        "Mean height above sea level of the lot's 5 m pixels. Bare ground from LiDAR surveys between 2001 and 2015, so buildings and later earthworks are not shown"
+    const val SLOPE_NOTE: String =
+        "Rise over run between neighbouring 5 m pixels, averaged over the lot; the steepest step is the maximum. Which way the lot falls is not worked out yet"
     private const val PRICE_SOURCE = "NSW Valuer General"
     private const val LISTING_SOURCE = "Licensed listing text"
     private const val EDUCATION_SOURCE = "NSW Department of Education"
@@ -44,7 +52,7 @@ object LotReportFactory {
 
     private fun <T> unknown(source: String): Attribute<T> = Attribute.unknown(source, note = NOT_COMPUTED_NOTE)
 
-    fun build(record: LotRecord, proximity: LotProximity? = null): LotReport {
+    fun build(record: LotRecord, proximity: LotProximity? = null, terrain: LotTerrainData? = null): LotReport {
         val strata = isStrata(record.parcelKey)
         return LotReport(
             lotId = record.lotId,
@@ -60,14 +68,32 @@ object LotReportFactory {
             wallMaterial = unknown(LISTING_SOURCE),
             backyardAspect = unknown(ASPECT_SOURCE),
             flood = unknown(FLOOD_SOURCE),
-            slope = unknown(SLOPE_SOURCE),
+            slope = slope(terrain),
             estimatedPriceAud = unknown(PRICE_SOURCE),
             beach = beach(proximity),
             schools = unknown(EDUCATION_SOURCE),
             parks = parks(proximity),
             shopping = shopping(proximity),
             transport = unknown(TRANSPORT_SOURCE),
+            elevationM = elevation(terrain),
         )
+    }
+
+    private fun <T> demUnknown(terrain: LotTerrainData?): Attribute<T> = when {
+        terrain == null -> Attribute.unknown(DEM_SOURCE, note = DEM_NOT_LOADED_NOTE)
+        else -> Attribute.unknown(DEM_SOURCE, terrain.loadedOn, DEM_NO_COVERAGE_NOTE)
+    }
+
+    private fun elevation(data: LotTerrainData?): Attribute<Double> {
+        val terrain = data?.terrain ?: return demUnknown(data)
+        return Attribute(terrain.elevationM, Confidence.MEDIUM, DEM_SOURCE, data.loadedOn, ELEVATION_NOTE)
+    }
+
+    private fun slope(data: LotTerrainData?): Attribute<SlopeSummary> {
+        val terrain = data?.terrain ?: return demUnknown(data)
+        val mean = terrain.meanSlopePercent ?: return demUnknown(data)
+        val max = maxOf(terrain.maxSlopePercent ?: mean, mean)
+        return Attribute(SlopeSummary(mean, max, SlopeClass.fromMeanPercent(mean)), Confidence.MEDIUM, DEM_SOURCE, data.loadedOn, SLOPE_NOTE)
     }
 
     private fun <T> osmNotLoaded(): Attribute<T> = Attribute.unknown(OSM_SOURCE, note = OSM_NOT_LOADED_NOTE)

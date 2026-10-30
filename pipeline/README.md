@@ -63,6 +63,18 @@ Needs suburbs and lots loaded first. Rules and thresholds are in [ADR 0023](../d
 
 `load-osm.sh` also rebuilds the per-suburb roll-up (distance to the nearest ocean beach from the centre and the nearest edge, park share, shopping centres and supermarkets inside or within 2 km): [ADR 0033](../docs/adr/0033-suburb-osm-rollup.md).
 
+## Height and slope (DEM)
+
+```bash
+scripts/download-dem.sh   # the 5 m LiDAR DEM for the pilot region from Geoscience Australia's WCS, as GeoTIFFs in ../data/raw/dem (run it yourself)
+scripts/load-dem.sh       # loads the GeoTIFFs and works out each lot's height and slope into lot_terrain (migration V16)
+tests/test_terrain.sh     # integration test on a synthetic DEM and a stand-in WCS (needs Docker)
+```
+
+Source: Geoscience Australia, "DEM of Australia derived from LiDAR 5 Metre Grid" (CC BY 4.0). The download asks the service for
+5 km squares that touch a suburb. If it cannot work out which coverage to use it lists them; set `DEM_COVERAGE`. Slope is rise over
+run between neighbouring pixels (percent), averaged over the lot's pixels. See [ADR 0036](../docs/adr/0036-lot-height-and-slope-from-dem.md).
+
 ## Schools (ICSEA)
 
 ```bash
