@@ -82,7 +82,9 @@ class SuburbReportFactoryTest {
         }
         assertEquals(SuburbReportFactory.CADASTRE_SOURCE, report.blockSize.source)
         assertTrue("60 house sales" in report.medianHousePriceAud.note.orEmpty())
-        assertTrue("Valuer General weeks late" in report.salesCount.note.orEmpty())
+        assertTrue(SuburbReportFactory.LATE_SALES_NOTE in report.salesCount.note.orEmpty())
+        assertTrue("12 months to the latest sale on file (" in report.salesCount.note.orEmpty(), "the date is the latest sale, not the download day")
+        assertTrue(SuburbReportFactory.LATE_SALES_NOTE in report.medianHousePriceAud.note.orEmpty())
     }
 
     @Test
@@ -110,7 +112,7 @@ class SuburbReportFactoryTest {
         assertTrue(house.isUnknown)
         assertEquals(Confidence.NONE, house.confidence)
         assertEquals(day, house.asOf)
-        assertEquals("Only 3 house sales in the 12 months to 2026-06-01, too few for a median", house.note)
+        assertEquals("Only 3 house sales in the 12 months to the latest sale on file (2026-06-01), too few for a median", house.note)
         assertTrue(report.priceChange12MonthsPercent.isUnknown)
         assertEquals(63 + 17, SuburbReportFactory.build(hamilton, full.copy(houseSales = 63, unitSales = 17)).salesCount.value)
     }
@@ -118,7 +120,7 @@ class SuburbReportFactoryTest {
     @Test
     fun `no sales at all in the period is said plainly`() {
         val report = SuburbReportFactory.build(hamilton, full.copy(unitSales = 0, unitMedianAud = null))
-        assertEquals("No unit sales in the 12 months to 2026-06-01", report.medianUnitPriceAud.note)
+        assertEquals("No unit sales in the 12 months to the latest sale on file (2026-06-01)", report.medianUnitPriceAud.note)
     }
 
     @Test
