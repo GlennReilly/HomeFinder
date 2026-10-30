@@ -22,11 +22,11 @@ class SuburbCardHtmlTest {
     private fun html(card: SuburbCardState) = createHTML().div { suburbCard(card) }
 
     @Test
-    fun `a loaded card names the suburb, shows the area and marks every statistic unknown`() {
+    fun `a loaded card names the suburb, shows no area and marks every statistic unknown`() {
         val out = html(SuburbCardState.Loaded(report))
         assertTrue("<h2>HAMILTON</h2>" in out)
         assertTrue("Postcode 2303" in out)
-        assertTrue("4.89 km²" in out)
+        assertFalse("km²" in out)
         assertEquals(12, Regex("""class="value unknown"""").findAll(out).count())
         assertTrue("Source: Some source" in out)
         assertTrue("Not computed yet" in out)
@@ -98,14 +98,15 @@ class SuburbCardHtmlTest {
     fun `under the price change come the Homely link, then the rating, then its form, and the other rows follow`() {
         val out = html(SuburbCardState.Loaded(withRating(2.1, 7)))
         assertTrue("2.1 ★ (7 reviews)" in out)
-        val area = out.indexOf("Area</dt>")
+        val house = out.indexOf("Median house price</dt>")
+        val block = out.indexOf("Typical block size</dt>")
         val unit = out.indexOf("Median unit price</dt>")
         val change = out.indexOf("Price change, 12 months</dt>")
         val link = out.indexOf("homely.com.au/suburb-profile")
         val homely = out.indexOf("Homely rating</dt>")
         val form = out.indexOf("data-rating-form")
         val sales = out.indexOf("Sales behind the prices</dt>")
-        assertTrue(area in 0 until unit && unit < change && change < link && link < homely && homely < form && form < sales, "order: $area $unit $change $link $homely $form $sales")
+        assertTrue(house in 0 until block && block < unit && unit < change && change < link && link < homely && homely < form && form < sales, "order: $house $block $unit $change $link $homely $form $sales")
         assertTrue("Source: Homely (entered by you) · as of 2026-10-30 · low confidence" in out)
         val formHtml = out.substringAfter("data-rating-form")
         assertTrue("value=\"2.1\"" in formHtml && "value=\"7\"" in formHtml)

@@ -69,14 +69,16 @@ object SuburbCardRows {
     /** The row the Homely score and its entry form sit under (ADR 0030). */
     const val PRICE_CHANGE_LABEL: String = "Price change, 12 months"
 
-    /** The rows in the order the spec lists the Suburb Card contents. */
+    /**
+     * The rows in the order you asked for: the prices, with the typical block size straight under the median house price. The
+     * suburb's area is not shown (it stays in the report for the map).
+     */
     fun of(report: SuburbReport): List<CardRow> = listOf(
-        row("Area", report.areaKm2) { Formats.decimal(it, 2) + " km²" },
         row("Median house price", report.medianHousePriceAud, Formats::dollars),
+        row("Typical block size", report.blockSize, ::blockSize),
         row("Median unit price", report.medianUnitPriceAud, Formats::dollars),
         row(PRICE_CHANGE_LABEL, report.priceChange12MonthsPercent, Formats::signedPercent),
         row("Sales behind the prices", report.salesCount) { Formats.grouped(it.toLong()) },
-        row("Typical block size", report.blockSize, ::blockSize),
         row("Flood", report.floodShare, ::flood),
         row("Likely brick", report.brickShare, ::brick),
         row("Distance to the beach", report.beach, ::beach),
