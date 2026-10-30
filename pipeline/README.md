@@ -49,3 +49,15 @@ tests/test_sales.sh             # fixture-based integration test (needs Docker a
 Rules, windows, thresholds and the licence limits (personal non-commercial use, no redistribution) are in
 [ADR 0018](../docs/adr/0018-sales-statistics-pipeline.md); thresholds and file lists in `config/sales.env`, councils in
 `config/sales_districts.csv`. Source: NSW Valuer General, Property Sales Information.
+
+## OpenStreetMap proximity (PR 13a)
+
+```bash
+scripts/download-osm.sh   # beaches, coastline, parks, supermarkets and malls from Overpass into ../data/raw/osm (run it yourself)
+scripts/load-osm.sh       # builds osm_feature, then the nearest beach, parks and shops and the park area for every lot
+tests/test_osm.sh         # fixture-based integration test (needs Docker and jq)
+```
+
+Needs suburbs and lots loaded first. Rules and thresholds are in [ADR 0023](../docs/adr/0023-osm-proximity-pipeline.md) and
+`config/osm.env`. Source: OpenStreetMap contributors (ODbL).
+

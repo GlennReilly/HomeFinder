@@ -1,0 +1,68 @@
+{
+ "version": 0.6,
+ "osm3s": {
+  "timestamp_osm_base": "2026-10-29T22:00:00Z"
+ },
+ "elements": [
+  {
+   "type": "node",
+   "id": 6001,
+   "lat": -32.91,
+   "lon": 151.75,
+   "tags": {
+    "shop": "supermarket",
+    "name": "Near Supermarket"
+   }
+  },
+  {
+   "type": "node",
+   "id": 6002,
+   "lat": -32.9,
+   "lon": 151.8,
+   "tags": {
+    "shop": "supermarket",
+    "name": "Far Supermarket"
+   }
+  },
+  {
+   "type": "way",
+   "id": 6003,
+   "tags": {
+    "shop": "mall",
+    "name": "Hamilton Mall"
+   },
+   "geometry": [
+    {
+     "lat": -32.9205,
+     "lon": 151.743
+    },
+    {
+     "lat": -32.9205,
+     "lon": 151.744
+    },
+    {
+     "lat": -32.9195,
+     "lon": 151.744
+    },
+    {
+     "lat": -32.9195,
+     "lon": 151.743
+    },
+    {
+     "lat": -32.9205,
+     "lon": 151.743
+    }
+   ]
+  },
+  {
+   "type": "node",
+   "id": 6004,
+   "lat": -32.92,
+   "lon": 151.7501,
+   "tags": {
+    "shop": "convenience",
+    "name": "Corner Store"
+   }
+  }
+ ]
+}

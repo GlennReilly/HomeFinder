@@ -1,0 +1,192 @@
+{
+ "version": 0.6,
+ "osm3s": {
+  "timestamp_osm_base": "2026-10-29T22:00:00Z"
+ },
+ "elements": [
+  {
+   "type": "way",
+   "id": 7001,
+   "tags": {
+    "leisure": "park",
+    "name": "Big Park"
+   },
+   "geometry": [
+    {
+     "lat": -32.9205,
+     "lon": 151.752
+    },
+    {
+     "lat": -32.9205,
+     "lon": 151.753
+    },
+    {
+     "lat": -32.9195,
+     "lon": 151.753
+    },
+    {
+     "lat": -32.9195,
+     "lon": 151.752
+    },
+    {
+     "lat": -32.9205,
+     "lon": 151.752
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 7002,
+   "tags": {
+    "leisure": "park",
+    "name": "Tiny Park"
+   },
+   "geometry": [
+    {
+     "lat": -32.91,
+     "lon": 151.751
+    },
+    {
+     "lat": -32.91,
+     "lon": 151.7512
+    },
+    {
+     "lat": -32.9098,
+     "lon": 151.7512
+    },
+    {
+     "lat": -32.9098,
+     "lon": 151.751
+    },
+    {
+     "lat": -32.91,
+     "lon": 151.751
+    }
+   ]
+  },
+  {
+   "type": "relation",
+   "id": 7003,
+   "tags": {
+    "type": "multipolygon",
+    "leisure": "park",
+    "name": "Ring Park"
+   },
+   "members": [
+    {
+     "type": "way",
+     "ref": 1,
+     "role": "outer",
+     "geometry": [
+      {
+       "lat": -32.921,
+       "lon": 151.754
+      },
+      {
+       "lat": -32.921,
+       "lon": 151.756
+      },
+      {
+       "lat": -32.919,
+       "lon": 151.756
+      }
+     ]
+    },
+    {
+     "type": "way",
+     "ref": 2,
+     "role": "outer",
+     "geometry": [
+      {
+       "lat": -32.919,
+       "lon": 151.756
+      },
+      {
+       "lat": -32.919,
+       "lon": 151.754
+      },
+      {
+       "lat": -32.921,
+       "lon": 151.754
+      }
+     ]
+    },
+    {
+     "type": "way",
+     "ref": 3,
+     "role": "inner",
+     "geometry": [
+      {
+       "lat": -32.9202,
+       "lon": 151.7548
+      },
+      {
+       "lat": -32.9202,
+       "lon": 151.7552
+      },
+      {
+       "lat": -32.9198,
+       "lon": 151.7552
+      },
+      {
+       "lat": -32.9198,
+       "lon": 151.7548
+      },
+      {
+       "lat": -32.9202,
+       "lon": 151.7548
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 7004,
+   "tags": {
+    "leisure": "park",
+    "name": "Path"
+   },
+   "geometry": [
+    {
+     "lat": -32.93,
+     "lon": 151.76
+    },
+    {
+     "lat": -32.93,
+     "lon": 151.765
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 7005,
+   "tags": {
+    "landuse": "recreation_ground",
+    "name": "Oval"
+   },
+   "geometry": [
+    {
+     "lat": -32.9205,
+     "lon": 151.76
+    },
+    {
+     "lat": -32.9205,
+     "lon": 151.761
+    },
+    {
+     "lat": -32.9195,
+     "lon": 151.761
+    },
+    {
+     "lat": -32.9195,
+     "lon": 151.76
+    },
+    {
+     "lat": -32.9205,
+     "lon": 151.76
+    }
+   ]
+  }
+ ]
+}
