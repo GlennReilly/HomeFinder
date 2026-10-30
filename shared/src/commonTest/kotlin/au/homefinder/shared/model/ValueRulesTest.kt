@@ -80,4 +80,15 @@ class ValueRulesTest {
         assertFailsWith<IllegalArgumentException> { SuburbBrickShare(0.5, 1.5) }
         SuburbBrickShare(0.0, 1.0)
     }
+
+    @Test
+    fun `a Homely rating must be from 0 to 5 with a sensible review count`() {
+        HomelyRating(0.0); HomelyRating(5.0, 0); HomelyRating(2.1, 1_000_000)
+        assertFailsWith<IllegalArgumentException> { HomelyRating(5.1) }
+        assertFailsWith<IllegalArgumentException> { HomelyRating(-0.1) }
+        assertFailsWith<IllegalArgumentException> { HomelyRating(Double.NaN) }
+        assertFailsWith<IllegalArgumentException> { HomelyRating(Double.POSITIVE_INFINITY) }
+        assertFailsWith<IllegalArgumentException> { HomelyRating(3.0, -1) }
+        assertFailsWith<IllegalArgumentException> { HomelyRating(3.0, 1_000_001) }
+    }
 }

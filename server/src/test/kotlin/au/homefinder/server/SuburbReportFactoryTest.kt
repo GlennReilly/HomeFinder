@@ -3,9 +3,12 @@ package au.homefinder.server
 import au.homefinder.shared.model.ApiJson
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
+import au.homefinder.shared.model.HomelyRating
 import au.homefinder.shared.model.SuburbReport
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -152,5 +155,41 @@ class SuburbReportFactoryTest {
         assertEquals("HAMILTON", ref.name)
         assertEquals("2303", ref.postcode)
         assertFalse(ref.name.isEmpty())
+    }
+
+    @Test
+    fun `a rating you entered becomes a known value with its source, date and an honest note`() {
+        val report = SuburbReportFactory.build(hamilton, rating = StoredRating(HomelyRating(2.1, 7), day))
+        val rating = report.homelyRating
+        assertEquals(HomelyRating(2.1, 7), rating.value)
+        assertEquals(HomelyRating.SOURCE, rating.source)
+        assertEquals(day, rating.asOf)
+        assertEquals(Confidence.LOW, rating.confidence)
+        assertTrue("typed in by you" in rating.note.orEmpty() && "not fetched from Homely" in rating.note.orEmpty() && "7 reviews" in rating.note.orEmpty())
+    }
+
+    @Test
+    fun `confidence follows the number of reviews you noted, and none noted counts as low`() {
+        fun confidence(reviews: Int?) = SuburbReportFactory.build(hamilton, rating = StoredRating(HomelyRating(4.0, reviews), day)).homelyRating.confidence
+        assertEquals(Confidence.LOW, confidence(null))
+        assertEquals(Confidence.LOW, confidence(14))
+        assertEquals(Confidence.MEDIUM, confidence(15))
+        assertEquals(Confidence.HIGH, confidence(50))
+    }
+
+    @Test
+    fun `without a rating the field says not entered`() {
+        val rating = SuburbReportFactory.build(hamilton).homelyRating
+        assertTrue(rating.isUnknown)
+        assertEquals(SuburbReportFactory.HOMELY_NOT_ENTERED_NOTE, rating.note)
+        assertEquals(HomelyRating.SOURCE, rating.source)
+    }
+
+    @Test
+    fun `a report from before ratings existed still decodes with the rating not entered`() {
+        val json = ApiJson.encodeToString(SuburbReportFactory.build(hamilton))
+        val old = ApiJson.parseToJsonElement(json).jsonObject.filterKeys { it != "homelyRating" }
+        val decoded = ApiJson.decodeFromString<SuburbReport>(JsonObject(old).toString())
+        assertTrue(decoded.homelyRating.isUnknown)
     }
 }

@@ -46,15 +46,20 @@ class PostgisSuburbTiles(private val dataSource: DataSource) : SuburbTileSource 
         private const val POOL_SIZE = 4
         private const val CONNECTION_TIMEOUT_MILLIS = 3_000L
 
-        fun connect(config: DatabaseConfig): HikariDataSource = HikariDataSource(
+        /** The tile and lookup pool never writes (read-only connections); only ratings do, through [connectWritable]. */
+        fun connect(config: DatabaseConfig): HikariDataSource = connect(config, readOnly = true, poolName = "homefinder-tiles")
+
+        fun connectWritable(config: DatabaseConfig): HikariDataSource = connect(config, readOnly = false, poolName = "homefinder-ratings")
+
+        private fun connect(config: DatabaseConfig, readOnly: Boolean, poolName: String): HikariDataSource = HikariDataSource(
             HikariConfig().apply {
                 jdbcUrl = config.url
                 username = config.user
                 password = config.password
                 maximumPoolSize = POOL_SIZE
                 connectionTimeout = CONNECTION_TIMEOUT_MILLIS
-                isReadOnly = true
-                poolName = "homefinder-tiles"
+                isReadOnly = readOnly
+                this.poolName = poolName
             },
         )
 

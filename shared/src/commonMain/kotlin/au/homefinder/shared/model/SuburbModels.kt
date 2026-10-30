@@ -45,6 +45,31 @@ data class SuburbTransport(
     val bestStopPeakDeparturesPerHour: Double? = null,
 )
 
+/**
+ * A Homely star score for a suburb, typed in by you (ADR 0028): [stars] from 0 to 5 to one decimal place and, if you noted
+ * it, how many [reviewCount] reviews it rests on. It is an opinion of Homely's users, never fetched from Homely.
+ */
+@Serializable
+data class HomelyRating(val stars: Double, val reviewCount: Int? = null) {
+    init {
+        require(stars.isFinite() && stars >= 0.0 && stars <= MAX_STARS) { "Stars must be from 0 to $MAX_STARS" }
+        require(reviewCount == null || reviewCount in 0..MAX_REVIEWS) { "Review count must be from 0 to $MAX_REVIEWS" }
+    }
+
+    companion object {
+        const val MAX_STARS: Double = 5.0
+        const val MAX_REVIEWS: Int = 1_000_000
+        const val SOURCE: String = "Homely (entered by you)"
+    }
+}
+
+/** A rated suburb with the point its map label sits at (the same point as its name). */
+@Serializable
+data class SuburbRatingPoint(val suburbId: String, val name: String, val rating: HomelyRating, val latitude: Double, val longitude: Double)
+
+@Serializable
+data class SuburbRatingsResponse(val ratings: List<SuburbRatingPoint>)
+
 /** The same factors as a property, rolled up to suburb level. Every statistic carries its own provenance. */
 @Serializable
 data class SuburbReport(
@@ -64,4 +89,6 @@ data class SuburbReport(
     val parkAreaShare: Attribute<Double>,
     val shopping: Attribute<SuburbShopping>,
     val transport: Attribute<SuburbTransport>,
+    /** Present only when you have entered one; unknown ("Not entered") otherwise. Last, with a default, so older reports still decode. */
+    val homelyRating: Attribute<HomelyRating> = Attribute.unknown(HomelyRating.SOURCE, note = "Not entered"),
 )

@@ -78,7 +78,8 @@ Numbering continues from the PR list so history stays traceable. PRs stay small 
 5. **PR 12 (lots layer), in two parts (ADR 0022):** 12a server tiles, lookup and lot card; 12b lot outlines, lot selection and the lot card in the web app.
 6. **PR 13 (OpenStreetMap proximity), in two parts (ADR 0023):** 13a pipeline for the nearest beach, parks and shops per lot; 13b server and lot card (ADR 0024).
 7. **PR 11, search, in two parts (ADR 0026):** 11a database index, contract and `/v1/search`; 11b the search box, fly-to and selection in the web app (done).
-8. **PR 14 onward** (Property Card, flood, schools, price range, brick estimate, shortlist, compare, release) proceed as in M2–M6 of the old spec, with the web client as the only client. The old "store builds" item becomes "production web build and attribution screen".
+8. **PR 14, your Homely scores, in two parts (ADR 0028):** 14a storage, endpoints and the report field; 14b the card form and the map label.
+9. **PR 15 onward** (Property Card, flood, schools, price range, brick estimate, shortlist, compare, release) proceed as in M2–M6 of the old spec, with the web client as the only client. The old "store builds" item becomes "production web build and attribution screen".
 
 ## Non-functional targets (changed items only)
 
