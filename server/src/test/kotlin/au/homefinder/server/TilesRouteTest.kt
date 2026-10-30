@@ -113,7 +113,7 @@ class TilesRouteTest {
 
     @Test
     fun `an unknown layer is not found`() = tilesApi(FakeTiles(tileBytes)) {
-        val response = tile("${TileContract.TILES_PREFIX}/lots/10/943/611.pbf")
+        val response = tile("${TileContract.TILES_PREFIX}/parcels/10/943/611.pbf")
         assertEquals(HttpStatusCode.NotFound, response.status)
         assertEquals(ApiError(ApiError.UNKNOWN_LAYER), response.error())
     }

@@ -36,8 +36,22 @@ private const val WEB_CACHE_CONTROL = "no-cache"
  * The API: an open health check and, behind the API key, everything else. [suburbTiles] is null when no database is
  * configured; tile requests then answer 503 and the health check reports the database as not configured.
  */
-fun Application.module(config: ServerConfig, suburbTiles: SuburbTileSource? = null, suburbs: SuburbDirectory? = null) {
+fun Application.module(
+    config: ServerConfig,
+    suburbTiles: SuburbTileSource? = null,
+    suburbs: SuburbDirectory? = null,
+    lotTiles: LotTileSource? = null,
+    lots: LotDirectory? = null,
+) {
     install(ContentNegotiation) { json(ApiJson) }
+    val tileLayers = mapOf(
+        TileContract.SUBURBS_LAYER to TileLayer(
+            TileContract.SUBURBS_MIN_ZOOM, TileContract.SUBURBS_MAX_ZOOM, suburbTiles?.let { source -> { z, x, y -> source.tile(z, x, y) } },
+        ),
+        TileContract.LOTS_LAYER to TileLayer(
+            TileContract.LOTS_MIN_ZOOM, TileContract.LOTS_MAX_ZOOM, lotTiles?.let { source -> { z, x, y -> source.tile(z, x, y) } },
+        ),
+    )
     routing {
         get(ApiContract.HEALTH_PATH) {
             val database = when {
@@ -53,10 +67,11 @@ fun Application.module(config: ServerConfig, suburbTiles: SuburbTileSource? = nu
                 call.respond(StatusResponse(authenticated = true))
             }
             suburbRoutes(suburbs)
+            lotRoutes(lots)
         }
         route(TileContract.TILES_PREFIX) {
             requireApiKey(config.apiKey, acceptQueryParameter = true)
-            get("/{layer}/{z}/{x}/{y}") { respondWithTile(call, suburbTiles) }
+            get("/{layer}/{z}/{x}/{y}") { respondWithTile(call, tileLayers) }
         }
         // Registered last: the API routes above are more specific, so they win; this only answers what is left.
         config.webRoot?.let { root ->
@@ -67,8 +82,12 @@ fun Application.module(config: ServerConfig, suburbTiles: SuburbTileSource? = nu
     }
 }
 
-private suspend fun respondWithTile(call: RoutingCall, suburbTiles: SuburbTileSource?) {
-    if (call.parameters["layer"] != TileContract.SUBURBS_LAYER) {
+/** One tile layer: the zooms it is served at and where its tiles come from (null when no database is configured). */
+private class TileLayer(val minZoom: Int, val maxZoom: Int, val source: (suspend (Int, Int, Int) -> ByteArray)?)
+
+private suspend fun respondWithTile(call: RoutingCall, layers: Map<String, TileLayer>) {
+    val layer = layers[call.parameters["layer"]]
+    if (layer == null) {
         call.respond(HttpStatusCode.NotFound, ApiError(ApiError.UNKNOWN_LAYER))
         return
     }
@@ -80,16 +99,17 @@ private suspend fun respondWithTile(call: RoutingCall, suburbTiles: SuburbTileSo
         call.respond(HttpStatusCode.BadRequest, ApiError(ApiError.INVALID_TILE))
         return
     }
-    if (zoom !in TileContract.SUBURBS_MIN_ZOOM..TileContract.SUBURBS_MAX_ZOOM) {
+    if (zoom !in layer.minZoom..layer.maxZoom) {
         call.respond(HttpStatusCode.NoContent)
         return
     }
-    if (suburbTiles == null) {
+    val source = layer.source
+    if (source == null) {
         call.respond(HttpStatusCode.ServiceUnavailable, ApiError(ApiError.UNAVAILABLE))
         return
     }
     val bytes = try {
-        suburbTiles.tile(zoom, x, y)
+        source(zoom, x, y)
     } catch (cancelled: CancellationException) {
         throw cancelled
     } catch (@Suppress("TooGenericExceptionCaught") failure: Exception) {

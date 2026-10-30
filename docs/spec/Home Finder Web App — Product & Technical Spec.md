@@ -75,7 +75,8 @@ Numbering continues from the PR list so history stays traceable. PRs stay small 
 2. **W1, retire the old clients:** remove `androidApp`, `composeApp` (Android and desktop targets, the vector and raster renderers and their tests), Compose and Material3 from the build, Java 25 and the `-PmapRenderer` flag; update README and CI. Done after W0 passes, so the old apps keep working until the web app does.
 3. **W2, serve the web app (done, ADR 0020):** the Ktor server serves the built bundle; bind address and key behaviour per "Access and security"; one command to build and run everything locally.
 4. **PR 10b, real suburb stats on the card (ADR 0021):** unchanged from the plan (server reads `suburb_stats` into `SuburbReport`; the card shows the real median). Not blocked by W0 because the server and tests are platform-independent, but verified in the browser once W2 lands.
-5. **PR 11 onward** (address and suburb search, lots layer at zoom 16+, Property Card, flood, schools, price range, brick estimate, shortlist, compare, release) proceed as in M2–M6 of the old spec, with the web client as the only client. The old "store builds" item becomes "production web build and attribution screen".
+5. **PR 12 (lots layer), in two parts (ADR 0022):** 12a server tiles, lookup and lot card; 12b lot outlines and lot selection in the web app.
+6. **PR 11 onward** (address and suburb search, lots layer at zoom 16+, Property Card, flood, schools, price range, brick estimate, shortlist, compare, release) proceed as in M2–M6 of the old spec, with the web client as the only client. The old "store builds" item becomes "production web build and attribution screen".
 
 ## Non-functional targets (changed items only)
 

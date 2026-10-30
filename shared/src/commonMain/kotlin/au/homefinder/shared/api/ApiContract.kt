@@ -11,6 +11,9 @@ object ApiContract {
     /** Suburb endpoints: `GET /v1/suburbs/at?lat=&lon=` finds the suburb under a point, `GET /v1/suburbs/{suburbId}` reports on one. */
     const val SUBURBS_PATH: String = "/v1/suburbs"
     const val SUBURBS_AT_PATH: String = "/v1/suburbs/at"
+    /** Lot endpoints: `GET /v1/lots/at?lat=&lon=` finds the lot under a point, `GET /v1/lots/{lotId}` reports on one. */
+    const val LOTS_PATH: String = "/v1/lots"
+    const val LOTS_AT_PATH: String = "/v1/lots/at"
     const val LATITUDE_PARAMETER: String = "lat"
     const val LONGITUDE_PARAMETER: String = "lon"
     const val DEFAULT_PORT: Int = 8080
@@ -34,7 +37,17 @@ object TileContract {
     const val SUBURB_POLYGON_LAYER: String = "suburb"
     const val SUBURB_LABEL_LAYER: String = "suburb_label"
 
+    /** Lots are served from zoom 16 (spec: lot boundaries at street level) to 18; clients over-zoom beyond that. */
+    const val LOTS_LAYER: String = "lots"
+    const val LOTS_MIN_ZOOM: Int = 16
+    const val LOTS_MAX_ZOOM: Int = 18
+
+    /** The name of the layer inside a lot tile: lot boundary polygons carrying `lot_id`. */
+    const val LOT_POLYGON_LAYER: String = "lot"
+
     fun suburbsPath(): String = "$TILES_PREFIX/$SUBURBS_LAYER"
+
+    fun lotsPath(): String = "$TILES_PREFIX/$LOTS_LAYER"
 }
 
 /** Open endpoint: is the server up, and can it reach its database (when one is configured). */

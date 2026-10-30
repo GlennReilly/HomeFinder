@@ -23,3 +23,4 @@
 | [0019](0019-pivot-to-web.md) | Pivot the target platform to web | Accepted |
 | [0020](0020-serve-the-web-app-from-the-api.md) | Serve the web app from the API, local by default | Accepted |
 | [0021](0021-suburb-statistics-in-the-report.md) | Suburb statistics in the report | Accepted |
+| [0022](0022-lot-tiles-and-lookup.md) | Lot tiles, lot lookup and the basic lot card | Accepted |
