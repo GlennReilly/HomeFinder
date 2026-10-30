@@ -7,6 +7,23 @@ import au.homefinder.shared.model.SuburbReport
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
+private const val HTTP_OK = 200
+private const val HTTP_NOT_FOUND = 404
+private const val HTTP_UNAUTHORIZED = 401
+
+/** One authenticated GET that decodes a JSON body; shared by every lookup API so they treat answers alike. */
+internal suspend inline fun <reified T> getJson(config: ApiConfig, http: HttpGet, url: String): LookupResult<T> =
+    when (val result = http.get(url, mapOf(ApiContract.API_KEY_HEADER to config.apiKey))) {
+        is HttpResult.Failure -> LookupResult.Failed(result.message)
+        is HttpResult.Response -> when (result.status) {
+            HTTP_OK -> runCatching { ApiJson.decodeFromString<T>(result.body) }
+                .fold({ LookupResult.Found(it) }, { LookupResult.Failed("the response was not understood") })
+            HTTP_NOT_FOUND -> LookupResult.NotFound
+            HTTP_UNAUTHORIZED -> LookupResult.Unauthorized
+            else -> LookupResult.Failed("the server answered ${result.status}")
+        }
+    }
+
 sealed interface LookupResult<out T> {
     data class Found<T>(val value: T) : LookupResult<T>
     data object NotFound : LookupResult<Nothing>
@@ -24,22 +41,9 @@ class SuburbApi(private val config: ApiConfig, private val http: HttpGet) {
     suspend fun report(suburbId: String): LookupResult<SuburbReport> =
         get(config.url(ApiContract.SUBURBS_PATH + "/" + encodePathSegment(suburbId)))
 
-    private suspend inline fun <reified T> get(url: String): LookupResult<T> =
-        when (val result = http.get(url, mapOf(ApiContract.API_KEY_HEADER to config.apiKey))) {
-            is HttpResult.Failure -> LookupResult.Failed(result.message)
-            is HttpResult.Response -> when (result.status) {
-                HTTP_OK -> runCatching { ApiJson.decodeFromString<T>(result.body) }
-                    .fold({ LookupResult.Found(it) }, { LookupResult.Failed("the response was not understood") })
-                HTTP_NOT_FOUND -> LookupResult.NotFound
-                HTTP_UNAUTHORIZED -> LookupResult.Unauthorized
-                else -> LookupResult.Failed("the server answered ${result.status}")
-            }
-        }
+    private suspend inline fun <reified T> get(url: String): LookupResult<T> = getJson(config, http, url)
 
     companion object {
-        private const val HTTP_OK = 200
-        private const val HTTP_NOT_FOUND = 404
-        private const val HTTP_UNAUTHORIZED = 401
         private const val COORDINATE_DECIMALS = 7
         private const val DECIMAL_SCALE = 10_000_000L
         private const val UNRESERVED = "-._~"

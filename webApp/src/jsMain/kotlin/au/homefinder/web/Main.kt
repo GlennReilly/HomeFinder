@@ -2,11 +2,13 @@ package au.homefinder.web
 
 import au.homefinder.app.api.ApiConfig
 import au.homefinder.app.api.KtorHttpGet
+import au.homefinder.app.api.LotApi
 import au.homefinder.app.api.SuburbApi
-import au.homefinder.app.selection.MapUiState
+import au.homefinder.app.selection.LotCardState
 import au.homefinder.app.selection.MapViewModel
 import au.homefinder.app.selection.SuburbCardState
 import au.homefinder.app.ui.CardActions
+import au.homefinder.app.ui.lotCard
 import au.homefinder.app.ui.suburbCard
 import kotlinx.browser.document
 import kotlinx.browser.localStorage
@@ -58,7 +60,9 @@ private fun askForKey() {
 private fun start(apiKey: String) {
     val origin = window.location.origin
     val scope = MainScope()
-    val viewModel = MapViewModel(SuburbApi(ApiConfig(origin, apiKey), KtorHttpGet()), scope)
+    val config = ApiConfig(origin, apiKey)
+    val http = KtorHttpGet()
+    val viewModel = MapViewModel(SuburbApi(config, http), scope, LotApi(config, http))
     val map = SuburbMap(origin, apiKey, viewModel::onMapTap)
 
     val card = element("card")
@@ -66,8 +70,8 @@ private fun start(apiKey: String) {
     var shownNotice: String? = null
 
     viewModel.state.onEach { state ->
-        map.showSelection(state.selectedSuburbId)
-        renderCard(card, state.card)
+        map.showSelection(state.selectedSuburbId, state.selectedLotId)
+        renderCard(card, state.card, state.lotCard)
         if (state.notice != shownNotice) {
             shownNotice = state.notice
             notice.textContent = state.notice.orEmpty()
@@ -88,8 +92,12 @@ private fun start(apiKey: String) {
     })
 }
 
-private fun renderCard(container: HTMLElement, state: SuburbCardState) {
-    container.hidden = state is SuburbCardState.Hidden
+/** Shows the lot card when a lot is selected, else the suburb card; at most one is ever visible. */
+private fun renderCard(container: HTMLElement, suburb: SuburbCardState, lot: LotCardState) {
+    container.hidden = suburb is SuburbCardState.Hidden && lot is LotCardState.Hidden
     container.innerHTML = ""
-    if (state !is SuburbCardState.Hidden) container.append { div { suburbCard(state) } }
+    when {
+        lot !is LotCardState.Hidden -> container.append { div { lotCard(lot) } }
+        suburb !is SuburbCardState.Hidden -> container.append { div { suburbCard(suburb) } }
+    }
 }

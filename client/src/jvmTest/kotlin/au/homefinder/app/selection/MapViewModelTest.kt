@@ -102,11 +102,11 @@ class MapViewModelTest {
     @Test
     fun `a tap at street level does not pick a suburb`() = runTest {
         val vm = viewModel(this, happy)
-        vm.onMapTap(-32.92, 151.75, zoom = SUBURB_SELECT_MAX_ZOOM); advanceUntilIdle()
+        vm.onMapTap(-32.92, 151.75, zoom = LOT_SELECT_MIN_ZOOM); advanceUntilIdle()
         vm.onMapTap(-32.92, 151.75, zoom = 19.0); advanceUntilIdle()
         assertTrue(happy.urls.isEmpty())
         assertEquals(MapUiState(), vm.state.value)
-        vm.onMapTap(-32.92, 151.75, zoom = SUBURB_SELECT_MAX_ZOOM - 0.01); advanceUntilIdle()
+        vm.onMapTap(-32.92, 151.75, zoom = LOT_SELECT_MIN_ZOOM - 0.01); advanceUntilIdle()
         assertEquals("9001", vm.state.value.selectedSuburbId)
     }
 
