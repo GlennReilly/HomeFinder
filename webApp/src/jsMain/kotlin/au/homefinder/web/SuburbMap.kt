@@ -3,6 +3,7 @@ package au.homefinder.web
 import au.homefinder.shared.api.ApiContract
 import au.homefinder.shared.api.TileContract
 import au.homefinder.shared.model.GeoBounds
+import au.homefinder.shared.model.SuburbRatingPoint
 import kotlinx.browser.window
 
 /** Where the map starts: suburb-level zoom over Newcastle and Lake Macquarie (spec: pilot region). */
@@ -60,6 +61,7 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
     private var loaded = false
     private var pendingSuburb: String? = null
     private var pendingLot: String? = null
+    private var pendingRatings: List<SuburbRatingPoint> = emptyList()
 
     init {
         // maplibreCss is read so webpack keeps the stylesheet import.
@@ -71,8 +73,11 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
             SuburbStyle.layers().forEach { map.addLayer(it) }
             map.addSource(LotStyle.SOURCE_ID, LotStyle.source(apiOrigin + TileContract.lotsPath() + "/{z}/{x}/{y}" + TileContract.TILE_SUFFIX))
             LotStyle.layers().forEach { map.addLayer(it) }
+            map.addSource(RatingStyle.SOURCE_ID, RatingStyle.emptySource())
+            map.addLayer(RatingStyle.layer())
             loaded = true
             showSelection(pendingSuburb, pendingLot)
+            showRatings(pendingRatings)
         }
         map.on("click") { event ->
             onTap(event.lngLat.lat as Double, event.lngLat.lng as Double, map.getZoom())
@@ -90,6 +95,13 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
         map.setFilter(SuburbStyle.DIM_LAYER, SuburbStyle.dimFilter(suburbId))
         map.setFilter(SuburbStyle.SELECTED_FILL_LAYER, SuburbStyle.selectedFilter(suburbId))
         map.setFilter(SuburbStyle.SELECTED_OUTLINE_LAYER, SuburbStyle.selectedFilter(suburbId))
+    }
+
+    /** Draws a star score under each rated suburb's name; an empty list clears them. */
+    fun showRatings(points: List<SuburbRatingPoint>) {
+        pendingRatings = points
+        if (!loaded) return
+        map.getSource(RatingStyle.SOURCE_ID).setData(RatingStyle.featureCollection(points))
     }
 
     /** Keeps the target clear of the search box and of the card that is about to open. */

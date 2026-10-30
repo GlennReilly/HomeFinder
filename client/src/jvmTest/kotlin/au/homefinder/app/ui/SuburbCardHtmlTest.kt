@@ -72,7 +72,48 @@ class SuburbCardHtmlTest {
         assertTrue("""href="https://www.homely.com.au/suburb-profile/hamilton-nsw-2303"""" in out, out)
         assertTrue("""target="_blank"""" in out && """rel="noopener noreferrer"""" in out)
         assertTrue(HOMELY_LINK_TEXT in out)
-        assertFalse("Homely" in html(SuburbCardState.Loaded(report.copy(postcode = null))), "no postcode, no link")
+        assertFalse("homely.com.au" in html(SuburbCardState.Loaded(report.copy(postcode = null))), "no postcode, no link")
+        assertFalse(HOMELY_LINK_TEXT in html(SuburbCardState.Loaded(report.copy(postcode = null))))
         assertFalse("homely.com.au" in html(SuburbCardState.Loading("9001", SuburbRef("9001", "HAMILTON", "2303"))))
+    }
+
+    private fun withRating(stars: Double, reviews: Int?) = report.copy(
+        homelyRating = Attribute(au.homefinder.shared.model.HomelyRating(stars, reviews), Confidence.LOW, au.homefinder.shared.model.HomelyRating.SOURCE,
+            kotlinx.datetime.LocalDate(2026, 10, 30), "typed in by you"),
+    )
+
+    @Test
+    fun `without a rating the card has an empty form and no Homely row or remove button`() {
+        val out = html(SuburbCardState.Loaded(report))
+        assertTrue("data-rating-form" in out && "Your Homely rating" in out)
+        assertTrue("name=\"stars\"" in out && "name=\"reviews\"" in out && ">Save<" in out)
+        assertFalse("value=\"" in out.substringAfter("data-rating-form"), "the boxes start empty")
+        assertFalse("Homely rating</dt>" in out)
+        assertFalse("remove-rating" in out)
+        assertTrue("Nothing is fetched from Homely" in out)
+    }
+
+    @Test
+    fun `with a rating the row sits under the area, the form is filled in and remove is offered`() {
+        val out = html(SuburbCardState.Loaded(withRating(2.1, 7)))
+        assertTrue("2.1 ★ (7 reviews)" in out)
+        assertTrue(out.indexOf("Area</dt>") < out.indexOf("Homely rating</dt>") && out.indexOf("Homely rating</dt>") < out.indexOf("Median house price"), "order of the rows")
+        assertTrue("Source: Homely (entered by you) · as of 2026-10-30 · low confidence" in out)
+        val form = out.substringAfter("data-rating-form")
+        assertTrue("value=\"2.1\"" in form && "value=\"7\"" in form)
+        assertTrue("data-action=\"remove-rating\"" in form)
+    }
+
+    @Test
+    fun `a score with no review count leaves the reviews box empty`() {
+        val form = html(SuburbCardState.Loaded(withRating(3.5, null))).substringAfter("data-rating-form")
+        assertTrue("value=\"3.5\"" in form)
+        assertEquals(1, Regex("value=\"").findAll(form.substringBefore("</form>")).count())
+    }
+
+    @Test
+    fun `the form is only on a loaded card`() {
+        assertFalse("data-rating-form" in html(SuburbCardState.Loading("9001", SuburbRef("9001", "HAMILTON", "2303"))))
+        assertFalse("data-rating-form" in html(SuburbCardState.Failed("9001", "x")))
     }
 }
