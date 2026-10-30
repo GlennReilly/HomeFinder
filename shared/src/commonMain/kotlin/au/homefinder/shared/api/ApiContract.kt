@@ -14,6 +14,12 @@ object ApiContract {
     /** Lot endpoints: `GET /v1/lots/at?lat=&lon=` finds the lot under a point, `GET /v1/lots/{lotId}` reports on one. */
     const val LOTS_PATH: String = "/v1/lots"
     const val LOTS_AT_PATH: String = "/v1/lots/at"
+    /** Search: `GET /v1/search?q=` suggests suburbs and addresses for what has been typed so far (ADR 0026). */
+    const val SEARCH_PATH: String = "/v1/search"
+    const val QUERY_PARAMETER: String = "q"
+    const val SEARCH_MIN_QUERY_LENGTH: Int = 2
+    const val SEARCH_MAX_QUERY_LENGTH: Int = 100
+    const val SEARCH_MAX_RESULTS: Int = 8
     const val LATITUDE_PARAMETER: String = "lat"
     const val LONGITUDE_PARAMETER: String = "lon"
     const val DEFAULT_PORT: Int = 8080
@@ -83,5 +89,6 @@ data class ApiError(val error: String) {
         const val INVALID_TILE: String = "invalid_tile"
         const val UNKNOWN_LAYER: String = "unknown_layer"
         const val UNAVAILABLE: String = "unavailable"
+        const val INVALID_QUERY: String = "invalid_query"
     }
 }

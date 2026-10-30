@@ -42,6 +42,7 @@ fun Application.module(
     suburbs: SuburbDirectory? = null,
     lotTiles: LotTileSource? = null,
     lots: LotDirectory? = null,
+    search: SearchIndex? = null,
 ) {
     install(ContentNegotiation) { json(ApiJson) }
     val tileLayers = mapOf(
@@ -68,6 +69,7 @@ fun Application.module(
             }
             suburbRoutes(suburbs)
             lotRoutes(lots)
+            searchRoutes(search)
         }
         route(TileContract.TILES_PREFIX) {
             requireApiKey(config.apiKey, acceptQueryParameter = true)

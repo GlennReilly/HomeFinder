@@ -34,7 +34,8 @@ fun main() {
             val suburbs = dataSource?.let { PostgisSuburbDirectory(it) }
             val lotTiles = dataSource?.let { PostgisLotTiles(it) }
             val lots = dataSource?.let { PostgisLotDirectory(it) }
-            embeddedServer(Netty, host = config.host, port = config.port) { module(config, tiles, suburbs, lotTiles, lots) }.start(wait = true)
+            val search = dataSource?.let { PostgisSearchIndex(it) }
+            embeddedServer(Netty, host = config.host, port = config.port) { module(config, tiles, suburbs, lotTiles, lots, search) }.start(wait = true)
         }
     }
 }

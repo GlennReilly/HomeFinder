@@ -27,3 +27,4 @@
 | [0023](0023-osm-proximity-pipeline.md) | OpenStreetMap proximity pipeline | Accepted |
 | [0024](0024-proximity-in-the-lot-report.md) | Proximity in the lot report | Accepted |
 | [0025](0025-blank-postcode-sales-match-by-name.md) | Blank-postcode sales match by name in the pilot councils | Accepted |
+| [0026](0026-address-and-suburb-search.md) | Address and suburb search | Accepted |
