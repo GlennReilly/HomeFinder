@@ -26,7 +26,8 @@ fun main() {
                 }
             }
             val dataSource = config.database?.let { PostgisSuburbTiles.connect(it) }
-            Runtime.getRuntime().addShutdownHook(Thread { dataSource?.close() })
+            val writable = config.database?.let { PostgisSuburbTiles.connectWritable(it) }
+            Runtime.getRuntime().addShutdownHook(Thread { dataSource?.close(); writable?.close() })
             println("${ServerInfo.name} listening on http://${config.host}:${config.port}")
             println(if (config.webRoot == null) "Web app: not served (API only)" else "Web app: served from ${config.webRoot}")
             println(if (dataSource == null) "Database: not configured (tiles unavailable)" else "Database: ${config.database}")
@@ -35,7 +36,8 @@ fun main() {
             val lotTiles = dataSource?.let { PostgisLotTiles(it) }
             val lots = dataSource?.let { PostgisLotDirectory(it) }
             val search = dataSource?.let { PostgisSearchIndex(it) }
-            embeddedServer(Netty, host = config.host, port = config.port) { module(config, tiles, suburbs, lotTiles, lots, search) }.start(wait = true)
+            val ratings = writable?.let { PostgisRatingStore(it) }
+            embeddedServer(Netty, host = config.host, port = config.port) { module(config, tiles, suburbs, lotTiles, lots, search, ratings) }.start(wait = true)
         }
     }
 }

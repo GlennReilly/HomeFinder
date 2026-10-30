@@ -43,6 +43,8 @@ fun Application.module(
     lotTiles: LotTileSource? = null,
     lots: LotDirectory? = null,
     search: SearchIndex? = null,
+    ratings: RatingStore? = null,
+    today: () -> kotlinx.datetime.LocalDate = ::currentDate,
 ) {
     install(ContentNegotiation) { json(ApiJson) }
     val tileLayers = mapOf(
@@ -67,7 +69,9 @@ fun Application.module(
             get(ApiContract.STATUS_PATH.removePrefix(AUTHENTICATED_PREFIX)) {
                 call.respond(StatusResponse(authenticated = true))
             }
-            suburbRoutes(suburbs)
+            // The literal paths (ratings, at) are tried before the {suburbId} path, so they are not mistaken for ids.
+            ratingRoutes(ratings, suburbs, today)
+            suburbRoutes(suburbs, ratings)
             lotRoutes(lots)
             searchRoutes(search)
         }
@@ -86,6 +90,9 @@ fun Application.module(
 
 /** One tile layer: the zooms it is served at and where its tiles come from (null when no database is configured). */
 private class TileLayer(val minZoom: Int, val maxZoom: Int, val source: (suspend (Int, Int, Int) -> ByteArray)?)
+
+/** Today's date on this machine; ratings are dated with it. */
+private fun currentDate(): kotlinx.datetime.LocalDate = java.time.LocalDate.now().let { kotlinx.datetime.LocalDate(it.year, it.monthValue, it.dayOfMonth) }
 
 private suspend fun respondWithTile(call: RoutingCall, layers: Map<String, TileLayer>) {
     val layer = layers[call.parameters["layer"]]

@@ -16,9 +16,9 @@ private const val MIN_LONGITUDE = -180.0
 private const val MAX_LONGITUDE = 180.0
 
 /** The suburb endpoints, inside the API-key guarded `/v1` route. [directory] is null when no database is configured. */
-fun Route.suburbRoutes(directory: SuburbDirectory?) {
+fun Route.suburbRoutes(directory: SuburbDirectory?, ratings: RatingStore? = null) {
     get(ApiContract.SUBURBS_AT_PATH.removePrefix(AUTHENTICATED_PREFIX)) { suburbAt(call, directory) }
-    get(ApiContract.SUBURBS_PATH.removePrefix(AUTHENTICATED_PREFIX) + "/{suburbId}") { suburbReport(call, directory) }
+    get(ApiContract.SUBURBS_PATH.removePrefix(AUTHENTICATED_PREFIX) + "/{suburbId}") { suburbReport(call, directory, ratings) }
 }
 
 private suspend fun suburbAt(call: RoutingCall, directory: SuburbDirectory?) {
@@ -33,9 +33,9 @@ private suspend fun suburbAt(call: RoutingCall, directory: SuburbDirectory?) {
     respondFrom(call, directory) { it.findAt(latitude, longitude)?.toRef() }
 }
 
-private suspend fun suburbReport(call: RoutingCall, directory: SuburbDirectory?) {
+private suspend fun suburbReport(call: RoutingCall, directory: SuburbDirectory?, ratings: RatingStore?) {
     val suburbId = call.parameters["suburbId"].orEmpty()
-    respondFrom(call, directory) { dir -> dir.find(suburbId)?.let { SuburbReportFactory.build(it, dir.stats(suburbId)) } }
+    respondFrom(call, directory) { dir -> dir.find(suburbId)?.let { SuburbReportFactory.build(it, dir.stats(suburbId), ratings?.get(suburbId)) } }
 }
 
 /** Runs a lookup: 503 without a database or when it fails, 404 when nothing is found, otherwise the result as JSON. */

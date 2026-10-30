@@ -81,6 +81,12 @@ The search box (top left of the map) suggests as you type, 200 ms after you paus
 Enter or a click chooses one, Escape closes the list. A suburb fits the map to its boundary and opens its card; an address
 flies to street level and opens its lot card, or says "No lot found for this address" when G-NAF has no lot for it.
 
+### Your Homely scores
+
+`GET /v1/suburbs/ratings` lists the Homely star scores you have typed in, and `PUT` / `DELETE /v1/suburbs/{id}/rating` set and remove one
+(stars 0 to 5, an optional review count). Nothing is fetched from Homely. They need migration V13. See
+[ADR 0028](docs/adr/0028-manual-homely-rating.md).
+
 ### Selecting a suburb
 
 The Suburb Card ends with a link to the suburb's Homely page (no Homely data is fetched or shown; [ADR 0027](docs/adr/0027-link-out-to-homely-no-extraction.md)).

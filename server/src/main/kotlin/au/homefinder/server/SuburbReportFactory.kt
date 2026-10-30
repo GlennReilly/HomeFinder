@@ -3,6 +3,7 @@ package au.homefinder.server
 import au.homefinder.shared.model.Attribute
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
+import au.homefinder.shared.model.HomelyRating
 import au.homefinder.shared.model.SuburbReport
 
 /**
@@ -34,7 +35,7 @@ object SuburbReportFactory {
         else -> Confidence.HIGH
     }
 
-    fun build(record: SuburbRecord, stats: SuburbStats? = null): SuburbReport = SuburbReport(
+    fun build(record: SuburbRecord, stats: SuburbStats? = null, rating: StoredRating? = null): SuburbReport = SuburbReport(
         suburbId = record.suburbId,
         name = record.name,
         postcode = record.postcode,
@@ -53,7 +54,23 @@ object SuburbReportFactory {
         parkAreaShare = unknown(OSM_SOURCE),
         shopping = unknown(OSM_SOURCE),
         transport = unknown(TRANSPORT_SOURCE),
+        homelyRating = homelyRating(rating),
     )
+
+    const val HOMELY_NOT_ENTERED_NOTE: String = "Not entered"
+
+    /**
+     * A score you typed in. It is an opinion of Homely's users that you copied by hand, so its confidence follows how many
+     * reviews you noted (none noted counts as low) and its note says where it came from.
+     */
+    private fun homelyRating(stored: StoredRating?): Attribute<HomelyRating> {
+        if (stored == null) return Attribute.unknown(HomelyRating.SOURCE, note = HOMELY_NOT_ENTERED_NOTE)
+        val reviews = stored.rating.reviewCount
+        return Attribute(
+            stored.rating, confidenceForSamples(reviews ?: 0), HomelyRating.SOURCE, stored.ratedOn,
+            "Homely users' opinion, typed in by you; not fetched from Homely" + (reviews?.let { " ($it reviews)" } ?: ""),
+        )
+    }
 
     private fun <T> salesNotLoaded(): Attribute<T> = Attribute.unknown(SALES_SOURCE, note = SALES_NOT_LOADED_NOTE)
 

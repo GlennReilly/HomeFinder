@@ -14,6 +14,14 @@ object ApiContract {
     /** Lot endpoints: `GET /v1/lots/at?lat=&lon=` finds the lot under a point, `GET /v1/lots/{lotId}` reports on one. */
     const val LOTS_PATH: String = "/v1/lots"
     const val LOTS_AT_PATH: String = "/v1/lots/at"
+    /**
+     * Your own Homely star scores (ADR 0028): `GET /v1/suburbs/ratings` lists every rated suburb with a point for its map
+     * label; `PUT` and `DELETE` on `/v1/suburbs/{suburbId}/rating` set and remove one.
+     */
+    const val SUBURB_RATINGS_PATH: String = "/v1/suburbs/ratings"
+
+    fun suburbRatingPath(encodedSuburbId: String): String = "$SUBURBS_PATH/$encodedSuburbId/rating"
+
     /** Search: `GET /v1/search?q=` suggests suburbs and addresses for what has been typed so far (ADR 0026). */
     const val SEARCH_PATH: String = "/v1/search"
     const val QUERY_PARAMETER: String = "q"
@@ -90,5 +98,6 @@ data class ApiError(val error: String) {
         const val UNKNOWN_LAYER: String = "unknown_layer"
         const val UNAVAILABLE: String = "unavailable"
         const val INVALID_QUERY: String = "invalid_query"
+        const val INVALID_RATING: String = "invalid_rating"
     }
 }
