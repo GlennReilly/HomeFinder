@@ -77,6 +77,13 @@ class MapViewModel(private val api: SuburbApi, private val scope: CoroutineScope
         launchLatest { choose(suburbId, null) }
     }
 
+    /** Selects a lot by id: the entry point for a search result that names a lot, as [select] is for a suburb. */
+    fun selectLot(lotId: String) {
+        val lotApi = lots ?: return
+        if (lotId == mutableState.value.selectedLotId && mutableState.value.lotCard !is LotCardState.Failed) return
+        launchLatest { chooseLot(lotApi, lotId, null) }
+    }
+
     fun clear() {
         job?.cancel()
         mutableState.value = MapUiState()

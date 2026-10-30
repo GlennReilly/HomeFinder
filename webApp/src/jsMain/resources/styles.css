@@ -55,3 +55,17 @@ progress { width: 100%; margin: 16px 0; }
 .external { margin: 14px 0 0; }
 .external-link { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .external-link:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
+
+/* Search box: beside the map's zoom buttons; the suggestions drop down over the map. */
+#search { position: fixed; top: 10px; left: 54px; width: min(380px, calc(100vw - 64px)); z-index: 3; }
+@media (min-width: 600px) { #search { width: min(380px, calc(100vw - 54px - 360px - 24px)); } }
+#search-input { width: 100%; box-sizing: border-box; font: inherit; padding: 9px 12px; border: 1px solid rgba(128, 128, 128, .6); border-radius: 8px; background: var(--surface); color: var(--ink); box-shadow: 0 1px 6px rgba(0, 0, 0, .25); }
+#search-results { margin-top: 4px; background: var(--surface); border-radius: 8px; box-shadow: 0 2px 12px rgba(0, 0, 0, .3); overflow: hidden; }
+#search-results:empty { display: none; }
+.suggestions { list-style: none; margin: 0; padding: 4px 0; max-height: 60vh; overflow-y: auto; }
+.suggestion { display: grid; grid-template-columns: 4.5rem 1fr; gap: 0 8px; padding: 8px 12px; cursor: pointer; }
+.suggestion .kind { grid-row: span 2; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding-top: 3px; }
+.suggestion .detail { font-size: .8rem; color: var(--muted); }
+.suggestion.highlighted, .suggestion:hover { background: rgba(109, 91, 166, .22); }
+.search-status { padding: 10px 12px; color: var(--muted); }
+.search-status.error { color: #b3261e; }

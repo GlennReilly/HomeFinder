@@ -8,6 +8,12 @@
 </head>
 <body>
   <div id="map" role="application" aria-label="Map of suburbs"></div>
+  <div id="search">
+    <input id="search-input" type="search" role="combobox" aria-label="Search for an address or suburb" placeholder="Search address or suburb"
+           aria-autocomplete="list" aria-expanded="false" aria-controls="search-results" autocomplete="off" autocapitalize="off" spellcheck="false"
+           maxlength="100" data-bwignore="true" data-lpignore="true" data-1p-ignore="true">
+    <div id="search-results"></div>
+  </div>
   <aside id="card" hidden aria-live="polite"></aside>
   <div id="notice" role="status" hidden></div>
   <div id="key-prompt" hidden>

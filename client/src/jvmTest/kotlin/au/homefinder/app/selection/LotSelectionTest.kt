@@ -196,4 +196,17 @@ class LotSelectionTest {
         assertEquals("999 m", Formats.distance(999))
         assertEquals("1.0 km", Formats.distance(1000))
     }
+
+    @Test
+    fun `a lot can be selected by id, as a search result does`() = runTest {
+        val vm = viewModel(this)
+        vm.selectLot("1001"); advanceUntilIdle()
+        assertEquals("1001", vm.state.value.selectedLotId)
+        assertIs<LotCardState.Loaded>(vm.state.value.lotCard)
+        assertEquals(null, vm.state.value.selectedSuburbId)
+        val before = happy.urls.size
+        vm.selectLot("1001"); advanceUntilIdle()
+        assertEquals(before, happy.urls.size, "selecting the same lot again asks for nothing")
+        viewModel(this, withLots = false).also { it.selectLot("1001"); advanceUntilIdle() }.state.value.let { assertEquals(MapUiState(), it) }
+    }
 }
