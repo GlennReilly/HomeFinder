@@ -2,7 +2,6 @@ package au.homefinder.web
 
 import au.homefinder.app.map.LonLat
 import au.homefinder.app.selection.Formats
-import au.homefinder.shared.api.TileContract
 import au.homefinder.shared.model.SuburbRatingPoint
 
 /**
@@ -15,6 +14,14 @@ import au.homefinder.shared.model.SuburbRatingPoint
 object RatingStyle {
     const val SOURCE_ID: String = "suburb-ratings"
     const val LAYER_ID: String = "suburb-rated-label"
+    const val FAR_NAME_LAYER: String = "suburb-name-rated-far"
+
+    /**
+     * The score label appears once you have zoomed in two taps of the "+" button from where the map opens (a tap is one
+     * zoom level), so a zoomed-out map is not cluttered. Until then a rated suburb shows its ordinary name, like any other.
+     */
+    const val ZOOM_TAPS_BEFORE_SHOWN: Int = 2
+    const val MIN_ZOOM: Double = MapDefaults.ZOOM + ZOOM_TAPS_BEFORE_SHOWN
 
     private const val NAME_COLOR = "#3b2f63"
     private const val STARS_COLOR = "#8a4b00"
@@ -25,6 +32,14 @@ object RatingStyle {
     private val FONT = arrayOf("Noto Sans Bold")
 
     fun label(point: SuburbRatingPoint): String = "★ " + Formats.decimal(point.rating.stars, 1)
+
+    /** Matches only the rated suburbs (nothing at all when there are none). */
+    fun ratedFilter(points: List<SuburbRatingPoint>): dynamic =
+        if (points.isEmpty()) jsArray("==", jsArray("get", SUBURB_ID), "")
+        else jsArray("in", jsArray("get", SUBURB_ID), jsArray("literal", points.map { it.suburbId }.toTypedArray()))
+
+    /** The plain name of a rated suburb while the map is zoomed out: the ordinary name layer, for rated suburbs only, up to [MIN_ZOOM]. */
+    fun farNameLayer(): dynamic = SuburbStyle.nameLayer(FAR_NAME_LAYER, MIN_ZOOM, ratedFilter(emptyList()))
 
     /** For the ordinary name layer: everything except the rated suburbs (no filter when there are none). */
     fun unratedFilter(points: List<SuburbRatingPoint>): dynamic =
@@ -46,7 +61,7 @@ object RatingStyle {
     )
 
     fun layer(): dynamic = jsObject(
-        "id" to LAYER_ID, "type" to "symbol", "source" to SOURCE_ID, "minzoom" to TileContract.SUBURBS_MIN_ZOOM,
+        "id" to LAYER_ID, "type" to "symbol", "source" to SOURCE_ID, "minzoom" to MIN_ZOOM,
         "layout" to jsObject(
             "text-field" to jsArray(
                 "format",

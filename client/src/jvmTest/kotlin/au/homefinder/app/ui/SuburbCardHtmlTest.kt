@@ -94,14 +94,41 @@ class SuburbCardHtmlTest {
     }
 
     @Test
-    fun `with a rating the row sits under the area, the form is filled in and remove is offered`() {
+    fun `under the price change come the Homely link, then the rating, then its form, and the other rows follow`() {
         val out = html(SuburbCardState.Loaded(withRating(2.1, 7)))
         assertTrue("2.1 ★ (7 reviews)" in out)
-        assertTrue(out.indexOf("Area</dt>") < out.indexOf("Homely rating</dt>") && out.indexOf("Homely rating</dt>") < out.indexOf("Median house price"), "order of the rows")
+        val area = out.indexOf("Area</dt>")
+        val unit = out.indexOf("Median unit price</dt>")
+        val change = out.indexOf("Price change, 12 months</dt>")
+        val link = out.indexOf("homely.com.au/suburb-profile")
+        val homely = out.indexOf("Homely rating</dt>")
+        val form = out.indexOf("data-rating-form")
+        val sales = out.indexOf("Sales behind the prices</dt>")
+        assertTrue(area in 0 until unit && unit < change && change < link && link < homely && homely < form && form < sales, "order: $area $unit $change $link $homely $form $sales")
         assertTrue("Source: Homely (entered by you) · as of 2026-10-30 · low confidence" in out)
-        val form = out.substringAfter("data-rating-form")
-        assertTrue("value=\"2.1\"" in form && "value=\"7\"" in form)
-        assertTrue("data-action=\"remove-rating\"" in form)
+        val formHtml = out.substringAfter("data-rating-form")
+        assertTrue("value=\"2.1\"" in formHtml && "value=\"7\"" in formHtml)
+        assertTrue("data-action=\"remove-rating\"" in formHtml)
+    }
+
+    @Test
+    fun `without a rating the link and then the form sit under the price change`() {
+        val out = html(SuburbCardState.Loaded(report))
+        val change = out.indexOf("Price change, 12 months</dt>")
+        val link = out.indexOf("homely.com.au/suburb-profile")
+        val form = out.indexOf("data-rating-form")
+        val sales = out.indexOf("Sales behind the prices</dt>")
+        assertTrue(change in 0 until link && link < form && form < sales, "order: $change $link $form $sales")
+        assertFalse("Homely rating</dt>" in out)
+    }
+
+    @Test
+    fun `every row is still shown exactly once with the form in the middle`() {
+        val out = html(SuburbCardState.Loaded(withRating(2.1, 7)))
+        au.homefinder.app.selection.SuburbCardRows.of(report).forEach { row ->
+            assertEquals(1, Regex("<dt>" + Regex.escape(row.label) + "</dt>").findAll(out).count(), row.label)
+        }
+        assertEquals(1, Regex("data-rating-form").findAll(out).count())
     }
 
     @Test

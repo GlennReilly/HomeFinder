@@ -74,9 +74,18 @@ object SuburbStyle {
             SELECTED_OUTLINE_LAYER, "line",
             jsObject("line-width" to SELECTED_OUTLINE_WIDTH, "line-color" to OUTLINE), selectedFilter(null),
         ),
-        jsObject(
-            "id" to NAME_LAYER, "type" to "symbol", "source" to SOURCE_ID, "source-layer" to TileContract.SUBURB_LABEL_LAYER,
-            "maxzoom" to LABEL_MAX_ZOOM + 1,
+        nameLayer(NAME_LAYER, LABEL_MAX_ZOOM + 1),
+    )
+
+    /**
+     * A layer of suburb names (one label point per suburb), drawn up to [maxZoom]. The page makes two: one for the
+     * suburbs without a score, to zoom 15, and one for rated suburbs only, which shows their plain name until the
+     * score label takes over ([RatingStyle]).
+     */
+    fun nameLayer(id: String, maxZoom: Number, filter: dynamic = null): dynamic {
+        val layer = jsObject(
+            "id" to id, "type" to "symbol", "source" to SOURCE_ID, "source-layer" to TileContract.SUBURB_LABEL_LAYER,
+            "minzoom" to TileContract.SUBURBS_MIN_ZOOM, "maxzoom" to maxZoom,
             "layout" to jsObject(
                 "text-field" to jsArray("get", "name"),
                 "text-font" to LABEL_FONT,
@@ -85,6 +94,8 @@ object SuburbStyle {
                 "symbol-sort-key" to jsArray("-", 0, jsArray("get", "area_km2")),
             ),
             "paint" to jsObject("text-color" to LABEL, "text-halo-color" to LABEL_HALO, "text-halo-width" to 1.5),
-        ),
-    )
+        )
+        if (filter != null) layer["filter"] = filter
+        return layer
+    }
 }
