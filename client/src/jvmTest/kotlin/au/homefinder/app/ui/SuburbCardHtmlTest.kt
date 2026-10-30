@@ -88,6 +88,7 @@ class SuburbCardHtmlTest {
         assertTrue("data-rating-form" in out && "Your Homely rating" in out)
         assertTrue("name=\"stars\"" in out && "name=\"reviews\"" in out && ">Save<" in out)
         assertFalse("value=\"" in out.substringAfter("data-rating-form"), "the boxes start empty")
+        assertFalse("placeholder" in out, "and show no example text such as 2.1 or 7")
         assertFalse("Homely rating</dt>" in out)
         assertFalse("remove-rating" in out)
         assertTrue("Nothing is fetched from Homely" in out)
