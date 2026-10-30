@@ -7,6 +7,8 @@ import au.homefinder.shared.model.SuburbBeachDistance
 import au.homefinder.shared.model.SuburbBrickShare
 import au.homefinder.shared.model.SuburbFloodShare
 import au.homefinder.shared.model.SuburbReport
+import au.homefinder.shared.model.School
+import au.homefinder.shared.model.SchoolLevel
 import au.homefinder.shared.model.SuburbSchools
 import au.homefinder.shared.model.SuburbShopping
 import au.homefinder.shared.model.SuburbTransport
@@ -78,7 +80,7 @@ object SuburbCardRows {
         row("Flood", report.floodShare, ::flood),
         row("Likely brick", report.brickShare, ::brick),
         row("Distance to the beach", report.beach, ::beach),
-        row("Schools", report.schools, ::schools),
+        row(SCHOOLS_LABEL, report.schools, ::schools),
         row("Parks", report.parkAreaShare) { Formats.share(it) + " of the suburb is park" },
         row("Shopping", report.shopping, ::shopping),
         row("Transport", report.transport, ::transport),
@@ -117,8 +119,21 @@ object SuburbCardRows {
     private fun beach(distance: SuburbBeachDistance) =
         "${Formats.kilometres(distance.fromCentreM)} from the centre, ${Formats.kilometres(distance.fromNearestEdgeM)} from the nearest edge"
 
-    private fun schools(schools: SuburbSchools) =
-        "${schools.publicSchoolsInside.size} public schools inside; ${schools.catchments.size} catchments cover it"
+    const val SCHOOLS_LABEL: String = "Schools"
+
+    private fun schools(schools: SuburbSchools): String {
+        val count = schools.publicSchoolsInside.size
+        if (count == 0) return "No public schools inside the suburb"
+        val average = schools.averageIcsea?.let { ", average ICSEA ${Formats.grouped(it.toLong())} (1,000 is average)" }.orEmpty()
+        return (if (count == 1) "1 public school" else "$count public schools") + average
+    }
+
+    /** One school's line under the Schools row: its kind, ICSEA and size, each only as far as it is published. */
+    fun schoolDetail(school: School): String = listOfNotNull(
+        school.levelLabel ?: when (school.level) { SchoolLevel.PRIMARY -> "Primary"; SchoolLevel.HIGH -> "High school"; SchoolLevel.COMBINED -> "Combined" },
+        school.icsea?.let { "ICSEA ${Formats.grouped(it.toLong())}" } ?: "ICSEA not published",
+        school.enrolments?.let { "${Formats.grouped(it.toLong())} students" },
+    ).joinToString(" · ")
 
     private fun shopping(shopping: SuburbShopping) =
         "${shopping.shoppingCentres} shopping centres and ${shopping.supermarkets} supermarkets, inside or within 2 km"

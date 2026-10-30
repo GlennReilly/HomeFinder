@@ -35,3 +35,4 @@
 | [0031](0031-rated-label-after-two-zoom-taps.md) | The score label waits until you have zoomed in two taps | Accepted |
 | [0032](0032-browser-smoke-tests.md) | Browser smoke tests | Accepted |
 | [0033](0033-suburb-osm-rollup.md) | Suburb roll-up of the OpenStreetMap features | Accepted |
+| [0034](0034-suburb-schools-and-icsea.md) | Suburb schools and ICSEA | Accepted |

@@ -4,6 +4,8 @@ import au.homefinder.shared.model.ApiJson
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.HomelyRating
+import au.homefinder.shared.model.SchoolLevel
+import au.homefinder.shared.model.SchoolSector
 import au.homefinder.shared.model.SuburbBeachDistance
 import au.homefinder.shared.model.SuburbShopping
 import au.homefinder.shared.model.SuburbReport
@@ -14,6 +16,8 @@ import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class SuburbReportFactoryTest {
@@ -45,9 +49,11 @@ class SuburbReportFactoryTest {
             assertEquals(LotReportFactory.OSM_NOT_LOADED_NOTE, it.note)
             assertEquals(LotReportFactory.OSM_SOURCE, it.source)
         }
-        val others = listOf(report.blockSize, report.floodShare, report.brickShare, report.schools, report.transport)
-        assertEquals(5, others.size)
-        (salesStats + osm + others).forEach {
+        assertTrue(report.schools.isUnknown)
+        assertEquals(SuburbReportFactory.SCHOOLS_NOT_LOADED_NOTE, report.schools.note)
+        val others = listOf(report.blockSize, report.floodShare, report.brickShare, report.transport)
+        assertEquals(4, others.size)
+        (salesStats + osm + others + report.schools).forEach {
             assertTrue(it.isUnknown)
             assertEquals(Confidence.NONE, it.confidence)
             assertTrue(it.source.isNotBlank())
@@ -172,6 +178,55 @@ class SuburbReportFactoryTest {
         assertEquals(Confidence.LOW, none.confidence)
         assertTrue("none are mapped" in none.note.orEmpty())
         assertEquals(Confidence.MEDIUM, SuburbReportFactory.build(hamilton, amenity = nearby.copy(shoppingCentres = 0, supermarkets = 1)).shopping.confidence)
+    }
+
+    private fun school(code: Int, name: String, icsea: Int?, enrolments: Int? = 300, website: String? = "https://x.example.nsw.edu.au", label: String? = "Primary School") =
+        SchoolRecord(code, name, label, icsea, enrolments, website)
+
+    @Test
+    fun `public schools inside the suburb become schools with their ICSEA, source, date and the caveats`() {
+        val data = SuburbSchoolData(listOf(school(1, "Hamilton Public School", 1051), school(2, "Hamilton High School", 1012, label = "Secondary School"), school(3, "Small School", null)), day)
+        val schools = SuburbReportFactory.build(hamilton, schools = data).schools
+        val value = assertNotNull(schools.value)
+        assertEquals(listOf("Hamilton Public School", "Hamilton High School", "Small School"), value.publicSchoolsInside.map { it.name })
+        assertEquals(listOf(SchoolLevel.PRIMARY, SchoolLevel.HIGH, SchoolLevel.PRIMARY), value.publicSchoolsInside.map { it.level })
+        assertEquals(listOf(1051, 1012, null), value.publicSchoolsInside.map { it.icsea })
+        assertTrue(value.publicSchoolsInside.all { it.sector == SchoolSector.PUBLIC })
+        assertEquals(1032, value.averageIcsea, "the mean of the schools that have an ICSEA (1051 and 1012), rounded")
+        assertEquals(emptyList(), value.catchments)
+        assertEquals(SuburbReportFactory.SCHOOLS_SOURCE, schools.source)
+        assertEquals(day, schools.asOf)
+        assertEquals(Confidence.HIGH, schools.confidence)
+        assertTrue("not how good the school is" in schools.note.orEmpty() && "public schools only" in schools.note.orEmpty().lowercase())
+    }
+
+    @Test
+    fun `school kinds map to the three levels and a website can only be http or https`() {
+        assertEquals(SchoolLevel.PRIMARY, SuburbReportFactory.schoolLevel("Infants School"))
+        assertEquals(SchoolLevel.HIGH, SuburbReportFactory.schoolLevel("Secondary School"))
+        assertEquals(SchoolLevel.COMBINED, SuburbReportFactory.schoolLevel("Central/Community School"))
+        assertEquals(SchoolLevel.COMBINED, SuburbReportFactory.schoolLevel("Schools for Specific Purposes"))
+        assertEquals(SchoolLevel.COMBINED, SuburbReportFactory.schoolLevel(null))
+        assertEquals("https://a.example", SuburbReportFactory.safeWebsite(" https://a.example "))
+        assertEquals("http://a.example", SuburbReportFactory.safeWebsite("http://a.example"))
+        listOf("javascript:alert(1)", "data:text/html,x", "//a.example", "a.example", "", null).forEach { assertNull(SuburbReportFactory.safeWebsite(it), it.toString()) }
+    }
+
+    @Test
+    fun `a suburb with no public school says so, no ICSEA gives no average, and no school data says it is not loaded`() {
+        val none = SuburbReportFactory.build(hamilton, schools = SuburbSchoolData(emptyList(), day)).schools
+        assertEquals(emptyList(), none.value?.publicSchoolsInside)
+        assertNull(none.value?.averageIcsea)
+        val unpublished = SuburbReportFactory.build(hamilton, schools = SuburbSchoolData(listOf(school(1, "A", null)), day)).schools
+        assertNull(unpublished.value?.averageIcsea)
+        assertEquals(1, unpublished.value?.publicSchoolsInside?.size)
+        assertEquals(SuburbReportFactory.SCHOOLS_NOT_LOADED_NOTE, SuburbReportFactory.build(hamilton).schools.note)
+    }
+
+    @Test
+    fun `a javascript address in the data never reaches the report`() {
+        val schools = SuburbReportFactory.build(hamilton, schools = SuburbSchoolData(listOf(school(1, "A", 1000, website = "javascript:alert(1)")), day)).schools
+        assertNull(schools.value?.publicSchoolsInside?.single()?.website)
     }
 
     @Test

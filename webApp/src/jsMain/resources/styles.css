@@ -80,3 +80,9 @@ progress { width: 100%; margin: 16px 0; }
 .rating-form .buttons { display: flex; gap: 8px; margin-top: 10px; }
 .rating-form .buttons button[type="submit"] { background: var(--purple); color: #fff; }
 .rating-message { min-height: 1.2em; margin: 8px 0 0; font-size: .85rem; color: #b3261e; }
+
+/* The public schools listed under the Schools row. */
+.schools { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.schools li { display: grid; gap: 1px; }
+.schools .detail { font-size: .8rem; color: var(--muted); }
+.row .hint { margin: 8px 0 0; font-size: .85rem; }

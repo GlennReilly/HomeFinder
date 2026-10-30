@@ -11,6 +11,9 @@ import kotlinx.html.ButtonType
 import kotlinx.html.InputType
 import kotlinx.html.form
 import kotlinx.html.h3
+import kotlinx.html.li
+import kotlinx.html.span
+import kotlinx.html.ul
 import kotlinx.html.input
 import kotlinx.html.label
 import kotlinx.html.a
@@ -34,6 +37,9 @@ object CardActions {
 
 /** The link's words say where it goes: it leaves this app. */
 const val HOMELY_LINK_TEXT: String = "Reviews on Homely (opens homely.com.au)"
+
+/** The link's words say where it goes and what to do there: the schools are named above, My School is searched by name. */
+const val MY_SCHOOL_LINK_TEXT: String = "Look these schools up on My School (opens myschool.edu.au)"
 
 const val CARD_DISCLAIMER: String =
     "Indicative only. Verify against the contract of sale, a council planning certificate and a building inspection."
@@ -106,7 +112,11 @@ fun FlowContent.suburbCard(card: SuburbCardState) {
                 }
                 SuburbCardRows.homely(card.report)?.let { homely -> dl("rows") { cardRow(homely) } }
                 ratingForm(card.report)
-                dl("rows") { rows.drop(split).forEach { cardRow(it) } }
+                dl("rows") {
+                    rows.drop(split).forEach { row ->
+                        cardRow(row, if (row.label == SuburbCardRows.SCHOOLS_LABEL) schoolList(card.report) else null)
+                    }
+                }
                 p("disclaimer") { +CARD_DISCLAIMER }
             }
         }
@@ -164,7 +174,36 @@ fun FlowContent.ratingForm(report: SuburbReport) {
     }
 }
 
-private fun kotlinx.html.DL.cardRow(row: CardRow) {
+/** The schools under the Schools row: each with its kind, ICSEA and size, linked to its own website when it has one, and a link to My School. */
+private fun schoolList(report: SuburbReport): (kotlinx.html.DIV.() -> Unit)? {
+    val schools = report.schools.value?.publicSchoolsInside?.takeIf { it.isNotEmpty() } ?: return null
+    return {
+        ul("schools") {
+            schools.forEach { school ->
+                li {
+                    val address = ExternalLinks.webAddress(school.website)
+                    if (address != null) {
+                        a(href = address, target = "_blank", classes = "external-link") {
+                            attributes["rel"] = "noopener noreferrer"
+                            +school.name
+                        }
+                    } else {
+                        span("school-name") { +school.name }
+                    }
+                    span("detail") { +SuburbCardRows.schoolDetail(school) }
+                }
+            }
+        }
+        p("hint") {
+            a(href = ExternalLinks.MY_SCHOOL_HOME, target = "_blank", classes = "external-link") {
+                attributes["rel"] = "noopener noreferrer"
+                +MY_SCHOOL_LINK_TEXT
+            }
+        }
+    }
+}
+
+private fun kotlinx.html.DL.cardRow(row: CardRow, extra: (kotlinx.html.DIV.() -> Unit)? = null) {
     val list = this
     // dt and dd are only defined on the list, so call them through it from inside the row's div.
     div("row") {
@@ -173,5 +212,6 @@ private fun kotlinx.html.DL.cardRow(row: CardRow) {
         list.dd(if (value == null) "value unknown" else "value") { +(value ?: SuburbCardRows.UNKNOWN) }
         list.dd("provenance") { +provenanceLine(row) }
         row.note?.let { list.dd("note") { +it } }
+        extra?.invoke(this)
     }
 }

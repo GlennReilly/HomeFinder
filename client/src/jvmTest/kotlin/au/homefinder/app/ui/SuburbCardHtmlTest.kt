@@ -144,4 +144,41 @@ class SuburbCardHtmlTest {
         assertFalse("data-rating-form" in html(SuburbCardState.Loading("9001", SuburbRef("9001", "HAMILTON", "2303"))))
         assertFalse("data-rating-form" in html(SuburbCardState.Failed("9001", "x")))
     }
+
+    private fun withSchools(vararg schools: au.homefinder.shared.model.School) = report.copy(
+        schools = Attribute(
+            au.homefinder.shared.model.SuburbSchools(schools.toList(), emptyList(), averageIcsea = 1032),
+            Confidence.HIGH, "NSW Department of Education", kotlinx.datetime.LocalDate(2026, 10, 2), "ICSEA measures advantage, not quality",
+        ),
+    )
+
+    private fun school(name: String, icsea: Int?, website: String?, enrolments: Int? = 412, label: String? = "Primary School") =
+        au.homefinder.shared.model.School("1", name, au.homefinder.shared.model.SchoolSector.PUBLIC, au.homefinder.shared.model.SchoolLevel.PRIMARY, icsea, enrolments, website, label)
+
+    @Test
+    fun `the schools are listed under the Schools row with their ICSEA, size and own website, and a My School link`() {
+        val out = html(SuburbCardState.Loaded(withSchools(school("Hamilton Public School", 1051, "https://hamilton-p.schools.nsw.gov.au"), school("Small School", null, null, enrolments = null))))
+        assertTrue("1 public school" !in out && "2 public schools, average ICSEA 1,032 (1,000 is average)" in out)
+        assertTrue("""<a href="https://hamilton-p.schools.nsw.gov.au" target="_blank" class="external-link" rel="noopener noreferrer">Hamilton Public School</a>""" in out, out)
+        assertTrue("Primary School · ICSEA 1,051 · 412 students" in out)
+        assertTrue("""<span class="school-name">Small School</span><span class="detail">Primary School · ICSEA not published</span>""" in out, out)
+        assertTrue("""href="https://www.myschool.edu.au/"""" in out && MY_SCHOOL_LINK_TEXT in out)
+        val row = out.indexOf("Schools</dt>")
+        assertTrue(row in 0 until out.indexOf("Hamilton Public School") && out.indexOf("Hamilton Public School") < out.indexOf("Parks</dt>"), "the list sits inside the Schools row")
+    }
+
+    @Test
+    fun `a school with no usable website is just a name, and a script address is never linked`() {
+        val out = html(SuburbCardState.Loaded(withSchools(school("Sneaky School", 1000, "javascript:alert(1)"))))
+        assertFalse("javascript:" in out)
+        assertTrue("""<span class="school-name">Sneaky School</span>""" in out)
+    }
+
+    @Test
+    fun `a suburb with no public school shows no list and no My School link`() {
+        val out = html(SuburbCardState.Loaded(withSchools()))
+        assertTrue("No public schools inside the suburb" in out)
+        assertFalse("myschool.edu.au" in out)
+        assertFalse("""class="schools"""" in out)
+    }
 }

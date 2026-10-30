@@ -105,9 +105,20 @@ class SmokeTest {
         tapSuburb()
         assertThat(page.locator("#card")).containsText("Postcode 2303")
         assertThat(page.locator("#card dl.rows .row").first()).containsText("Area")
-        assertThat(page.locator("#card a.external-link")).hasAttribute("href", "https://www.homely.com.au/suburb-profile/hamilton-nsw-2303")
+        assertThat(page.locator("#card a.external-link[href*='homely.com.au']")).hasAttribute("href", "https://www.homely.com.au/suburb-profile/hamilton-nsw-2303")
         page.keyboard().press("Escape")
         assertThat(page.locator("#card")).isHidden()
+    }
+
+    @Test
+    fun `the Schools row lists the public schools with their ICSEA and own website, and links to My School`() {
+        openWithKey()
+        tapSuburb()
+        val row = page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Schools").setHasNotText("Flood"))
+        assertThat(row.first()).containsText("1 public school, average ICSEA 1,051 (1,000 is average)")
+        assertThat(page.locator("#card ul.schools a")).hasAttribute("href", "https://hamilton-p.schools.nsw.gov.au")
+        assertThat(page.locator("#card ul.schools")).containsText("ICSEA 1,051 · 412 students")
+        assertThat(page.locator("#card a[href='https://www.myschool.edu.au/']")).isVisible()
     }
 
     @Test

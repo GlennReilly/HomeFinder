@@ -24,6 +24,9 @@ interface SuburbDirectory {
 
     /** The suburb's OpenStreetMap roll-up, or null when the pipeline has not produced it (no OSM load, or the table is missing). */
     suspend fun amenity(suburbId: String): SuburbAmenity? = null
+
+    /** The public schools inside the suburb, or null when no school data has been loaded (no load yet, or the table is missing). */
+    suspend fun schools(suburbId: String): SuburbSchoolData? = null
 }
 
 /** Reads the `suburb` table loaded by the pipeline; boundaries are GDA2020 (EPSG:7844), which the point uses too. */
@@ -70,6 +73,41 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
             }
         } catch (failure: SQLException) {
             // Before the first OSM load the table does not exist; that is "no data", not an outage.
+            if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
+        }
+    }
+
+    override suspend fun schools(suburbId: String): SuburbSchoolData? = withContext(Dispatchers.IO) {
+        try {
+            dataSource.connection.use { connection ->
+                val extracted = connection.prepareStatement(SCHOOLS_LOADED_SQL).use { statement ->
+                    statement.executeQuery().use { rows ->
+                        rows.next()
+                        if (rows.getInt("n") == 0) return@use null to false
+                        rows.getDate("latest")?.toLocalDate()?.let { LocalDate(it.year, it.monthValue, it.dayOfMonth) } to true
+                    }
+                }
+                if (!extracted.second) return@use null
+                val schools = connection.prepareStatement(SCHOOLS_SQL).use { statement ->
+                    statement.setString(1, suburbId)
+                    statement.executeQuery().use { rows ->
+                        buildList {
+                            while (rows.next()) {
+                                fun int(column: String): Int? = rows.getInt(column).takeIf { !rows.wasNull() }
+                                add(
+                                    SchoolRecord(
+                                        code = rows.getInt("school_code"), name = rows.getString("name"), levelLabel = rows.getString("level_label"),
+                                        icsea = int("icsea"), enrolments = rows.getBigDecimal("enrolment_fte")?.toInt(), website = rows.getString("website"),
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+                SuburbSchoolData(schools, extracted.first)
+            }
+        } catch (failure: SQLException) {
+            // Before the first schools load the table does not exist; that is "no data", not an outage.
             if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
         }
     }
@@ -126,6 +164,12 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
         val AMENITY_SQL = """
             SELECT a.*, (SELECT (COALESCE(osm_base, imported_at) AT TIME ZONE 'UTC')::date FROM osm_import) AS as_of
             FROM suburb_amenity a WHERE a.suburb_id = ?
+        """.trimIndent()
+
+        val SCHOOLS_LOADED_SQL = "SELECT count(*) AS n, max(extracted_on) AS latest FROM school"
+
+        val SCHOOLS_SQL = """
+            SELECT school_code, name, level_label, icsea, enrolment_fte, website FROM school WHERE suburb_id = ? ORDER BY name
         """.trimIndent()
 
         val FIND_SQL = """

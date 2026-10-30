@@ -4,6 +4,10 @@ import au.homefinder.shared.model.Attribute
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.HomelyRating
+import au.homefinder.shared.model.School
+import au.homefinder.shared.model.SchoolLevel
+import au.homefinder.shared.model.SchoolSector
+import au.homefinder.shared.model.SuburbSchools
 import au.homefinder.shared.model.SuburbBeachDistance
 import au.homefinder.shared.model.SuburbShopping
 import kotlin.math.roundToInt
@@ -22,7 +26,6 @@ object SuburbReportFactory {
     const val CADASTRE_SOURCE: String = "NSW Digital Cadastral Database"
     private const val FLOOD_SOURCE = "NSW Flood Data Portal and council studies"
     private const val LISTING_SOURCE = "Licensed listing text"
-    private const val EDUCATION_SOURCE = "NSW Department of Education"
     private const val TRANSPORT_SOURCE = "Transport for NSW"
 
     private fun <T> unknown(source: String): Attribute<T> = Attribute.unknown(source, note = NOT_COMPUTED_NOTE)
@@ -42,6 +45,7 @@ object SuburbReportFactory {
         stats: SuburbStats? = null,
         rating: StoredRating? = null,
         amenity: SuburbAmenity? = null,
+        schools: SuburbSchoolData? = null,
     ): SuburbReport = SuburbReport(
         suburbId = record.suburbId,
         name = record.name,
@@ -57,7 +61,7 @@ object SuburbReportFactory {
         floodShare = unknown(FLOOD_SOURCE),
         brickShare = unknown(LISTING_SOURCE),
         beach = beach(amenity),
-        schools = unknown(EDUCATION_SOURCE),
+        schools = schools(schools),
         parkAreaShare = parks(amenity),
         shopping = shopping(amenity),
         transport = unknown(TRANSPORT_SOURCE),
@@ -77,6 +81,35 @@ object SuburbReportFactory {
             stored.rating, confidenceForSamples(reviews ?: 0), HomelyRating.SOURCE, stored.ratedOn,
             "Homely users' opinion, typed in by you; not fetched from Homely" + (reviews?.let { " ($it reviews)" } ?: ""),
         )
+    }
+
+    const val SCHOOLS_SOURCE: String = "NSW Department of Education public schools master dataset (CC BY); ICSEA from ACARA"
+    const val SCHOOLS_NOT_LOADED_NOTE: String = "School data not loaded yet"
+    const val SCHOOLS_NOTE: String =
+        "NSW public schools only (private and Catholic schools are not in this data). ICSEA measures how socio-educationally advantaged " +
+            "a school's students are (national average 1000), not how good the school is. Catchments are not included yet."
+
+    /** What the dataset calls a kind of school, as the model's three levels; anything else (support, special) counts as combined. */
+    fun schoolLevel(label: String?): SchoolLevel = when {
+        label == null -> SchoolLevel.COMBINED
+        label.contains("Primary", ignoreCase = true) || label.contains("Infants", ignoreCase = true) -> SchoolLevel.PRIMARY
+        label.contains("Secondary", ignoreCase = true) || label.contains("High", ignoreCase = true) -> SchoolLevel.HIGH
+        else -> SchoolLevel.COMBINED
+    }
+
+    /** Only an http or https address is kept, so a link on the card can never run a script. */
+    fun safeWebsite(address: String?): String? = address?.trim()?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
+
+    private fun schools(data: SuburbSchoolData?): Attribute<SuburbSchools> {
+        if (data == null) return Attribute.unknown(SCHOOLS_SOURCE, note = SCHOOLS_NOT_LOADED_NOTE)
+        val schools = data.schools.map {
+            School(
+                id = it.code.toString(), name = it.name, sector = SchoolSector.PUBLIC, level = schoolLevel(it.levelLabel), icsea = it.icsea,
+                enrolments = it.enrolments, website = safeWebsite(it.website), levelLabel = it.levelLabel,
+            )
+        }
+        val average = schools.mapNotNull { it.icsea }.takeIf { it.isNotEmpty() }?.let { it.average().roundToInt() }
+        return Attribute(SuburbSchools(schools, emptyList(), average), Confidence.HIGH, SCHOOLS_SOURCE, data.extractedOn, SCHOOLS_NOTE)
     }
 
     private fun <T> osmNotLoaded(): Attribute<T> = Attribute.unknown(LotReportFactory.OSM_SOURCE, note = LotReportFactory.OSM_NOT_LOADED_NOTE)

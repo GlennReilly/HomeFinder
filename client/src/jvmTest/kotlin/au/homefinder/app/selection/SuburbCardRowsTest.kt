@@ -69,7 +69,7 @@ class SuburbCardRowsTest {
         assertEquals("18% of lots touch a mapped flood extent; 90% of the suburb has flood mapping", rows["Flood"])
         assertEquals("42% of lots are likely brick; 30% have enough evidence to say", rows["Likely brick"])
         assertEquals("3.5 km from the centre, 2.4 km from the nearest edge", rows["Distance to the beach"])
-        assertEquals("1 public schools inside; 2 catchments cover it", rows["Schools"])
+        assertEquals("1 public school", rows["Schools"])
         assertEquals("7% of the suburb is park", rows["Parks"])
         assertEquals("2 shopping centres and 5 supermarkets, inside or within 2 km", rows["Shopping"])
         assertEquals("2 train, 0 light rail, 0 ferry, 96 bus stops; best stop 8 an hour at peak", rows["Transport"])
@@ -108,5 +108,22 @@ class SuburbCardRowsTest {
         assertEquals("0%", Formats.share(0.0))
         assertEquals("0.3 km", Formats.kilometres(250))
         assertEquals("12.0 km", Formats.kilometres(12_000))
+    }
+
+    @Test
+    fun `schools read as a count with the average ICSEA, and none says so`() {
+        fun value(schools: au.homefinder.shared.model.SuburbSchools) = SuburbCardRows.of(allKnown.copy(schools = known(schools))).first { it.label == "Schools" }.value
+        val one = school.copy(icsea = 1051)
+        assertEquals("3 public schools, average ICSEA 1,032 (1,000 is average)", value(au.homefinder.shared.model.SuburbSchools(listOf(one, one, one), emptyList(), 1032)))
+        assertEquals("1 public school, average ICSEA 960 (1,000 is average)", value(au.homefinder.shared.model.SuburbSchools(listOf(school), emptyList(), 960)))
+        assertEquals("2 public schools", value(au.homefinder.shared.model.SuburbSchools(listOf(school, school), emptyList(), null)))
+        assertEquals("No public schools inside the suburb", value(au.homefinder.shared.model.SuburbSchools(emptyList(), emptyList(), null)))
+    }
+
+    @Test
+    fun `a school line gives its kind, ICSEA and size only as far as they are published`() {
+        assertEquals("Primary School · ICSEA 1,051 · 412 students", SuburbCardRows.schoolDetail(school.copy(icsea = 1051, enrolments = 412, levelLabel = "Primary School")))
+        assertEquals("Secondary School · ICSEA not published", SuburbCardRows.schoolDetail(school.copy(levelLabel = "Secondary School")))
+        assertEquals("High school · ICSEA 1,012 · 1,204 students", SuburbCardRows.schoolDetail(school.copy(level = SchoolLevel.HIGH, icsea = 1012, enrolments = 1204)))
     }
 }
