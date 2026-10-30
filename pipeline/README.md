@@ -61,3 +61,4 @@ tests/test_osm.sh         # fixture-based integration test (needs Docker and jq)
 Needs suburbs and lots loaded first. Rules and thresholds are in [ADR 0023](../docs/adr/0023-osm-proximity-pipeline.md) and
 `config/osm.env`. Source: OpenStreetMap contributors (ODbL).
 
+`load-osm.sh` also rebuilds the per-suburb roll-up (distance to the nearest ocean beach from the centre and the nearest edge, park share, shopping centres and supermarkets inside or within 2 km): [ADR 0033](../docs/adr/0033-suburb-osm-rollup.md).

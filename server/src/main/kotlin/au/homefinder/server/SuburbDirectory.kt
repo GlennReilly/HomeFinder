@@ -21,6 +21,9 @@ interface SuburbDirectory {
 
     /** The suburb's statistics, or null when none have been built (or the pipeline has not created the table yet). */
     suspend fun stats(suburbId: String): SuburbStats? = null
+
+    /** The suburb's OpenStreetMap roll-up, or null when the pipeline has not produced it (no OSM load, or the table is missing). */
+    suspend fun amenity(suburbId: String): SuburbAmenity? = null
 }
 
 /** Reads the `suburb` table loaded by the pipeline; boundaries are GDA2020 (EPSG:7844), which the point uses too. */
@@ -43,6 +46,30 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
             }
         } catch (failure: SQLException) {
             // Before the first sales load the table does not exist; that is "no statistics", not an outage.
+            if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
+        }
+    }
+
+    override suspend fun amenity(suburbId: String): SuburbAmenity? = withContext(Dispatchers.IO) {
+        try {
+            dataSource.connection.use { connection ->
+                connection.prepareStatement(AMENITY_SQL).use { statement ->
+                    statement.setString(1, suburbId)
+                    statement.executeQuery().use { rows ->
+                        if (!rows.next()) return@use null
+                        fun double(column: String): Double? = rows.getDouble(column).takeIf { !rows.wasNull() }
+                        SuburbAmenity(
+                            beachFromCentreM = double("beach_from_centre_m"), beachFromEdgeM = double("beach_from_edge_m"),
+                            beachName = rows.getString("beach_name"), suburbAreaM2 = rows.getDouble("suburb_area_m2"),
+                            parkAreaM2 = rows.getDouble("park_area_m2"), shoppingCentres = rows.getInt("shopping_centres"),
+                            supermarkets = rows.getInt("supermarkets"),
+                            osmAsOf = rows.getDate("as_of")?.toLocalDate()?.let { LocalDate(it.year, it.monthValue, it.dayOfMonth) },
+                        )
+                    }
+                }
+            }
+        } catch (failure: SQLException) {
+            // Before the first OSM load the table does not exist; that is "no data", not an outage.
             if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
         }
     }
@@ -94,6 +121,11 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
             SELECT as_of, house_sales, house_median_aud, unit_sales, unit_median_aud, house_prev_sales, house_change_pct,
                    block_lots, block_median_m2, block_p10_m2, block_p90_m2
             FROM suburb_stats WHERE suburb_id = ?
+        """.trimIndent()
+
+        val AMENITY_SQL = """
+            SELECT a.*, (SELECT (COALESCE(osm_base, imported_at) AT TIME ZONE 'UTC')::date FROM osm_import) AS as_of
+            FROM suburb_amenity a WHERE a.suburb_id = ?
         """.trimIndent()
 
         val FIND_SQL = """

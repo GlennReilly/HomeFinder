@@ -4,6 +4,8 @@ import au.homefinder.shared.model.ApiJson
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.HomelyRating
+import au.homefinder.shared.model.SuburbBeachDistance
+import au.homefinder.shared.model.SuburbShopping
 import au.homefinder.shared.model.SuburbReport
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.encodeToString
@@ -37,12 +39,15 @@ class SuburbReportFactoryTest {
             assertEquals(SuburbReportFactory.SALES_NOT_LOADED_NOTE, it.note)
             assertEquals(SuburbReportFactory.SALES_SOURCE, it.source)
         }
-        val others = listOf(
-            report.blockSize, report.floodShare, report.brickShare, report.beach, report.schools, report.parkAreaShare,
-            report.shopping, report.transport,
-        )
-        assertEquals(8, others.size)
-        (salesStats + others).forEach {
+        val osm = listOf(report.beach, report.parkAreaShare, report.shopping)
+        osm.forEach {
+            assertTrue(it.isUnknown)
+            assertEquals(LotReportFactory.OSM_NOT_LOADED_NOTE, it.note)
+            assertEquals(LotReportFactory.OSM_SOURCE, it.source)
+        }
+        val others = listOf(report.blockSize, report.floodShare, report.brickShare, report.schools, report.transport)
+        assertEquals(5, others.size)
+        (salesStats + osm + others).forEach {
             assertTrue(it.isUnknown)
             assertEquals(Confidence.NONE, it.confidence)
             assertTrue(it.source.isNotBlank())
@@ -127,6 +132,46 @@ class SuburbReportFactoryTest {
         val few = SuburbReportFactory.build(hamilton, full.copy(blockLots = 4, blockMedianM2 = null, blockP10M2 = null, blockP90M2 = null)).blockSize
         assertTrue(few.isUnknown)
         assertEquals("Only 4 lots with an address, too few for a spread", few.note)
+    }
+
+    private val nearby = SuburbAmenity(
+        beachFromCentreM = 1794.4, beachFromEdgeM = 860.2, beachName = "Ocean Beach", suburbAreaM2 = 4_000_000.0, parkAreaM2 = 50_000.0,
+        shoppingCentres = 1, supermarkets = 3, osmAsOf = day,
+    )
+
+    @Test
+    fun `the OpenStreetMap roll-up becomes beach distances, a park share and shop counts with source, date and notes`() {
+        val report = SuburbReportFactory.build(hamilton, amenity = nearby)
+        assertEquals(SuburbBeachDistance(1794, 860), report.beach.value)
+        assertEquals(0.0125, report.parkAreaShare.value)
+        assertEquals(SuburbShopping(1, 3), report.shopping.value)
+        listOf(report.beach, report.parkAreaShare, report.shopping).forEach {
+            assertEquals(Confidence.MEDIUM, it.confidence)
+            assertEquals(LotReportFactory.OSM_SOURCE, it.source)
+            assertEquals(day, it.asOf)
+            assertTrue(it.note.orEmpty().isNotBlank())
+        }
+        assertTrue("Ocean Beach" in report.beach.note.orEmpty() && "nearest edge" in report.beach.note.orEmpty())
+        assertTrue("2 km" in report.shopping.note.orEmpty())
+    }
+
+    @Test
+    fun `no beach in the data is unknown with a reason, and a share cannot exceed all of the suburb`() {
+        val noBeach = SuburbReportFactory.build(hamilton, amenity = nearby.copy(beachFromCentreM = null, beachFromEdgeM = null, beachName = null))
+        assertTrue(noBeach.beach.isUnknown)
+        assertEquals("No ocean beach found in the OpenStreetMap data loaded", noBeach.beach.note)
+        assertEquals(day, noBeach.beach.asOf)
+        assertEquals(1.0, SuburbReportFactory.build(hamilton, amenity = nearby.copy(parkAreaM2 = 9_000_000.0)).parkAreaShare.value)
+        assertTrue(SuburbReportFactory.build(hamilton, amenity = nearby.copy(suburbAreaM2 = 0.0)).parkAreaShare.isUnknown)
+    }
+
+    @Test
+    fun `no shops at all is shown as zero with low confidence, because an unmapped shop is more likely than none`() {
+        val none = SuburbReportFactory.build(hamilton, amenity = nearby.copy(shoppingCentres = 0, supermarkets = 0)).shopping
+        assertEquals(SuburbShopping(0, 0), none.value)
+        assertEquals(Confidence.LOW, none.confidence)
+        assertTrue("none are mapped" in none.note.orEmpty())
+        assertEquals(Confidence.MEDIUM, SuburbReportFactory.build(hamilton, amenity = nearby.copy(shoppingCentres = 0, supermarkets = 1)).shopping.confidence)
     }
 
     @Test

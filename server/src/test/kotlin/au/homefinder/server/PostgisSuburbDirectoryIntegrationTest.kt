@@ -125,4 +125,38 @@ class PostgisSuburbDirectoryIntegrationTest {
             execute("ALTER TABLE suburb_stats_hidden RENAME TO suburb_stats")
         }
     }
+
+    @Test
+    fun `a suburb's OpenStreetMap roll-up is read with nulls kept and the date of the data`() = withDirectory { directory ->
+        execute(
+            "TRUNCATE osm_import, suburb_amenity",
+            "INSERT INTO osm_import (imported_at, osm_base, features) VALUES ('2026-10-30 08:00+00', '2026-10-29 22:00+00', 7)",
+            "INSERT INTO suburb_amenity (suburb_id, beach_from_centre_m, beach_from_edge_m, beach_name, suburb_area_m2, park_area_m2, shopping_centres, supermarkets) " +
+                "VALUES ('9001', 1794.5, 860.25, 'Ocean Beach', 4150000, 50170, 1, 2), ('9002', NULL, NULL, NULL, 3000000, 0, 0, 0)",
+        )
+        val hamilton = assertNotNull(directory.amenity("9001"))
+        assertEquals(1794.5, hamilton.beachFromCentreM)
+        assertEquals(860.25, hamilton.beachFromEdgeM)
+        assertEquals("Ocean Beach", hamilton.beachName)
+        assertEquals(1, hamilton.shoppingCentres)
+        assertEquals(2, hamilton.supermarkets)
+        assertEquals(kotlinx.datetime.LocalDate(2026, 10, 29), hamilton.osmAsOf)
+        assertEquals(50170.0 / 4150000.0, assertNotNull(hamilton.parkShare), 1e-9)
+        val belmont = assertNotNull(directory.amenity("9002"))
+        assertNull(belmont.beachFromCentreM)
+        assertNull(belmont.beachName)
+        assertEquals(0.0, belmont.parkShare)
+        assertNull(directory.amenity("424242"))
+        assertNull(directory.amenity("9001' OR '1'='1"))
+    }
+
+    @Test
+    fun `a database without the roll-up table has no roll-up rather than an error`() = withDirectory { directory ->
+        execute("ALTER TABLE suburb_amenity RENAME TO suburb_amenity_hidden")
+        try {
+            assertNull(directory.amenity("9001"))
+        } finally {
+            execute("ALTER TABLE suburb_amenity_hidden RENAME TO suburb_amenity")
+        }
+    }
 }

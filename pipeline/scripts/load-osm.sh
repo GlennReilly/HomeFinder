@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Loads the Overpass answers (beach, coast, park, shop JSON) into osm_feature, then rebuilds the nearest beach, parks and
-# shops and the park area for every lot. Idempotent. Needs load-suburbs.sh and load-lots.sh.
+# shops and the park area for every lot, and the beach, park and shopping roll-up for every suburb. Idempotent. Needs load-suburbs.sh and load-lots.sh.
 # Usage: load-osm.sh [dir]   (default: data/raw/osm)
 source "$(dirname "$0")/common.sh"
 # shellcheck disable=SC1091
@@ -44,6 +44,7 @@ OSM_BASE="$(for name in beach coast park shop; do jq -r '.osm3s.timestamp_osm_ba
 psql_db -q -v min_park_m2="$MIN_PARK_AREA_M2" -v beach_coast_m="$BEACH_MAX_COAST_M" -v osm_base="${OSM_BASE:-}" \
   < "$PIPELINE_DIR/sql/osm.sql"
 psql_db -q -c "SELECT refresh_lot_proximity($NEAREST_PARKS, $PARK_RADIUS_M)" >/dev/null
+psql_db -q -c "SELECT refresh_suburb_amenity($SUBURB_SHOPPING_RADIUS_M)" >/dev/null
 
 echo "OSM features loaded:"
 psql_db -t -A -F ' | ' -c "SELECT kind, count(*) FROM osm_feature GROUP BY kind ORDER BY kind"

@@ -4,6 +4,9 @@ import au.homefinder.shared.model.Attribute
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.HomelyRating
+import au.homefinder.shared.model.SuburbBeachDistance
+import au.homefinder.shared.model.SuburbShopping
+import kotlin.math.roundToInt
 import au.homefinder.shared.model.SuburbReport
 
 /**
@@ -19,7 +22,6 @@ object SuburbReportFactory {
     const val CADASTRE_SOURCE: String = "NSW Digital Cadastral Database"
     private const val FLOOD_SOURCE = "NSW Flood Data Portal and council studies"
     private const val LISTING_SOURCE = "Licensed listing text"
-    private const val OSM_SOURCE = "OpenStreetMap"
     private const val EDUCATION_SOURCE = "NSW Department of Education"
     private const val TRANSPORT_SOURCE = "Transport for NSW"
 
@@ -35,7 +37,12 @@ object SuburbReportFactory {
         else -> Confidence.HIGH
     }
 
-    fun build(record: SuburbRecord, stats: SuburbStats? = null, rating: StoredRating? = null): SuburbReport = SuburbReport(
+    fun build(
+        record: SuburbRecord,
+        stats: SuburbStats? = null,
+        rating: StoredRating? = null,
+        amenity: SuburbAmenity? = null,
+    ): SuburbReport = SuburbReport(
         suburbId = record.suburbId,
         name = record.name,
         postcode = record.postcode,
@@ -49,10 +56,10 @@ object SuburbReportFactory {
         blockSize = blockSize(stats),
         floodShare = unknown(FLOOD_SOURCE),
         brickShare = unknown(LISTING_SOURCE),
-        beach = unknown(OSM_SOURCE),
+        beach = beach(amenity),
         schools = unknown(EDUCATION_SOURCE),
-        parkAreaShare = unknown(OSM_SOURCE),
-        shopping = unknown(OSM_SOURCE),
+        parkAreaShare = parks(amenity),
+        shopping = shopping(amenity),
         transport = unknown(TRANSPORT_SOURCE),
         homelyRating = homelyRating(rating),
     )
@@ -69,6 +76,44 @@ object SuburbReportFactory {
         return Attribute(
             stored.rating, confidenceForSamples(reviews ?: 0), HomelyRating.SOURCE, stored.ratedOn,
             "Homely users' opinion, typed in by you; not fetched from Homely" + (reviews?.let { " ($it reviews)" } ?: ""),
+        )
+    }
+
+    private fun <T> osmNotLoaded(): Attribute<T> = Attribute.unknown(LotReportFactory.OSM_SOURCE, note = LotReportFactory.OSM_NOT_LOADED_NOTE)
+
+    /** From the suburb's centre and from its nearest edge, in a straight line, to the nearest ocean beach on the mapped coastline. */
+    private fun beach(amenity: SuburbAmenity?): Attribute<SuburbBeachDistance> {
+        if (amenity == null) return osmNotLoaded()
+        val centre = amenity.beachFromCentreM
+        val edge = amenity.beachFromEdgeM
+        if (centre == null || edge == null) {
+            return Attribute.unknown(LotReportFactory.OSM_SOURCE, amenity.osmAsOf, "No ocean beach found in the OpenStreetMap data loaded")
+        }
+        val name = amenity.beachName?.let { " ($it)" }.orEmpty()
+        return Attribute(
+            SuburbBeachDistance(centre.roundToInt(), edge.roundToInt()), Confidence.MEDIUM, LotReportFactory.OSM_SOURCE, amenity.osmAsOf,
+            "Straight line to the nearest beach on the mapped coastline$name, from the suburb's centre and from its nearest edge",
+        )
+    }
+
+    private fun parks(amenity: SuburbAmenity?): Attribute<Double> {
+        if (amenity == null) return osmNotLoaded()
+        val share = amenity.parkShare
+            ?: return Attribute.unknown(LotReportFactory.OSM_SOURCE, amenity.osmAsOf, "The suburb has no area to measure parks against")
+        return Attribute(
+            share, Confidence.MEDIUM, LotReportFactory.OSM_SOURCE, amenity.osmAsOf,
+            "Parks of at least 0.5 ha as a share of the suburb's area; OpenStreetMap may be incomplete",
+        )
+    }
+
+    /** None found at all is shown as zero with low confidence: in OpenStreetMap, no shop usually means no shop mapped. */
+    private fun shopping(amenity: SuburbAmenity?): Attribute<SuburbShopping> {
+        if (amenity == null) return osmNotLoaded()
+        val none = amenity.shoppingCentres == 0 && amenity.supermarkets == 0
+        return Attribute(
+            SuburbShopping(amenity.shoppingCentres, amenity.supermarkets), if (none) Confidence.LOW else Confidence.MEDIUM,
+            LotReportFactory.OSM_SOURCE, amenity.osmAsOf,
+            "Inside the suburb or within 2 km of it" + if (none) "; none are mapped in OpenStreetMap, which may be incomplete" else "; OpenStreetMap may be incomplete",
         )
     }
 
