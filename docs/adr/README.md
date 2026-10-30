@@ -36,3 +36,4 @@
 | [0032](0032-browser-smoke-tests.md) | Browser smoke tests | Accepted |
 | [0033](0033-suburb-osm-rollup.md) | Suburb roll-up of the OpenStreetMap features | Accepted |
 | [0034](0034-suburb-schools-and-icsea.md) | Suburb schools and ICSEA | Accepted |
+| [0035](0035-suburb-filter-panel.md) | Suburb filter side panel | Accepted |
