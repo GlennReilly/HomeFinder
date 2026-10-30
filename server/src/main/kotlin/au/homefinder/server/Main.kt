@@ -32,7 +32,9 @@ fun main() {
             println(if (dataSource == null) "Database: not configured (tiles unavailable)" else "Database: ${config.database}")
             val tiles = dataSource?.let { PostgisSuburbTiles(it) }
             val suburbs = dataSource?.let { PostgisSuburbDirectory(it) }
-            embeddedServer(Netty, host = config.host, port = config.port) { module(config, tiles, suburbs) }.start(wait = true)
+            val lotTiles = dataSource?.let { PostgisLotTiles(it) }
+            val lots = dataSource?.let { PostgisLotDirectory(it) }
+            embeddedServer(Netty, host = config.host, port = config.port) { module(config, tiles, suburbs, lotTiles, lots) }.start(wait = true)
         }
     }
 }

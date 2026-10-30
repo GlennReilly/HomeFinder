@@ -65,6 +65,12 @@ alone. The key can be the `X-API-Key` header or a `?key=` query parameter on til
 postcode, area, the sales and block-size statistics once `pipeline/scripts/load-sales.sh` has run, and every other statistic explicitly unknown until the pipeline computes it). Both need the
 `X-API-Key` header and the database. See [ADR 0016](docs/adr/0016-suburb-lookup-and-report-endpoints.md) and [ADR 0021](docs/adr/0021-suburb-statistics-in-the-report.md).
 
+### Lots
+
+`GET /tiles/lots/{z}/{x}/{y}.pbf` serves lot boundaries for zoom 16 to 18, `GET /v1/lots/at?lat=&lon=` finds the lot under a
+point and `GET /v1/lots/{lotId}` returns the basic lot card (lot, suburb, addresses, measured area; other factors
+unknown). They need the database and the key. See [ADR 0022](docs/adr/0022-lot-tiles-and-lookup.md).
+
 ### Selecting a suburb
 
 Tap a suburb to select it: it is highlighted and a card opens (a bottom sheet on narrow windows, a side panel on wide

@@ -53,4 +53,17 @@ class ApiContractTest {
         val noPostcode = ApiJson.encodeToString(SuburbRef("9002", "LAKE MACQUARIE", null))
         assertTrue(noPostcode.contains("\"postcode\":null"), noPostcode)
     }
+
+    @Test
+    fun `lot tile and endpoint contract is stable`() {
+        assertEquals("/tiles/lots", TileContract.lotsPath())
+        assertEquals(16, TileContract.LOTS_MIN_ZOOM)
+        assertEquals(18, TileContract.LOTS_MAX_ZOOM)
+        // Suburbs hand over to lots: the suburb tiles stop before the lot tiles start.
+        assertTrue(TileContract.SUBURBS_MAX_ZOOM < TileContract.LOTS_MIN_ZOOM)
+        assertEquals("/v1/lots/at", ApiContract.LOTS_AT_PATH)
+        assertTrue(ApiContract.LOTS_AT_PATH.startsWith(ApiContract.LOTS_PATH))
+        val ref = au.homefinder.shared.model.LotRef("1001", "9001")
+        assertEquals(ref, ApiJson.decodeFromString<au.homefinder.shared.model.LotRef>(ApiJson.encodeToString(ref)))
+    }
 }
