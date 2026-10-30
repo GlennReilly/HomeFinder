@@ -39,7 +39,9 @@ ORDER BY district_code, property_id, contract_date, price_aud, dealing_number, d
 
 -- Reasons are applied in this order; the first that matches is recorded.
 UPDATE sale SET exclusion_reason = 'not_residential' WHERE nature IS DISTINCT FROM 'R';
-UPDATE sale SET exclusion_reason = 'part_interest' WHERE exclusion_reason IS NULL AND percent_interest < 100;
+-- 0 means "not stated" (about half of all full-price sales carry it, at normal prices), not a zero share: only a real
+-- partial share (above 0, below 100) is a part interest.
+UPDATE sale SET exclusion_reason = 'part_interest' WHERE exclusion_reason IS NULL AND percent_interest > 0 AND percent_interest < 100;
 UPDATE sale s SET exclusion_reason = 'multi_property'
 WHERE s.exclusion_reason IS NULL AND s.dealing_number IS NOT NULL AND EXISTS (
     SELECT 1 FROM sale o
