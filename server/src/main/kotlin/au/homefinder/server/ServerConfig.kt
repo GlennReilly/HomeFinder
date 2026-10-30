@@ -12,9 +12,11 @@ data class ServerConfig(
     val port: Int,
     val apiKey: String,
     val database: DatabaseConfig? = null,
+    /** Folder holding the built web app, served from `/`; null serves the API only (ADR 0020). */
+    val webRoot: String? = null,
 ) {
     /** Never print the key or the database password. */
-    override fun toString(): String = "ServerConfig(host=$host, port=$port, apiKey=***, database=$database)"
+    override fun toString(): String = "ServerConfig(host=$host, port=$port, apiKey=***, database=$database, webRoot=$webRoot)"
 }
 
 sealed interface ConfigResult {
@@ -26,10 +28,12 @@ object ServerConfigLoader {
     const val HOST_VARIABLE: String = "API_HOST"
     const val PORT_VARIABLE: String = "API_PORT"
     const val API_KEY_VARIABLE: String = "API_KEY"
+    const val WEB_ROOT_VARIABLE: String = "WEB_ROOT"
     const val DB_URL_VARIABLE: String = "DB_URL"
     const val DB_USER_VARIABLE: String = "DB_USER"
     const val DB_PASSWORD_VARIABLE: String = "DB_PASSWORD"
-    const val DEFAULT_HOST: String = "0.0.0.0"
+    /** Local only by default (ADR 0020); set API_HOST=0.0.0.0 to reach it from another device on a private network. */
+    const val DEFAULT_HOST: String = "127.0.0.1"
     const val MIN_API_KEY_LENGTH: Int = 16
     const val JDBC_POSTGRES_PREFIX: String = "jdbc:postgresql:"
     private const val MIN_PORT = 1
@@ -57,8 +61,9 @@ object ServerConfigLoader {
         }
 
         val database = loadDatabase(env, problems)
+        val webRoot = env[WEB_ROOT_VARIABLE]?.trim()?.takeIf { it.isNotEmpty() }
 
-        return if (problems.isEmpty()) ConfigResult.Loaded(ServerConfig(host, port, apiKey, database)) else ConfigResult.Invalid(problems)
+        return if (problems.isEmpty()) ConfigResult.Loaded(ServerConfig(host, port, apiKey, database, webRoot)) else ConfigResult.Invalid(problems)
     }
 
     /** The database is optional, but if any of its variables is set all of them must be, and the URL must be PostgreSQL. */

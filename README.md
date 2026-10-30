@@ -25,7 +25,14 @@ Requires JDK 17. Gradle downloads Node and the npm packages for the web build.
 
 ## Run it locally
 
-Start the API (below), then the web dev server, and open http://localhost:8081. The first visit asks for the API key.
+One command builds the web app and serves it together with the API (needs `server/.env`, see below):
+
+```bash
+./gradlew :server:run
+```
+
+Open http://localhost:8080 and enter the `API_KEY` value from `server/.env` when asked. For quick front-end work, run the API
+as above and start the web dev server on http://localhost:8081, which rebuilds on change and proxies the API:
 
 ```bash
 ./gradlew :webApp:jsBrowserDevelopmentRun --continuous
@@ -40,7 +47,7 @@ cp server/.env.example server/.env   # then set API_KEY (16+ characters)
 ./gradlew :server:run
 ```
 
-The server listens on `0.0.0.0:8080`. `GET /health` is open; everything under `/v1` needs the `X-API-Key` header.
+The server listens on `127.0.0.1:8080` (this machine only); set `API_HOST=0.0.0.0` to reach it from another device on a private network, and `WEB_ROOT` to serve a built web app (`:server:run` sets it for you; [ADR 0020](docs/adr/0020-serve-the-web-app-from-the-api.md)). `GET /health` is open; everything under `/v1` needs the `X-API-Key` header.
 The web app sends the key you enter in the browser. See [ADR 0013](docs/adr/0013-api-skeleton-auth-and-android-link.md)
 (its Android parts are superseded by ADR 0019).
 

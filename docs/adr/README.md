@@ -21,3 +21,4 @@
 | [0017](0017-suburb-selection-and-card.md) | Suburb selection and the Suburb Card | Accepted |
 | [0018](0018-sales-statistics-pipeline.md) | Sales statistics pipeline (NSW Valuer General) | Accepted |
 | [0019](0019-pivot-to-web.md) | Pivot the target platform to web | Accepted |
+| [0020](0020-serve-the-web-app-from-the-api.md) | Serve the web app from the API, local by default | Accepted |

@@ -10,6 +10,9 @@ application { mainClass = "au.homefinder.server.MainKt" }
 
 // `./gradlew :server:run` reads server/.env (KEY=VALUE lines) into the server's environment, like the database's .env.
 tasks.named<JavaExec>("run") {
+    // Serve the production web bundle from the same address as the API (ADR 0020); WEB_ROOT in .env overrides it.
+    dependsOn(":webApp:jsBrowserDistribution")
+    environment("WEB_ROOT", rootProject.file("webApp/build/dist/js/productionExecutable").absolutePath)
     val envFile = layout.projectDirectory.file(".env").asFile
     if (envFile.exists()) {
         envFile.readLines().map(String::trim)
