@@ -62,8 +62,8 @@ alone. The key can be the `X-API-Key` header or a `?key=` query parameter on til
 ### Suburb endpoints
 
 `GET /v1/suburbs/at?lat=&lon=` returns the suburb under a point and `GET /v1/suburbs/{suburbId}` its report (name,
-postcode, area, and every other statistic explicitly unknown until the pipeline computes it). Both need the
-`X-API-Key` header and the database. See [ADR 0016](docs/adr/0016-suburb-lookup-and-report-endpoints.md).
+postcode, area, the sales and block-size statistics once `pipeline/scripts/load-sales.sh` has run, and every other statistic explicitly unknown until the pipeline computes it). Both need the
+`X-API-Key` header and the database. See [ADR 0016](docs/adr/0016-suburb-lookup-and-report-endpoints.md) and [ADR 0021](docs/adr/0021-suburb-statistics-in-the-report.md).
 
 ### Selecting a suburb
 

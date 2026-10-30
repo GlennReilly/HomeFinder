@@ -1,8 +1,10 @@
 package au.homefinder.server
 
 import au.homefinder.shared.model.ApiJson
+import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.SuburbReport
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.encodeToString
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -24,20 +26,110 @@ class SuburbReportFactoryTest {
     }
 
     @Test
-    fun `every statistic is explicitly unknown with its source and a note, never a silent default`() {
+    fun `without statistics every statistic is explicitly unknown with its source and a note, never a silent default`() {
         val report = SuburbReportFactory.build(hamilton)
-        val stats = listOf(
-            report.medianHousePriceAud, report.medianUnitPriceAud, report.priceChange12MonthsPercent, report.salesCount,
+        val salesStats = listOf(report.medianHousePriceAud, report.medianUnitPriceAud, report.priceChange12MonthsPercent, report.salesCount)
+        salesStats.forEach {
+            assertTrue(it.isUnknown)
+            assertEquals(SuburbReportFactory.SALES_NOT_LOADED_NOTE, it.note)
+            assertEquals(SuburbReportFactory.SALES_SOURCE, it.source)
+        }
+        val others = listOf(
             report.blockSize, report.floodShare, report.brickShare, report.beach, report.schools, report.parkAreaShare,
             report.shopping, report.transport,
         )
-        assertEquals(12, stats.size)
-        stats.forEach {
+        assertEquals(8, others.size)
+        (salesStats + others).forEach {
             assertTrue(it.isUnknown)
             assertEquals(Confidence.NONE, it.confidence)
-            assertEquals(SuburbReportFactory.NOT_COMPUTED_NOTE, it.note)
             assertTrue(it.source.isNotBlank())
         }
+        others.forEach { assertEquals(SuburbReportFactory.NOT_COMPUTED_NOTE, it.note) }
+    }
+
+    private val day = LocalDate(2026, 6, 1)
+    private val full = SuburbStats(
+        asOf = day, houseSales = 60, houseMedianAud = 1_050_000, unitSales = 20, unitMedianAud = 640_000, housePrevSales = 40,
+        houseChangePercent = 4.2, blockLots = 300, blockMedianM2 = 560.0, blockP10M2 = 320.0, blockP90M2 = 810.0,
+    )
+
+    @Test
+    fun `statistics become known values with source, as-of date and a note saying what they rest on`() {
+        val report = SuburbReportFactory.build(hamilton, full)
+        assertEquals(1_050_000L, report.medianHousePriceAud.value)
+        assertEquals(640_000L, report.medianUnitPriceAud.value)
+        assertEquals(4.2, report.priceChange12MonthsPercent.value)
+        assertEquals(80, report.salesCount.value)
+        assertEquals(BlockSizeSpread(560.0, 320.0, 810.0), report.blockSize.value)
+        listOf(report.medianHousePriceAud, report.medianUnitPriceAud, report.priceChange12MonthsPercent, report.salesCount).forEach {
+            assertEquals(SuburbReportFactory.SALES_SOURCE, it.source)
+            assertEquals(day, it.asOf)
+            assertTrue(it.note.orEmpty().isNotBlank())
+        }
+        assertEquals(SuburbReportFactory.CADASTRE_SOURCE, report.blockSize.source)
+        assertTrue("60 house sales" in report.medianHousePriceAud.note.orEmpty())
+        assertTrue("Valuer General weeks late" in report.salesCount.note.orEmpty())
+    }
+
+    @Test
+    fun `confidence follows the number of sales behind a value`() {
+        fun houseConfidence(sales: Int) =
+            SuburbReportFactory.build(hamilton, full.copy(houseSales = sales)).medianHousePriceAud.confidence
+        assertEquals(Confidence.LOW, houseConfidence(5))
+        assertEquals(Confidence.LOW, houseConfidence(SuburbReportFactory.LOW_CONFIDENCE_BELOW - 1))
+        assertEquals(Confidence.MEDIUM, houseConfidence(SuburbReportFactory.LOW_CONFIDENCE_BELOW))
+        assertEquals(Confidence.MEDIUM, houseConfidence(SuburbReportFactory.MEDIUM_CONFIDENCE_BELOW - 1))
+        assertEquals(Confidence.HIGH, houseConfidence(SuburbReportFactory.MEDIUM_CONFIDENCE_BELOW))
+    }
+
+    @Test
+    fun `price change takes its confidence from the thinner of the two periods`() {
+        val thin = SuburbReportFactory.build(hamilton, full.copy(houseSales = 200, housePrevSales = 8)).priceChange12MonthsPercent
+        assertEquals(Confidence.LOW, thin.confidence)
+        assertTrue("200 house sales" in thin.note.orEmpty() && "8 in the 12 months before" in thin.note.orEmpty())
+    }
+
+    @Test
+    fun `a median with too few sales stays unknown and says how many there were`() {
+        val report = SuburbReportFactory.build(hamilton, full.copy(houseSales = 3, houseMedianAud = null, houseChangePercent = null))
+        val house = report.medianHousePriceAud
+        assertTrue(house.isUnknown)
+        assertEquals(Confidence.NONE, house.confidence)
+        assertEquals(day, house.asOf)
+        assertEquals("Only 3 house sales in the 12 months to 2026-06-01, too few for a median", house.note)
+        assertTrue(report.priceChange12MonthsPercent.isUnknown)
+        assertEquals(63 + 17, SuburbReportFactory.build(hamilton, full.copy(houseSales = 63, unitSales = 17)).salesCount.value)
+    }
+
+    @Test
+    fun `no sales at all in the period is said plainly`() {
+        val report = SuburbReportFactory.build(hamilton, full.copy(unitSales = 0, unitMedianAud = null))
+        assertEquals("No unit sales in the 12 months to 2026-06-01", report.medianUnitPriceAud.note)
+    }
+
+    @Test
+    fun `statistics without a sales date mean the sales were never loaded`() {
+        val report = SuburbReportFactory.build(hamilton, full.copy(asOf = null, houseSales = 0, houseMedianAud = null, unitSales = 0, unitMedianAud = null, houseChangePercent = null))
+        listOf(report.medianHousePriceAud, report.medianUnitPriceAud, report.priceChange12MonthsPercent, report.salesCount).forEach {
+            assertEquals(SuburbReportFactory.SALES_NOT_LOADED_NOTE, it.note)
+        }
+        // Block size does not depend on the sales files.
+        assertEquals(560.0, report.blockSize.value?.medianM2)
+    }
+
+    @Test
+    fun `block size is unknown when no lots are linked and withheld when too few`() {
+        val none = SuburbReportFactory.build(hamilton, full.copy(blockLots = 0, blockMedianM2 = null, blockP10M2 = null, blockP90M2 = null)).blockSize
+        assertEquals(SuburbReportFactory.NOT_COMPUTED_NOTE, none.note)
+        val few = SuburbReportFactory.build(hamilton, full.copy(blockLots = 4, blockMedianM2 = null, blockP10M2 = null, blockP90M2 = null)).blockSize
+        assertTrue(few.isUnknown)
+        assertEquals("Only 4 lots with an address, too few for a spread", few.note)
+    }
+
+    @Test
+    fun `a report with statistics round trips through the API JSON`() {
+        val report = SuburbReportFactory.build(hamilton, full)
+        assertEquals(report, ApiJson.decodeFromString<SuburbReport>(ApiJson.encodeToString(report)))
     }
 
     @Test

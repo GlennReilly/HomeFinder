@@ -1,5 +1,6 @@
 package au.homefinder.server
 
+import kotlinx.datetime.LocalDate
 import java.sql.DriverManager
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assumptions.assumeTrue
@@ -81,5 +82,47 @@ class PostgisSuburbDirectoryIntegrationTest {
         assertNull(directory.find("424242"))
         assertNull(directory.find("9001' OR '1'='1"))
         assertNull(directory.find(""))
+    }
+
+    private fun execute(vararg statements: String) = DriverManager.getConnection(url, user, password).use { connection ->
+        connection.createStatement().use { statement -> statements.forEach { statement.execute(it) } }
+    }
+
+    @Test
+    fun `statistics are read with nulls kept as null`() = withDirectory { directory ->
+        execute(
+            "TRUNCATE suburb_stats",
+            "INSERT INTO suburb_stats (suburb_id, as_of, house_sales, house_median_aud, unit_sales, house_prev_sales, house_change_pct, " +
+                "block_lots, block_median_m2, block_p10_m2, block_p90_m2) VALUES ('9001', '2026-06-01', 60, 1050000, 3, 40, 4.2, 300, 560.5, 320.0, 810.25)",
+            "INSERT INTO suburb_stats (suburb_id) VALUES ('9002')",
+        )
+        val hamilton = assertNotNull(directory.stats("9001"))
+        assertEquals(LocalDate(2026, 6, 1), hamilton.asOf)
+        assertEquals(60, hamilton.houseSales)
+        assertEquals(1_050_000L, hamilton.houseMedianAud)
+        assertNull(hamilton.unitMedianAud)
+        assertEquals(4.2, hamilton.houseChangePercent)
+        assertEquals(560.5, hamilton.blockMedianM2)
+        assertEquals(810.25, hamilton.blockP90M2)
+
+        val belmont = assertNotNull(directory.stats("9002"))
+        assertNull(belmont.asOf)
+        assertEquals(0, belmont.houseSales)
+        assertNull(belmont.houseMedianAud)
+        assertNull(belmont.houseChangePercent)
+        assertNull(belmont.blockMedianM2)
+
+        assertNull(directory.stats("424242"))
+        assertNull(directory.stats("9001' OR '1'='1"))
+    }
+
+    @Test
+    fun `a database without the statistics table has no statistics rather than an error`() = withDirectory { directory ->
+        execute("ALTER TABLE suburb_stats RENAME TO suburb_stats_hidden")
+        try {
+            assertNull(directory.stats("9001"))
+        } finally {
+            execute("ALTER TABLE suburb_stats_hidden RENAME TO suburb_stats")
+        }
     }
 }

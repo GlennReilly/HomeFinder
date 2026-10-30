@@ -12,6 +12,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -26,6 +27,7 @@ class SuburbRoutesTest {
         private val atResult: SuburbRecord? = null,
         private val byId: Map<String, SuburbRecord> = emptyMap(),
         private val failure: Exception? = null,
+        private val stats: Map<String, SuburbStats> = emptyMap(),
     ) : SuburbDirectory {
         val atCalls = mutableListOf<Pair<Double, Double>>()
         override suspend fun findAt(latitude: Double, longitude: Double): SuburbRecord? {
@@ -37,6 +39,7 @@ class SuburbRoutesTest {
             failure?.let { throw it }
             return byId[suburbId]
         }
+        override suspend fun stats(suburbId: String): SuburbStats? = stats[suburbId]
     }
 
     private fun api(directory: SuburbDirectory?, block: suspend HttpClient.() -> Unit) = testApplication {
@@ -135,5 +138,26 @@ class SuburbRoutesTest {
     fun `a suburb id is looked up exactly as given`() = api(FakeDirectory(byId = mapOf("9001" to hamilton))) {
         assertNotNull(get("${ApiContract.SUBURBS_PATH}/9001").takeIf { it.status == HttpStatusCode.OK })
         assertEquals(HttpStatusCode.NotFound, get("${ApiContract.SUBURBS_PATH}/9001%27%20OR%201=1").status)
+    }
+
+    @Test
+    fun `a report carries the suburb's statistics when they exist`() {
+        val stats = SuburbStats(
+            LocalDate(2026, 6, 1), 60, 1_050_000, 20, 640_000, 40, 4.2, 300, 560.0, 320.0, 810.0,
+        )
+        api(FakeDirectory(byId = mapOf("9001" to hamilton), stats = mapOf("9001" to stats))) {
+            val report = ApiJson.decodeFromString<SuburbReport>(get("${ApiContract.SUBURBS_PATH}/9001").bodyAsText())
+            assertEquals(1_050_000L, report.medianHousePriceAud.value)
+            assertEquals(SuburbReportFactory.SALES_SOURCE, report.medianHousePriceAud.source)
+            assertEquals(80, report.salesCount.value)
+        }
+    }
+
+    @Test
+    fun `a report without statistics still answers, with the sales marked not loaded`() {
+        api(FakeDirectory(byId = mapOf("9001" to hamilton))) {
+            val report = ApiJson.decodeFromString<SuburbReport>(get("${ApiContract.SUBURBS_PATH}/9001").bodyAsText())
+            assertEquals(SuburbReportFactory.SALES_NOT_LOADED_NOTE, report.medianHousePriceAud.note)
+        }
     }
 }
