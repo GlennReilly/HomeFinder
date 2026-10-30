@@ -66,4 +66,23 @@ class ApiContractTest {
         val ref = au.homefinder.shared.model.LotRef("1001", "9001")
         assertEquals(ref, ApiJson.decodeFromString<au.homefinder.shared.model.LotRef>(ApiJson.encodeToString(ref)))
     }
+
+    @Test
+    fun `search contract and results round trip`() {
+        assertEquals("/v1/search", ApiContract.SEARCH_PATH)
+        assertTrue(ApiContract.SEARCH_MIN_QUERY_LENGTH in 1..3 && ApiContract.SEARCH_MAX_RESULTS in 5..20)
+        val results = au.homefinder.shared.model.SearchResponse(
+            listOf(
+                au.homefinder.shared.model.SearchResult(
+                    au.homefinder.shared.model.SearchResultKind.SUBURB, "9001", "HAMILTON", "Suburb, NSW 2303", -32.92, 151.75,
+                    au.homefinder.shared.model.GeoBounds(151.74, -32.93, 151.76, -32.91),
+                ),
+                au.homefinder.shared.model.SearchResult(
+                    au.homefinder.shared.model.SearchResultKind.ADDRESS, "GANSW1", "12 MAIN STREET, HAMILTON NSW 2303", null, -32.92, 151.75, lotId = null,
+                ),
+            ),
+        )
+        assertEquals(results, ApiJson.decodeFromString<au.homefinder.shared.model.SearchResponse>(ApiJson.encodeToString(results)))
+        kotlin.test.assertFailsWith<IllegalArgumentException> { au.homefinder.shared.model.GeoBounds(2.0, 0.0, 1.0, 1.0) }
+    }
 }

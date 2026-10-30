@@ -71,6 +71,12 @@ postcode, area, the sales and block-size statistics once `pipeline/scripts/load-
 point and `GET /v1/lots/{lotId}` returns the basic lot card (lot, suburb, addresses, measured area, and once `pipeline/scripts/load-osm.sh` has run the nearest beach, parks and shops; other factors
 unknown). They need the database and the key. See [ADR 0022](docs/adr/0022-lot-tiles-and-lookup.md) and [ADR 0024](docs/adr/0024-proximity-in-the-lot-report.md).
 
+### Search
+
+`GET /v1/search?q=` suggests suburbs and addresses for what has been typed (word-prefix matching, "12 main st" finds
+"12 MAIN STREET"; unit "3/12"). It needs the database with migration V12 applied. See
+[ADR 0026](docs/adr/0026-address-and-suburb-search.md).
+
 ### Selecting a suburb
 
 Tap a suburb to select it: it is highlighted and a card opens (a bottom sheet on narrow windows, a side panel on wide
