@@ -16,6 +16,7 @@ import au.homefinder.shared.model.SuburbTransport
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class SuburbCardRowsTest {
@@ -38,24 +39,24 @@ class SuburbCardRowsTest {
     )
 
     @Test
-    fun `the rows follow the spec order`() {
+    fun `the rows have no area and put the typical block size under the median house price`() {
         assertEquals(
-            listOf("Area", "Median house price", "Median unit price", "Price change, 12 months", "Sales behind the prices", "Typical block size",
+            listOf("Median house price", "Typical block size", "Median unit price", "Price change, 12 months", "Sales behind the prices",
                 "Flood", "Likely brick", "Distance to the beach", "Schools", "Parks", "Shopping", "Transport"),
             SuburbCardRows.of(allUnknown).map { it.label },
         )
     }
 
     @Test
-    fun `area is known and every statistic is shown as unknown with its source and note`() {
+    fun `every statistic is shown as unknown with its source and note`() {
         val rows = SuburbCardRows.of(allUnknown)
-        assertEquals("4.89 km²", rows.first().value)
-        rows.drop(1).forEach {
+        assertFalse(rows.any { it.label == "Area" || "km²" in it.value.orEmpty() })
+        rows.forEach {
             assertTrue(it.isUnknown, it.label)
             assertEquals(Confidence.NONE, it.confidence, it.label)
             assertEquals("Not computed yet", it.note, it.label)
         }
-        assertEquals(listOf("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"), rows.drop(1).map { it.source })
+        assertEquals(listOf("A", "E", "B", "C", "D", "F", "G", "H", "I", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
     }
 
     @Test
