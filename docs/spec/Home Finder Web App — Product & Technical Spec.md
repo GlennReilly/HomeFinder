@@ -80,7 +80,8 @@ Numbering continues from the PR list so history stays traceable. PRs stay small 
 7. **PR 11, search, in two parts (ADR 0026):** 11a database index, contract and `/v1/search`; 11b the search box, fly-to and selection in the web app (done).
 8. **PR 14, your Homely scores, in two parts (ADR 0028):** 14a storage, endpoints and the report field; 14b the card form and the map label (done).
 9. **PR 15 onward** (Property Card, flood, schools, price range, brick estimate, shortlist, compare, release) proceed as in M2–M6 of the old spec, with the web client as the only client. The old "store builds" item becomes "production web build and attribution screen".
-10. **Suburb filter side panel (ADR 0035, planned, not started):** a side panel of min/max sliders (school ICSEA first, then beach distance and parkland percentage; transport later). A new server endpoint returns every suburb's roll-up values with provenance; the browser filters and highlights passing suburbs and dims the rest, counting Unknown values per criterion. First slice: all active criteria must pass; the weighted-score mode follows.
+10. **Suburb filter side panel (ADR 0035; slice 1, the ICSEA slider, is built):** a side panel of min/max sliders (school ICSEA first, then beach distance and parkland percentage; transport later). A new server endpoint returns every suburb's roll-up values with provenance; the browser filters and highlights passing suburbs and dims the rest, counting Unknown values per criterion. First slice: all active criteria must pass; the weighted-score mode follows.
+11. **Planned: hide and re-order the suburb profile items (not started):** choose which rows the Suburb Card shows and in what order, remembered for you.
 
 ## Non-functional targets (changed items only)
 

@@ -14,6 +14,8 @@ import au.homefinder.shared.model.SchoolSector
 import au.homefinder.shared.model.SearchResponse
 import au.homefinder.shared.model.SearchResult
 import au.homefinder.shared.model.SearchResultKind
+import au.homefinder.shared.model.SuburbFilterValue
+import au.homefinder.shared.model.SuburbFiltersResponse
 import au.homefinder.shared.model.SuburbRatingPoint
 import au.homefinder.shared.model.SuburbRatingsResponse
 import au.homefinder.shared.model.SuburbReport
@@ -116,6 +118,7 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
         when {
             path.startsWith("/tiles/") -> reply(exchange, 204, "application/vnd.mapbox-vector-tile", ByteArray(0))
             path == "/v1/suburbs/at" -> json(exchange, 200, ApiJson.encodeToString(hamilton))
+            path == "/v1/suburbs/filters" -> json(exchange, 200, ApiJson.encodeToString(filters()))
             path == "/v1/suburbs/ratings" -> json(exchange, 200, ApiJson.encodeToString(SuburbRatingsResponse(ratings())))
             path == "/v1/suburbs/9001/rating" && method == "PUT" -> {
                 if (failSavingRatings) return json(exchange, 503, """{"error":"unavailable"}""")
@@ -131,6 +134,12 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
             else -> json(exchange, 404, """{"error":"not_found"}""")
         }
     }
+
+    /** Three suburbs: one above 1,000, one below, one with no ICSEA. */
+    private fun filters() = SuburbFiltersResponse(
+        listOf(SuburbFilterValue("9001", 1051), SuburbFilterValue("9002", 960), SuburbFilterValue("9003", null)),
+        "Test schools", LocalDate(2026, 10, 2),
+    )
 
     private fun ratings(): List<SuburbRatingPoint> =
         rating?.let { listOf(SuburbRatingPoint("9001", "HAMILTON", it, -32.92, 151.75)) }.orEmpty()

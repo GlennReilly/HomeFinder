@@ -156,6 +156,23 @@ class SmokeTest {
     }
 
     @Test
+    fun `the filter panel counts matching suburbs as the ICSEA slider moves`() {
+        openWithKey()
+        page.locator("#filters-toggle").click()
+        assertThat(page.locator("#filters-toggle")).hasAttribute("aria-expanded", "true")
+        assertThat(page.locator("#filter-summary")).containsText("Switch on a filter")
+        assertThat(page.locator("#filter-summary")).containsText("1 of 3 suburbs have no ICSEA")
+        assertThat(page.locator("#filters")).containsText("not a measure of school quality")
+        page.locator("#filter-icsea-on").check()
+        assertThat(page.locator("#filter-summary")).containsText("2 of 3 suburbs match")
+        page.locator("#filter-icsea-min").fill("1000")
+        assertThat(page.locator("#filter-icsea-min-value")).hasText("1000")
+        assertThat(page.locator("#filter-summary")).containsText("1 of 3 suburbs match")
+        page.locator("#filter-icsea-on").uncheck()
+        assertThat(page.locator("#filter-summary")).containsText("Switch on a filter")
+    }
+
+    @Test
     fun `search says so when nothing matches`() {
         openWithKey()
         page.locator("#search-input").fill("zzz")

@@ -101,6 +101,14 @@ In the app: open a suburb's card, copy the score from its Homely page into "Your
 The card then shows a "Homely rating" row under the area, and a "★ 2.1" label appears under the suburb's name on the map. Remove clears both. See
 [ADR 0028](docs/adr/0028-manual-homely-rating.md).
 
+### Filtering suburbs
+
+`GET /v1/suburbs/filters` gives every suburb's average school ICSEA (with its source and extraction date) in one response. In the app,
+press **Filters** (under the zoom buttons), switch on "School ICSEA" and move the two sliders: suburbs inside the range are tinted green and the
+rest are washed out, with no further requests. Suburbs with no ICSEA never match and are counted in the panel. It needs the schools data
+(`pipeline/scripts/load-schools.sh`). More criteria (beach distance, parkland, transport) and a weighted-score mode come later; see
+[ADR 0035](docs/adr/0035-suburb-filter-panel.md).
+
 ### Selecting a suburb
 
 The Suburb Card's beach, parks and shopping rows come from the OpenStreetMap roll-up once `pipeline/scripts/load-osm.sh` has run ([ADR 0033](docs/adr/0033-suburb-osm-rollup.md)). The Suburb Card's Schools row lists the NSW public schools inside the suburb with their ICSEA once `pipeline/scripts/load-schools.sh` has run ([ADR 0034](docs/adr/0034-suburb-schools-and-icsea.md); data: NSW Department of Education, CC BY; ICSEA from ACARA). The Suburb Card ends with a link to the suburb's Homely page (no Homely data is fetched or shown; [ADR 0027](docs/adr/0027-link-out-to-homely-no-extraction.md)).

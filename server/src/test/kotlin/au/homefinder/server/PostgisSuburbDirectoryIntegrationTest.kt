@@ -186,6 +186,25 @@ class PostgisSuburbDirectoryIntegrationTest {
     }
 
     @Test
+    fun `filter values average each suburb's ICSEA and leave suburbs without one empty`() = withDirectory { directory ->
+        execute("TRUNCATE school")
+        assertNull(directory.filterValues(), "nothing loaded yet")
+        execute(
+            "INSERT INTO school (school_code, name, level_label, icsea, geom, suburb_id, extracted_on) VALUES " +
+                "(1, 'A', 'Primary School', 1051, ST_SetSRID(ST_MakePoint(151.745, -32.915), 7844), '9001', '2026-10-02'), " +
+                "(2, 'B', 'Primary School', 1052, ST_SetSRID(ST_MakePoint(151.746, -32.916), 7844), '9001', '2026-10-02'), " +
+                "(3, 'C', 'Primary School', NULL, ST_SetSRID(ST_MakePoint(151.747, -32.917), 7844), '9001', '2026-10-02'), " +
+                "(4, 'D', 'Primary School', 960, ST_SetSRID(ST_MakePoint(151.665, -33.035), 7844), '9002', '2026-10-02')",
+        )
+        val data = assertNotNull(directory.filterValues())
+        val byId = data.suburbs.associate { it.suburbId to it.averageIcsea }
+        assertEquals(1052, byId["9001"], "1051.5 rounds half up, the unpublished one is ignored")
+        assertEquals(960, byId["9002"])
+        assertNull(byId["9003"], "a suburb with no school is listed with no value")
+        assertEquals(LocalDate(2026, 10, 2), data.icseaAsOf)
+    }
+
+    @Test
     fun `a database without the school table has no school data rather than an error`() = withDirectory { directory ->
         execute("ALTER TABLE school RENAME TO school_hidden")
         try {

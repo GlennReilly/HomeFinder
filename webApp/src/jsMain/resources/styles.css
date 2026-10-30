@@ -86,3 +86,17 @@ progress { width: 100%; margin: 16px 0; }
 .schools li { display: grid; gap: 1px; }
 .schools .detail { font-size: .8rem; color: var(--muted); }
 .row .hint { margin: 8px 0 0; font-size: .85rem; }
+
+/* Filter panel (ADR 0035): a button under the zoom controls and a panel beside it, left of the card. */
+#filters-toggle { position: fixed; top: 112px; left: 10px; z-index: 3; background: var(--surface); box-shadow: 0 1px 6px rgba(0, 0, 0, .25); }
+#filters {
+  position: fixed; top: 150px; left: 10px; width: min(300px, calc(100vw - 20px)); max-height: calc(100vh - 170px); overflow-y: auto;
+  box-sizing: border-box; padding: 4px 14px 12px; background: var(--surface); border-radius: 8px; box-shadow: 0 2px 16px rgba(0, 0, 0, .3); z-index: 3;
+}
+#filters[hidden] { display: none; }
+#filters h2 { font-size: 1.1rem; margin: 10px 0; }
+#filters .range { display: grid; gap: 4px; margin: 8px 0 0 22px; }
+#filters .range input { width: 100%; }
+#filters .hint, #filters .filter-status { font-size: .8rem; color: var(--muted); }
+#filters .filter-summary { font-weight: 600; }
+@media (max-width: 599.98px) { #filters { max-height: 40vh; } }
