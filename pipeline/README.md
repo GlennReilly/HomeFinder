@@ -50,6 +50,10 @@ Rules, windows, thresholds and the licence limits (personal non-commercial use, 
 [ADR 0018](../docs/adr/0018-sales-statistics-pipeline.md); thresholds and file lists in `config/sales.env`, councils in
 `config/sales_districts.csv`. Source: NSW Valuer General, Property Sales Information.
 
+The sales figures' "as of" date is the latest contract date in the data (migration V17; before it was the download day, which overstated
+how recent the sales are). The 12-month windows end on it, and sales reach the Valuer General weeks after exchange, so the last weeks are thin.
+After pulling V17, run `scripts/refresh-suburb-stats.sh` to rebuild the figures.
+
 ## OpenStreetMap proximity (PR 13a)
 
 ```bash

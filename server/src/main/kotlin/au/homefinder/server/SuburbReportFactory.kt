@@ -83,6 +83,7 @@ object SuburbReportFactory {
         )
     }
 
+    const val LATE_SALES_NOTE: String = "Sales reach the Valuer General weeks after contracts, so the latest weeks are thin"
     const val SCHOOLS_SOURCE: String = "NSW Department of Education public schools master dataset (CC BY); ICSEA from ACARA"
     const val SCHOOLS_NOT_LOADED_NOTE: String = "School data not loaded yet"
     const val SCHOOLS_NOTE: String =
@@ -150,6 +151,9 @@ object SuburbReportFactory {
         )
     }
 
+    /** The 12 months end on the latest sale in the data (V17), so the date says how recent the figures really are. */
+    private fun window(asOf: kotlinx.datetime.LocalDate?): String = "the 12 months to the latest sale on file ($asOf)"
+
     private fun <T> salesNotLoaded(): Attribute<T> = Attribute.unknown(SALES_SOURCE, note = SALES_NOT_LOADED_NOTE)
 
     /** True when sales have been loaded; without a latest file date there is nothing to say about prices. */
@@ -158,9 +162,9 @@ object SuburbReportFactory {
     private fun median(stats: SuburbStats?, kind: String, sales: Int?, median: Long?): Attribute<Long> {
         if (stats == null || !stats.hasSales() || sales == null) return salesNotLoaded()
         return if (median != null) {
-            Attribute(median, confidenceForSamples(sales), SALES_SOURCE, stats.asOf, "Based on $sales $kind sales in the 12 months to ${stats.asOf}")
+            Attribute(median, confidenceForSamples(sales), SALES_SOURCE, stats.asOf, "Based on $sales $kind sales in ${window(stats.asOf)}. $LATE_SALES_NOTE")
         } else {
-            val note = if (sales == 0) "No $kind sales in the 12 months to ${stats.asOf}" else "Only $sales $kind sales in the 12 months to ${stats.asOf}, too few for a median"
+            val note = if (sales == 0) "No $kind sales in ${window(stats.asOf)}" else "Only $sales $kind sales in ${window(stats.asOf)}, too few for a median"
             Attribute.unknown(SALES_SOURCE, stats.asOf, note)
         }
     }
@@ -168,7 +172,7 @@ object SuburbReportFactory {
     private fun priceChange(stats: SuburbStats?): Attribute<Double> {
         if (stats == null || !stats.hasSales()) return salesNotLoaded()
         val change = stats.houseChangePercent
-        val basis = "${stats.houseSales} house sales in the 12 months to ${stats.asOf} and ${stats.housePrevSales} in the 12 months before"
+        val basis = "${stats.houseSales} house sales in ${window(stats.asOf)} and ${stats.housePrevSales} in the 12 months before"
         return if (change != null) {
             Attribute(change, confidenceForSamples(minOf(stats.houseSales, stats.housePrevSales)), SALES_SOURCE, stats.asOf, "House median price, from $basis")
         } else {
@@ -178,8 +182,7 @@ object SuburbReportFactory {
 
     private fun salesCount(stats: SuburbStats?): Attribute<Int> {
         if (stats == null || !stats.hasSales()) return salesNotLoaded()
-        val note = "${stats.houseSales} house and ${stats.unitSales} unit sales in the 12 months to ${stats.asOf}. " +
-            "Sales reach the Valuer General weeks late, so the latest weeks are thin."
+        val note = "${stats.houseSales} house and ${stats.unitSales} unit sales in ${window(stats.asOf)}. $LATE_SALES_NOTE"
         return Attribute(stats.houseSales + stats.unitSales, Confidence.MEDIUM, SALES_SOURCE, stats.asOf, note)
     }
 
