@@ -46,10 +46,27 @@ area="$(q "SELECT round(park_area_radius_m2) FROM lot_amenity WHERE lot_id = '10
 [[ "$(q "SELECT count(*) FROM lot_nearest WHERE lot_id = '1001'")" == "6" ]] || fail "lot 1001 should have 1 beach, 3 parks, 1 supermarket and 1 mall"
 [[ "$(q "SELECT count(*) FROM lot_amenity")" == "$(q "SELECT count(*) FROM lot")" ]] || fail "every lot should have a park area"
 
+# Suburb roll-ups. Hamilton (9001) is the box 151.74..151.76 by -32.93..-32.91: the ocean beach is about 1,794 m from its centre and
+# about 860 m from its east edge; Big Park and Ring Park (about 50,000 m² together) lie inside it, the oval just outside; the mall and the
+# supermarket on its north edge count, the far supermarket (3.7 km away) does not. Belmont (9002) is far from all of it.
+amenity() { q "SELECT $1 FROM suburb_amenity WHERE suburb_id = '$2'"; }
+within "$(amenity "round(beach_from_centre_m)" 9001)" 1794 "Hamilton beach from the centre"
+within "$(amenity "round(beach_from_edge_m)" 9001)" 860 "Hamilton beach from the edge"
+[[ "$(amenity beach_name 9001)" == "Ocean Beach" ]] || fail "Hamilton's nearest beach should be Ocean Beach but was $(amenity beach_name 9001)"
+park="$(amenity "round(park_area_m2)" 9001)"
+[[ "$park" -ge 48000 && "$park" -le 52500 ]] || fail "Hamilton park area should be about 50,000 m² but was $park"
+area="$(amenity "round(suburb_area_m2)" 9001)"
+[[ "$area" -ge 4000000 && "$area" -le 4300000 ]] || fail "Hamilton area should be about 4.15 km² but was $area"
+[[ "$(amenity "shopping_centres || '/' || supermarkets" 9001)" == "1/1" ]] || fail "Hamilton should have 1 mall and 1 supermarket but has $(amenity "shopping_centres || '/' || supermarkets" 9001)"
+[[ "$(amenity "shopping_centres || '/' || supermarkets || '/' || round(park_area_m2)" 9002)" == "0/0/0" ]] || fail "Belmont should have no shops or parks nearby"
+# 8.3 km east and 11.1 km north of Belmont's nearest corner: about 13.8 km in a straight line.
+within "$(amenity "round(beach_from_edge_m)" 9002)" 13830 "Belmont beach from the edge"
+[[ "$(q "SELECT count(*) FROM suburb_amenity")" == "$(q "SELECT count(*) FROM suburb")" ]] || fail "every suburb should have a roll-up"
+
 # Reloading gives identical rows.
-before="$(q "SELECT md5(string_agg(n::text, '|' ORDER BY lot_id, kind, rank)) FROM lot_nearest n")$(q "SELECT md5(string_agg(a::text, '|' ORDER BY lot_id)) FROM lot_amenity a")"
+before="$(q "SELECT md5(string_agg(n::text, '|' ORDER BY lot_id, kind, rank)) FROM lot_nearest n")$(q "SELECT md5(string_agg(a::text, '|' ORDER BY lot_id)) FROM lot_amenity a")$(q "SELECT md5(string_agg(u::text, '|' ORDER BY suburb_id)) FROM suburb_amenity u")"
 "$HERE/../scripts/load-osm.sh" "$HERE/fixtures/osm" >/dev/null
-after="$(q "SELECT md5(string_agg(n::text, '|' ORDER BY lot_id, kind, rank)) FROM lot_nearest n")$(q "SELECT md5(string_agg(a::text, '|' ORDER BY lot_id)) FROM lot_amenity a")"
+after="$(q "SELECT md5(string_agg(n::text, '|' ORDER BY lot_id, kind, rank)) FROM lot_nearest n")$(q "SELECT md5(string_agg(a::text, '|' ORDER BY lot_id)) FROM lot_amenity a")$(q "SELECT md5(string_agg(u::text, '|' ORDER BY suburb_id)) FROM suburb_amenity u")"
 [[ "$before" == "$after" ]] || fail "rerun changed the proximity rows"
 
 # A missing file stops the load with a clear message.

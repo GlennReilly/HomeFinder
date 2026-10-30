@@ -28,6 +28,7 @@ class SuburbRoutesTest {
         private val byId: Map<String, SuburbRecord> = emptyMap(),
         private val failure: Exception? = null,
         private val stats: Map<String, SuburbStats> = emptyMap(),
+        private val amenities: Map<String, SuburbAmenity> = emptyMap(),
     ) : SuburbDirectory {
         val atCalls = mutableListOf<Pair<Double, Double>>()
         override suspend fun findAt(latitude: Double, longitude: Double): SuburbRecord? {
@@ -40,6 +41,7 @@ class SuburbRoutesTest {
             return byId[suburbId]
         }
         override suspend fun stats(suburbId: String): SuburbStats? = stats[suburbId]
+        override suspend fun amenity(suburbId: String): SuburbAmenity? = amenities[suburbId]
     }
 
     private fun api(directory: SuburbDirectory?, block: suspend HttpClient.() -> Unit) = testApplication {
@@ -158,6 +160,22 @@ class SuburbRoutesTest {
         api(FakeDirectory(byId = mapOf("9001" to hamilton))) {
             val report = ApiJson.decodeFromString<SuburbReport>(get("${ApiContract.SUBURBS_PATH}/9001").bodyAsText())
             assertEquals(SuburbReportFactory.SALES_NOT_LOADED_NOTE, report.medianHousePriceAud.note)
+        }
+    }
+
+    @Test
+    fun `a report carries the suburb's OpenStreetMap roll-up when it exists`() {
+        val amenity = SuburbAmenity(1794.0, 860.0, "Ocean Beach", 4_000_000.0, 50_000.0, 1, 3, LocalDate(2026, 10, 29))
+        api(FakeDirectory(byId = mapOf("9001" to hamilton), amenities = mapOf("9001" to amenity))) {
+            val report = ApiJson.decodeFromString<SuburbReport>(get("${ApiContract.SUBURBS_PATH}/9001").bodyAsText())
+            assertEquals(1794, report.beach.value?.fromCentreM)
+            assertEquals(860, report.beach.value?.fromNearestEdgeM)
+            assertEquals(3, report.shopping.value?.supermarkets)
+            assertEquals(0.0125, report.parkAreaShare.value)
+        }
+        api(FakeDirectory(byId = mapOf("9001" to hamilton))) {
+            val report = ApiJson.decodeFromString<SuburbReport>(get("${ApiContract.SUBURBS_PATH}/9001").bodyAsText())
+            assertEquals(LotReportFactory.OSM_NOT_LOADED_NOTE, report.beach.note)
         }
     }
 }
