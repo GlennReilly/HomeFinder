@@ -77,6 +77,10 @@ unknown). They need the database and the key. See [ADR 0022](docs/adr/0022-lot-t
 "12 MAIN STREET"; unit "3/12"). It needs the database with migration V12 applied. See
 [ADR 0026](docs/adr/0026-address-and-suburb-search.md).
 
+The search box (top left of the map) suggests as you type, 200 ms after you pause. Up and Down move through the suggestions,
+Enter or a click chooses one, Escape closes the list. A suburb fits the map to its boundary and opens its card; an address
+flies to street level and opens its lot card, or says "No lot found for this address" when G-NAF has no lot for it.
+
 ### Selecting a suburb
 
 Tap a suburb to select it: it is highlighted and a card opens (a bottom sheet on narrow windows, a side panel on wide
