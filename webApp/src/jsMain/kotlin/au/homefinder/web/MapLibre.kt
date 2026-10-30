@@ -16,6 +16,8 @@ external object MapLibre {
         fun setFilter(layerId: String, filter: dynamic)
         fun getZoom(): Double
         fun getSource(id: String): dynamic
+        fun getBounds(): dynamic
+        fun querySourceFeatures(sourceId: String, parameters: dynamic): dynamic
         fun fitBounds(bounds: dynamic, options: dynamic = definedExternally)
         fun flyTo(options: dynamic)
         fun addControl(control: dynamic, position: String = definedExternally)

@@ -2,6 +2,10 @@ package au.homefinder.web
 
 import au.homefinder.shared.api.ApiContract
 import au.homefinder.shared.api.TileContract
+import au.homefinder.app.map.Box
+import au.homefinder.app.map.LabelPlacement
+import au.homefinder.app.map.LonLat
+import au.homefinder.app.map.OutlinePiece
 import au.homefinder.shared.model.GeoBounds
 import au.homefinder.shared.model.SuburbRatingPoint
 import kotlinx.browser.window
@@ -79,6 +83,9 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
             showSelection(pendingSuburb, pendingLot)
             showRatings(pendingRatings)
         }
+        // Settled (after a move, or once tiles have loaded): put each rated suburb's label where it can be seen.
+        map.on("moveend") { placeRatingLabels() }
+        map.on("idle") { placeRatingLabels() }
         map.on("click") { event ->
             onTap(event.lngLat.lat as Double, event.lngLat.lng as Double, map.getZoom())
         }
@@ -97,12 +104,57 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
         map.setFilter(SuburbStyle.SELECTED_OUTLINE_LAYER, SuburbStyle.selectedFilter(suburbId))
     }
 
-    /** Draws a star score under each rated suburb's name; an empty list clears them. */
+    /** Shows each rated suburb's name with its star score under it, always; an empty list puts the ordinary names back. */
     fun showRatings(points: List<SuburbRatingPoint>) {
         pendingRatings = points
         if (!loaded) return
-        map.getSource(RatingStyle.SOURCE_ID).setData(RatingStyle.featureCollection(points))
+        map.setFilter(SuburbStyle.NAME_LAYER, RatingStyle.unratedFilter(points))
+        placeRatingLabels()
     }
+
+    private var placedKey: String? = null
+
+    /**
+     * One label per rated suburb, inside the suburb and in view: its usual label point while that is on screen, otherwise
+     * the visible part of the suburb nearest the middle of the view (au.homefinder.app.map.LabelPlacement). Does nothing
+     * when nothing changed since the last time, so the repeated "idle" events cost almost nothing.
+     */
+    private fun placeRatingLabels() {
+        if (!loaded) return
+        val bounds = map.getBounds()
+        val view = Box(bounds.getWest() as Double, bounds.getSouth() as Double, bounds.getEast() as Double, bounds.getNorth() as Double)
+        val labels = pendingRatings.mapNotNull { point ->
+            val features = map.querySourceFeatures(
+                SuburbStyle.SOURCE_ID,
+                jsObject("sourceLayer" to TileContract.SUBURB_POLYGON_LAYER, "filter" to jsArray("==", jsArray("get", "suburb_id"), point.suburbId)),
+            )
+            LabelPlacement.place(outlinePieces(features), view, LonLat(point.longitude, point.latitude))?.let { point to it }
+        }
+        val key = labels.joinToString("|") { (point, at) -> "${point.suburbId}:${point.rating.stars}:${at.longitude}:${at.latitude}" }
+        if (key == placedKey) return
+        placedKey = key
+        map.getSource(RatingStyle.SOURCE_ID).setData(RatingStyle.featureCollection(labels))
+    }
+
+    /** The outline pieces in the GeoJSON features MapLibre returns (a polygon, or each polygon of a multipolygon). */
+    private fun outlinePieces(features: dynamic): List<OutlinePiece> {
+        val pieces = mutableListOf<OutlinePiece>()
+        for (i in 0 until (features.length as Int)) {
+            val geometry = features[i].geometry
+            when (geometry.type as String) {
+                "Polygon" -> pieces += piece(geometry.coordinates)
+                "MultiPolygon" -> for (k in 0 until (geometry.coordinates.length as Int)) pieces += piece(geometry.coordinates[k])
+            }
+        }
+        return pieces
+    }
+
+    private fun piece(rings: dynamic): OutlinePiece = OutlinePiece(
+        (0 until (rings.length as Int)).map { r ->
+            val ring = rings[r]
+            (0 until (ring.length as Int)).map { p -> LonLat(ring[p][0] as Double, ring[p][1] as Double) }
+        },
+    )
 
     /** Keeps the target clear of the search box and of the card that is about to open. */
     private fun padding(): dynamic {

@@ -1,49 +1,62 @@
 package au.homefinder.web
 
+import au.homefinder.app.map.LonLat
 import au.homefinder.app.selection.Formats
 import au.homefinder.shared.api.TileContract
 import au.homefinder.shared.model.SuburbRatingPoint
 
 /**
- * The star score drawn under a suburb's name (ADR 0028): one point per rated suburb at the same spot as its name, with
- * the label "★ 2.1" a line below it. The points come from the ratings list, not the map tiles, so a change shows at once.
+ * The name of a rated suburb with its star score on a second line (ADR 0028): "FASSIFERN" over "★ 2.1". There is one label
+ * per rated suburb, drawn at every zoom and allowed to overlap other labels, so it never disappears behind them. Where it
+ * sits is worked out from what is on screen ([SuburbMap.placeRatingLabels]), so it stays in view as you zoom in on a big
+ * suburb instead of scrolling away with a fixed point. The ordinary name layer leaves rated suburbs out, so a name is
+ * never drawn twice.
  */
 object RatingStyle {
     const val SOURCE_ID: String = "suburb-ratings"
-    const val LAYER_ID: String = "suburb-rating"
+    const val LAYER_ID: String = "suburb-rated-label"
 
-    private const val TEXT_COLOR = "#8a4b00"
+    private const val NAME_COLOR = "#3b2f63"
+    private const val STARS_COLOR = "#8a4b00"
     private const val HALO = "rgba(255,255,255,0.95)"
-    private const val TEXT_SIZE = 12
-    private const val HALO_WIDTH = 1.5
-    private const val LINE_OFFSET_EM = 1.15
-    private const val MAX_ZOOM = 15
+    private const val TEXT_SIZE = 13
+    private const val HALO_WIDTH = 1.6
+    private const val SUBURB_ID = "suburb_id"
     private val FONT = arrayOf("Noto Sans Bold")
 
     fun label(point: SuburbRatingPoint): String = "★ " + Formats.decimal(point.rating.stars, 1)
 
+    /** For the ordinary name layer: everything except the rated suburbs (no filter when there are none). */
+    fun unratedFilter(points: List<SuburbRatingPoint>): dynamic =
+        if (points.isEmpty()) null
+        else jsArray("!", jsArray("in", jsArray("get", SUBURB_ID), jsArray("literal", points.map { it.suburbId }.toTypedArray())))
+
     fun emptySource(): dynamic = jsObject("type" to "geojson", "data" to featureCollection(emptyList()))
 
-    fun featureCollection(points: List<SuburbRatingPoint>): dynamic = jsObject(
+    /** One point per label: where it is drawn, with the two lines of text as properties. */
+    fun featureCollection(labels: List<Pair<SuburbRatingPoint, LonLat>>): dynamic = jsObject(
         "type" to "FeatureCollection",
-        "features" to points.map { point ->
+        "features" to labels.map { (point, at) ->
             jsObject(
                 "type" to "Feature",
-                "geometry" to jsObject("type" to "Point", "coordinates" to arrayOf(point.longitude, point.latitude)),
-                "properties" to jsObject("label" to label(point), "suburb_id" to point.suburbId, "name" to point.name),
+                "geometry" to jsObject("type" to "Point", "coordinates" to arrayOf(at.longitude, at.latitude)),
+                "properties" to jsObject("name" to point.name, "label" to label(point), SUBURB_ID to point.suburbId),
             )
         }.toTypedArray(),
     )
 
-    /** Shown wherever suburb names are (zoom 5 up to where lots take over); allowed to overlap other labels, since few suburbs are rated. */
     fun layer(): dynamic = jsObject(
-        "id" to LAYER_ID, "type" to "symbol", "source" to SOURCE_ID,
-        "minzoom" to TileContract.SUBURBS_MIN_ZOOM, "maxzoom" to MAX_ZOOM,
+        "id" to LAYER_ID, "type" to "symbol", "source" to SOURCE_ID, "minzoom" to TileContract.SUBURBS_MIN_ZOOM,
         "layout" to jsObject(
-            "text-field" to jsArray("get", "label"), "text-font" to FONT, "text-size" to TEXT_SIZE,
-            "text-offset" to arrayOf(0, LINE_OFFSET_EM), "text-anchor" to "center",
+            "text-field" to jsArray(
+                "format",
+                jsArray("get", "name"), jsObject("text-color" to NAME_COLOR),
+                "\n", jsObject(),
+                jsArray("get", "label"), jsObject("text-color" to STARS_COLOR),
+            ),
+            "text-font" to FONT, "text-size" to TEXT_SIZE, "text-anchor" to "center", "text-justify" to "center",
             "text-allow-overlap" to true, "text-ignore-placement" to true,
         ),
-        "paint" to jsObject("text-color" to TEXT_COLOR, "text-halo-color" to HALO, "text-halo-width" to HALO_WIDTH),
+        "paint" to jsObject("text-color" to NAME_COLOR, "text-halo-color" to HALO, "text-halo-width" to HALO_WIDTH),
     )
 }

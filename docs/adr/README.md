@@ -30,3 +30,4 @@
 | [0026](0026-address-and-suburb-search.md) | Address and suburb search | Accepted |
 | [0027](0027-link-out-to-homely-no-extraction.md) | Link out to Homely; do not extract its ratings | Accepted |
 | [0028](0028-manual-homely-rating.md) | A Homely star score you enter by hand | Accepted |
+| [0029](0029-rated-suburb-labels-follow-the-view.md) | Rated suburb labels follow the view | Accepted |
