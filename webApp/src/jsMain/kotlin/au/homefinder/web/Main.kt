@@ -1,15 +1,19 @@
 package au.homefinder.web
 
 import au.homefinder.app.api.ApiConfig
-import au.homefinder.app.api.KtorHttpGet
+import au.homefinder.app.api.KtorHttp
 import au.homefinder.app.api.LotApi
+import au.homefinder.app.api.LookupResult
+import au.homefinder.app.api.RatingApi
 import au.homefinder.app.api.SearchApi
 import au.homefinder.app.api.SuburbApi
 import au.homefinder.app.selection.LotCardState
 import au.homefinder.app.selection.MapViewModel
+import au.homefinder.app.selection.RatingOutcome
 import au.homefinder.app.selection.SearchViewModel
 import au.homefinder.app.selection.SuburbCardState
 import au.homefinder.app.ui.CardActions
+import au.homefinder.app.ui.RatingForm
 import au.homefinder.app.ui.SearchIds
 import au.homefinder.app.ui.lotCard
 import au.homefinder.app.ui.searchSuggestions
@@ -23,6 +27,7 @@ import au.homefinder.app.selection.SearchStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.onEach
 import kotlinx.html.div
 import kotlinx.html.dom.append
@@ -73,8 +78,9 @@ private fun start(apiKey: String) {
     val origin = window.location.origin
     val scope = MainScope()
     val config = ApiConfig(origin, apiKey)
-    val http = KtorHttpGet()
-    val viewModel = MapViewModel(SuburbApi(config, http), scope, LotApi(config, http))
+    val http = KtorHttp()
+    val ratingApi = RatingApi(config, http, http)
+    val viewModel = MapViewModel(SuburbApi(config, http), scope, LotApi(config, http), ratingApi)
     val map = SuburbMap(origin, apiKey, viewModel::onMapTap)
 
     val card = element("card")
@@ -89,6 +95,12 @@ private fun start(apiKey: String) {
 
     wireSearch(scope, SearchApi(config, http), viewModel, map, ::showNotice)
 
+    // The star scores under suburb names: loaded at the start and again whenever one is saved or removed.
+    suspend fun refreshRatings() {
+        (ratingApi.all() as? LookupResult.Found)?.let { map.showRatings(it.value.ratings) }
+    }
+    viewModel.ratingsVersion.onEach { refreshRatings() }.launchIn(scope)
+
     viewModel.state.onEach { state ->
         map.showSelection(state.selectedSuburbId, state.selectedLotId)
         renderCard(card, state.card, state.lotCard)
@@ -99,11 +111,21 @@ private fun start(apiKey: String) {
         }
     }.launchIn(scope)
 
-    // One listener for both buttons, so re-rendering the card never loses them.
+    // One listener for the buttons and one for the rating form, so re-rendering the card never loses them.
     card.addEventListener("click", { event ->
         when ((event.target as? HTMLElement)?.getAttribute(CardActions.ATTRIBUTE)) {
             CardActions.CLOSE -> viewModel.clear()
             CardActions.RETRY -> viewModel.retry()
+            CardActions.REMOVE_RATING -> scope.launch { announce(viewModel.removeRating(), card, ::showNotice) }
+        }
+    })
+    card.addEventListener("submit", { event ->
+        val form = event.target as? HTMLFormElement
+        if (form?.hasAttribute(RatingForm.ATTRIBUTE) == true) {
+            event.preventDefault()
+            val stars = (form.elements.namedItem(RatingForm.STARS_FIELD) as? HTMLInputElement)?.value.orEmpty()
+            val reviews = (form.elements.namedItem(RatingForm.REVIEWS_FIELD) as? HTMLInputElement)?.value.orEmpty()
+            scope.launch { announce(viewModel.saveRating(stars, reviews), card, ::showNotice) }
         }
     })
     document.addEventListener("keydown", { event ->
@@ -186,5 +208,15 @@ private fun renderCard(container: HTMLElement, suburb: SuburbCardState, lot: Lot
     when {
         lot !is LotCardState.Hidden -> container.append { div { lotCard(lot) } }
         suburb !is SuburbCardState.Hidden -> container.append { div { suburbCard(suburb) } }
+    }
+}
+
+/** Says how saving or removing a score went: success as a notice (the card has just been redrawn), a problem beside the form. */
+private fun announce(outcome: RatingOutcome, card: HTMLElement, showNotice: (String) -> Unit) {
+    when (outcome) {
+        RatingOutcome.Saved -> showNotice("Homely rating saved")
+        RatingOutcome.Removed -> showNotice("Homely rating removed")
+        is RatingOutcome.Rejected -> card.querySelector(".${RatingForm.MESSAGE_CLASS}")?.textContent = outcome.message
+        is RatingOutcome.Failed -> card.querySelector(".${RatingForm.MESSAGE_CLASS}")?.textContent = "Could not save: ${outcome.message}"
     }
 }

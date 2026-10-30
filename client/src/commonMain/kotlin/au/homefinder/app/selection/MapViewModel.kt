@@ -2,6 +2,7 @@ package au.homefinder.app.selection
 
 import au.homefinder.app.api.LookupResult
 import au.homefinder.app.api.LotApi
+import au.homefinder.app.api.RatingApi
 import au.homefinder.app.api.SuburbApi
 import au.homefinder.shared.api.SuburbRef
 import au.homefinder.shared.model.LotRef
@@ -49,7 +50,27 @@ data class MapUiState(
 /** From this zoom a tap selects a lot, below it a suburb (spec zoom table; lot tiles start at the same zoom). */
 const val LOT_SELECT_MIN_ZOOM: Double = 16.0
 
-class MapViewModel(private val api: SuburbApi, private val scope: CoroutineScope, private val lots: LotApi? = null) {
+/** How saving or removing a Homely score went, in words the form can show. */
+sealed interface RatingOutcome {
+    data object Saved : RatingOutcome
+    data object Removed : RatingOutcome
+
+    /** The input was not acceptable; nothing was sent. */
+    data class Rejected(val message: String) : RatingOutcome
+    data class Failed(val message: String) : RatingOutcome
+}
+
+class MapViewModel(
+    private val api: SuburbApi,
+    private val scope: CoroutineScope,
+    private val lots: LotApi? = null,
+    private val ratings: RatingApi? = null,
+) {
+    private val mutableRatingsVersion = MutableStateFlow(0)
+
+    /** Goes up each time a Homely score is saved or removed, so the map's score labels know to reload. */
+    val ratingsVersion: StateFlow<Int> = mutableRatingsVersion.asStateFlow()
+
     private val mutableState = MutableStateFlow(MapUiState())
     val state: StateFlow<MapUiState> = mutableState.asStateFlow()
 
@@ -75,6 +96,43 @@ class MapViewModel(private val api: SuburbApi, private val scope: CoroutineScope
     fun select(suburbId: String) {
         if (suburbId == mutableState.value.selectedSuburbId && mutableState.value.card !is SuburbCardState.Failed) return
         launchLatest { choose(suburbId, null) }
+    }
+
+    /** Saves the score typed into the form for the selected suburb, then refreshes its card and the map's labels. */
+    suspend fun saveRating(starsText: String, reviewsText: String): RatingOutcome {
+        val api = ratings ?: return RatingOutcome.Failed(MESSAGE_RATINGS_UNAVAILABLE)
+        val suburbId = mutableState.value.selectedSuburbId ?: return RatingOutcome.Failed(MESSAGE_SELECT_FIRST)
+        val parsed = when (val input = RatingInput.parse(starsText, reviewsText)) {
+            is ParsedRating.Invalid -> return RatingOutcome.Rejected(input.message)
+            is ParsedRating.Valid -> input.rating
+        }
+        return when (val result = api.save(suburbId, parsed)) {
+            is LookupResult.Found -> RatingOutcome.Saved.also { refreshAfterRatingChange(suburbId) }
+            LookupResult.Unauthorized -> RatingOutcome.Failed(NOTICE_KEY_REJECTED)
+            LookupResult.NotFound -> RatingOutcome.Failed(MESSAGE_SUBURB_GONE)
+            is LookupResult.Failed -> RatingOutcome.Failed(result.reason)
+        }
+    }
+
+    /** Removes the selected suburb's score. */
+    suspend fun removeRating(): RatingOutcome {
+        val api = ratings ?: return RatingOutcome.Failed(MESSAGE_RATINGS_UNAVAILABLE)
+        val suburbId = mutableState.value.selectedSuburbId ?: return RatingOutcome.Failed(MESSAGE_SELECT_FIRST)
+        return when (val result = api.remove(suburbId)) {
+            is LookupResult.Found -> RatingOutcome.Removed.also { refreshAfterRatingChange(suburbId) }
+            LookupResult.Unauthorized -> RatingOutcome.Failed(NOTICE_KEY_REJECTED)
+            LookupResult.NotFound -> RatingOutcome.Failed(MESSAGE_SUBURB_GONE)
+            is LookupResult.Failed -> RatingOutcome.Failed(result.reason)
+        }
+    }
+
+    /** Reloads the card in place (no loading flash) if that suburb is still the selected one, and tells the map. */
+    private suspend fun refreshAfterRatingChange(suburbId: String) {
+        val report = api.report(suburbId)
+        if (report is LookupResult.Found && mutableState.value.selectedSuburbId == suburbId) {
+            mutableState.update { it.copy(card = SuburbCardState.Loaded(report.value)) }
+        }
+        mutableRatingsVersion.update { it + 1 }
     }
 
     /** Selects a lot by id: the entry point for a search result that names a lot, as [select] is for a suburb. */
@@ -134,5 +192,8 @@ class MapViewModel(private val api: SuburbApi, private val scope: CoroutineScope
         const val NOTICE_KEY_REJECTED: String = "The API key was rejected"
         const val NOTICE_UNREACHABLE: String = "Could not reach the API"
         const val REASON_KEY_REJECTED: String = "the API key was rejected"
+        const val MESSAGE_RATINGS_UNAVAILABLE: String = "Ratings are not available"
+        const val MESSAGE_SELECT_FIRST: String = "Select a suburb first"
+        const val MESSAGE_SUBURB_GONE: String = "That suburb no longer exists"
     }
 }

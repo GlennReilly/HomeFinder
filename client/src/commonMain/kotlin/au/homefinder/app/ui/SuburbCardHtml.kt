@@ -3,9 +3,16 @@ package au.homefinder.app.ui
 import au.homefinder.app.selection.CardRow
 import au.homefinder.app.selection.SuburbCardRows
 import au.homefinder.app.selection.SuburbCardState
+import au.homefinder.app.selection.Formats
 import au.homefinder.shared.model.Confidence
+import au.homefinder.shared.model.SuburbReport
 import kotlinx.html.FlowContent
 import kotlinx.html.ButtonType
+import kotlinx.html.InputType
+import kotlinx.html.form
+import kotlinx.html.h3
+import kotlinx.html.input
+import kotlinx.html.label
 import kotlinx.html.a
 import kotlinx.html.button
 import kotlinx.html.dd
@@ -22,6 +29,7 @@ object CardActions {
     const val ATTRIBUTE: String = "data-action"
     const val CLOSE: String = "close"
     const val RETRY: String = "retry"
+    const val REMOVE_RATING: String = "remove-rating"
 }
 
 /** The link's words say where it goes: it leaves this app. */
@@ -84,7 +92,14 @@ fun FlowContent.suburbCard(card: SuburbCardState) {
                 }
             }
             is SuburbCardState.Loaded -> {
-                dl("rows") { SuburbCardRows.of(card.report).forEach { cardRow(it) } }
+                val rows = SuburbCardRows.of(card.report)
+                // The Homely score you entered, when there is one, sits right under the area.
+                dl("rows") {
+                    rows.firstOrNull()?.let { cardRow(it) }
+                    SuburbCardRows.homely(card.report)?.let { cardRow(it) }
+                    rows.drop(1).forEach { cardRow(it) }
+                }
+                ratingForm(card.report)
                 ExternalLinks.homelySuburbProfile(card.report.name, card.report.postcode)?.let { url ->
                     p("external") {
                         a(href = url, target = "_blank", classes = "external-link") {
@@ -96,6 +111,59 @@ fun FlowContent.suburbCard(card: SuburbCardState) {
                 p("disclaimer") { +CARD_DISCLAIMER }
             }
         }
+    }
+}
+
+/** The names the page uses to find the rating form and read its boxes. */
+object RatingForm {
+    const val ATTRIBUTE: String = "data-rating-form"
+    const val STARS_FIELD: String = "stars"
+    const val REVIEWS_FIELD: String = "reviews"
+    const val MESSAGE_CLASS: String = "rating-message"
+}
+
+/**
+ * The form for the Homely score you copy across by hand (ADR 0028), filled with the current score if there is one. Remove
+ * is offered only when there is something to remove. The message line starts empty; the page fills it after saving.
+ */
+fun FlowContent.ratingForm(report: SuburbReport) {
+    val current = report.homelyRating.value
+    form(classes = "rating-form") {
+        attributes[RatingForm.ATTRIBUTE] = "true"
+        attributes["aria-label"] = "Your Homely rating"
+        h3 { +"Your Homely rating" }
+        p("hint") { +"Copy the score from the suburb's Homely page by hand. Nothing is fetched from Homely." }
+        div("fields") {
+            label {
+                +"Stars (0 to 5)"
+                input(type = InputType.text, name = RatingForm.STARS_FIELD) {
+                    attributes["inputmode"] = "decimal"
+                    attributes["placeholder"] = "2.1"
+                    attributes["autocomplete"] = "off"
+                    attributes["required"] = "required"
+                    current?.let { attributes["value"] = Formats.decimal(it.stars, 1) }
+                }
+            }
+            label {
+                +"Reviews (optional)"
+                input(type = InputType.text, name = RatingForm.REVIEWS_FIELD) {
+                    attributes["inputmode"] = "numeric"
+                    attributes["placeholder"] = "7"
+                    attributes["autocomplete"] = "off"
+                    current?.reviewCount?.let { attributes["value"] = it.toString() }
+                }
+            }
+        }
+        div("buttons") {
+            button(type = ButtonType.submit) { +"Save" }
+            if (current != null) {
+                button(type = ButtonType.button) {
+                    attributes[CardActions.ATTRIBUTE] = CardActions.REMOVE_RATING
+                    +"Remove"
+                }
+            }
+        }
+        p(RatingForm.MESSAGE_CLASS) { attributes["role"] = "status" }
     }
 }
 

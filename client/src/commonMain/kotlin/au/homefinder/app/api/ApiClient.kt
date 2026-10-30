@@ -3,6 +3,11 @@ package au.homefinder.app.api
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
+import io.ktor.client.request.request
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.HttpMethod
+import io.ktor.http.contentType
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.CancellationException
@@ -24,7 +29,29 @@ fun interface HttpGet {
     suspend fun get(url: String, headers: Map<String, String>): HttpResult
 }
 
-class KtorHttpGet(private val client: HttpClient = defaultClient()) : HttpGet {
+/** One request that changes something (PUT, DELETE); the body, if any, is JSON. Separate from Ktor so it can be tested without a network. */
+fun interface HttpWrite {
+    suspend fun send(method: String, url: String, headers: Map<String, String>, body: String?): HttpResult
+}
+
+/** The Ktor client behind both kinds of request. */
+class KtorHttp(private val client: HttpClient = defaultClient()) : HttpGet, HttpWrite {
+    override suspend fun send(method: String, url: String, headers: Map<String, String>, body: String?): HttpResult = try {
+        val response = client.request(url) {
+            this.method = HttpMethod.parse(method)
+            headers.forEach { (name, value) -> header(name, value) }
+            if (body != null) {
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+        }
+        HttpResult.Response(response.status.value, response.bodyAsText())
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (@Suppress("TooGenericExceptionCaught") failure: Exception) {
+        HttpResult.Failure(failure.message ?: failure::class.simpleName.orEmpty())
+    }
+
     override suspend fun get(url: String, headers: Map<String, String>): HttpResult = try {
         val response = client.get(url) { headers.forEach { (name, value) -> header(name, value) } }
         HttpResult.Response(response.status.value, response.bodyAsText())

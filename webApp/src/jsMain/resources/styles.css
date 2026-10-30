@@ -69,3 +69,14 @@ progress { width: 100%; margin: 16px 0; }
 .suggestion.highlighted, .suggestion:hover { background: rgba(109, 91, 166, .22); }
 .search-status { padding: 10px 12px; color: var(--muted); }
 .search-status.error { color: #b3261e; }
+
+/* The Homely score you type in. */
+.rating-form { margin-top: 18px; padding-top: 12px; border-top: 1px solid rgba(128, 128, 128, .35); }
+.rating-form h3 { margin: 0 0 4px; font-size: 1rem; }
+.rating-form .hint { margin: 0 0 10px; font-size: .8rem; color: var(--muted); }
+.rating-form .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rating-form label { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); }
+.rating-form input { font: inherit; padding: 7px 8px; border: 1px solid rgba(128, 128, 128, .6); border-radius: 6px; background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+.rating-form .buttons { display: flex; gap: 8px; margin-top: 10px; }
+.rating-form .buttons button[type="submit"] { background: var(--purple); color: #fff; }
+.rating-message { min-height: 1.2em; margin: 8px 0 0; font-size: .85rem; color: #b3261e; }

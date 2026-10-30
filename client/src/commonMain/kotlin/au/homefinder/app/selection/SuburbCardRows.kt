@@ -81,6 +81,18 @@ object SuburbCardRows {
         row("Transport", report.transport, ::transport),
     )
 
+    /**
+     * The Homely score you entered, as a row, or null when there is none (the card then shows only the form). It reads
+     * "2.1 ★ (7 reviews)"; its provenance line says it was entered by you.
+     */
+    fun homely(report: SuburbReport): CardRow? {
+        if (report.homelyRating.isUnknown) return null
+        return row("Homely rating", report.homelyRating) { rating ->
+            val reviews = rating.reviewCount?.let { " (${Formats.grouped(it.toLong())} ${if (it == 1) "review" else "reviews"})" }.orEmpty()
+            Formats.decimal(rating.stars, 1) + " ★" + reviews
+        }
+    }
+
     internal fun <T> row(label: String, attribute: Attribute<T>, format: (T) -> String): CardRow = CardRow(
         label = label,
         value = attribute.value?.let(format),
