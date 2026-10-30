@@ -72,7 +72,7 @@ tests/test_terrain.sh     # integration test on a synthetic DEM and a stand-in W
 ```
 
 Source: Geoscience Australia, "DEM of Australia derived from LiDAR 5 Metre Grid" (CC BY 4.0). The download asks the service for
-5 km squares that touch a suburb. If it cannot work out which coverage to use it lists them; set `DEM_COVERAGE`. Slope is rise over
+5 km squares that touch a suburb. If the service offers several coverages it uses the one with "DEM" in its name; if that is still unclear it lists them and you set `DEM_COVERAGE`. Slope is rise over
 run between neighbouring pixels (percent), averaged over the lot's pixels. See [ADR 0036](../docs/adr/0036-lot-height-and-slope-from-dem.md).
 
 ## Schools (ICSEA)

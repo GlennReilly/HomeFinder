@@ -19,8 +19,12 @@ names() { sed -E 's/<(\/?)([A-Za-z0-9_]+:)/<\1/g' | grep -o "<$1[^>]*>[^<]*</$1>
 COVERAGE="$DEM_COVERAGE"
 if [[ -z "$COVERAGE" ]]; then
   mapfile -t OFFERED < <(wcs "$DEM_WCS_URL?service=WCS&version=1.0.0&request=GetCapabilities" | names name)
+  # With several coverages, the one whose name says DEM is the elevation model (the service also lists a bare layer number).
+  mapfile -t LIKELY < <(printf '%s\n' "${OFFERED[@]}" | grep -i 'dem' || true)
   if [[ "${#OFFERED[@]}" -eq 1 ]]; then
     COVERAGE="${OFFERED[0]}"
+  elif [[ "${#LIKELY[@]}" -eq 1 ]]; then
+    COVERAGE="${LIKELY[0]}"
   else
     echo "The service offers ${#OFFERED[@]} coverages; set DEM_COVERAGE to the elevation one:" >&2
     printf '  %s\n' "${OFFERED[@]}" >&2

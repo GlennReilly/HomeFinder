@@ -71,7 +71,7 @@ class H(http.server.BaseHTTPRequestHandler):
         q = {k: v[0] for k, v in urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).items()}
         log.write(q.get("request", "") + " " + q.get("coverage", "") + " " + q.get("format", "") + " " + q.get("width", "") + " " + q.get("crs", "") + " " + q.get("bbox", "") + "\n"); log.flush()
         if q.get("request") == "GetCapabilities":
-            body, kind = b"<wcs:WCS_Capabilities xmlns:wcs='x'><wcs:ContentMetadata><wcs:CoverageOfferingBrief><wcs:name>dem5m</wcs:name></wcs:CoverageOfferingBrief></wcs:ContentMetadata></wcs:WCS_Capabilities>", "text/xml"
+            body, kind = b"<wcs:WCS_Capabilities xmlns:wcs='x'><wcs:ContentMetadata><wcs:CoverageOfferingBrief><wcs:name>dem5m</wcs:name></wcs:CoverageOfferingBrief><wcs:CoverageOfferingBrief><wcs:name>1</wcs:name></wcs:CoverageOfferingBrief></wcs:ContentMetadata></wcs:WCS_Capabilities>", "text/xml"
         elif q.get("request") == "DescribeCoverage":
             body, kind = b"<CoverageDescription><CoverageOffering><supportedFormats><formats>PNG</formats><formats>GeoTIFF</formats></supportedFormats></CoverageOffering></CoverageDescription>", "text/xml"
         elif sys.argv[4] == "refuse":
