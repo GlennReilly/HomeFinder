@@ -1,6 +1,15 @@
 package au.homefinder.web
 
 import au.homefinder.app.api.ApiConfig
+import au.homefinder.app.api.FilterApi
+import au.homefinder.app.filter.FilterData
+import au.homefinder.app.filter.FilterSelection
+import au.homefinder.app.filter.IcseaRange
+import au.homefinder.app.ui.FILTER_LOADING_TEXT
+import au.homefinder.app.ui.FILTER_UNAVAILABLE_TEXT
+import au.homefinder.app.ui.FilterIds
+import au.homefinder.app.ui.filterPanel
+import au.homefinder.app.ui.filterSummaryText
 import au.homefinder.app.api.KtorHttp
 import au.homefinder.app.api.LotApi
 import au.homefinder.app.api.LookupResult
@@ -94,6 +103,7 @@ private fun start(apiKey: String) {
     }
 
     wireSearch(scope, SearchApi(config, http), viewModel, map, ::showNotice)
+    wireFilters(scope, FilterApi(config, http), map)
 
     // The star scores under suburb names: loaded at the start and again whenever one is saved or removed.
     suspend fun refreshRatings() {
@@ -135,6 +145,62 @@ private fun start(apiKey: String) {
 }
 
 private var searchIsOpen = false
+
+/**
+ * The filter panel (ADR 0035): the values load once, the inputs are drawn once, and moving a slider only recomputes which
+ * suburbs pass and restyles the map, with no request.
+ */
+private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap) {
+    val toggle = element("filters-toggle")
+    val panel = element("filters")
+    var data: FilterData? = null
+
+    fun input(id: String) = document.getElementById(id) as? HTMLInputElement
+
+    fun selection(): FilterSelection {
+        val on = input(FilterIds.ICSEA_ON)?.checked == true
+        val low = input(FilterIds.ICSEA_MIN)?.value?.toIntOrNull()
+        val high = input(FilterIds.ICSEA_MAX)?.value?.toIntOrNull()
+        return if (on && low != null && high != null) FilterSelection(IcseaRange(minOf(low, high), high)) else FilterSelection()
+    }
+
+    fun refresh() {
+        val loaded = data ?: return
+        val result = loaded.apply(selection())
+        view.showFilter(result.passingIds)
+        document.getElementById(FilterIds.SUMMARY)?.textContent = filterSummaryText(result)
+        input(FilterIds.ICSEA_MIN)?.let { document.getElementById(FilterIds.ICSEA_MIN_OUT)?.textContent = it.value }
+        input(FilterIds.ICSEA_MAX)?.let { document.getElementById(FilterIds.ICSEA_MAX_OUT)?.textContent = it.value }
+    }
+
+    toggle.addEventListener("click", {
+        panel.hidden = !panel.hidden
+        toggle.setAttribute("aria-expanded", (!panel.hidden).toString())
+    })
+    panel.addEventListener("input", { event ->
+        // The sliders never cross: dragging one past the other pulls the other along.
+        val low = input(FilterIds.ICSEA_MIN)
+        val high = input(FilterIds.ICSEA_MAX)
+        val target = (event.target as? HTMLElement)?.id
+        if (low != null && high != null && low.value.toInt() > high.value.toInt()) {
+            if (target == FilterIds.ICSEA_MIN) high.value = low.value else low.value = high.value
+        }
+        refresh()
+    })
+
+    panel.textContent = FILTER_LOADING_TEXT
+    scope.launch {
+        when (val result = api.values()) {
+            is LookupResult.Found -> {
+                val loaded = FilterData.from(result.value)
+                data = loaded
+                panel.innerHTML = ""
+                panel.append { div { filterPanel(loaded, loaded.apply(FilterSelection())) } }
+            }
+            else -> panel.textContent = FILTER_UNAVAILABLE_TEXT
+        }
+    }
+}
 
 /** The search box: typing, the keyboard, a click on a suggestion, and what each kind of result does to the map. */
 private fun wireSearch(scope: CoroutineScope, api: SearchApi, map: MapViewModel, view: SuburbMap, showNotice: (String) -> Unit) {

@@ -27,6 +27,9 @@ interface SuburbDirectory {
 
     /** The public schools inside the suburb, or null when no school data has been loaded (no load yet, or the table is missing). */
     suspend fun schools(suburbId: String): SuburbSchoolData? = null
+
+    /** Every suburb's filter values (ADR 0035), or null when no schools data is loaded. */
+    suspend fun filterValues(): SuburbFilterData? = null
 }
 
 /** Reads the `suburb` table loaded by the pipeline; boundaries are GDA2020 (EPSG:7844), which the point uses too. */
@@ -112,6 +115,35 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
         }
     }
 
+    override suspend fun filterValues(): SuburbFilterData? = withContext(Dispatchers.IO) {
+        try {
+            dataSource.connection.use { connection ->
+                val loaded = connection.prepareStatement(SCHOOLS_LOADED_SQL).use { statement ->
+                    statement.executeQuery().use { rows ->
+                        rows.next()
+                        if (rows.getInt("n") == 0) null else SchoolsLoaded(rows.getDate("latest")?.toLocalDate()?.let { LocalDate(it.year, it.monthValue, it.dayOfMonth) })
+                    }
+                } ?: return@use null
+                connection.prepareStatement(FILTER_VALUES_SQL).use { statement ->
+                    statement.executeQuery().use { rows ->
+                        val values = buildList {
+                            while (rows.next()) {
+                                val icsea = rows.getInt("average_icsea").takeIf { !rows.wasNull() }
+                                add(SuburbFilterRow(rows.getString("suburb_id"), icsea))
+                            }
+                        }
+                        SuburbFilterData(values, loaded.extractedOn)
+                    }
+                }
+            }
+        } catch (failure: SQLException) {
+            // Before the first schools load the table does not exist; that is "no data", not an outage.
+            if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
+        }
+    }
+
+    private class SchoolsLoaded(val extractedOn: LocalDate?)
+
     private fun readStats(rows: java.sql.ResultSet): SuburbStats {
         fun long(column: String): Long? = rows.getLong(column).takeIf { !rows.wasNull() }
         fun double(column: String): Double? = rows.getDouble(column).takeIf { !rows.wasNull() }
@@ -170,6 +202,13 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
 
         val SCHOOLS_SQL = """
             SELECT school_code, name, level_label, icsea, enrolment_fte, website FROM school WHERE suburb_id = ? ORDER BY name
+        """.trimIndent()
+
+        /** The average is over schools that have an ICSEA, rounded half up like the card's average. */
+        val FILTER_VALUES_SQL = """
+            SELECT s.suburb_id, round(avg(c.icsea))::int AS average_icsea
+            FROM suburb s LEFT JOIN school c ON c.suburb_id = s.suburb_id
+            GROUP BY s.suburb_id ORDER BY s.suburb_id
         """.trimIndent()
 
         val FIND_SQL = """

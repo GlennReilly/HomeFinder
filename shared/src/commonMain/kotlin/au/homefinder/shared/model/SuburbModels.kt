@@ -1,5 +1,6 @@
 package au.homefinder.shared.model
 
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
 /** Block size spread across the suburb's lots: median and 10th to 90th percentile, in square metres. */
@@ -74,6 +75,21 @@ data class SuburbRatingPoint(val suburbId: String, val name: String, val rating:
 
 @Serializable
 data class SuburbRatingsResponse(val ratings: List<SuburbRatingPoint>)
+
+/** What the filter panel needs from one suburb. [averageIcsea] is null when the suburb has no public school with an ICSEA. */
+@Serializable
+data class SuburbFilterValue(val suburbId: String, val averageIcsea: Int? = null)
+
+/**
+ * Every suburb's filter values, with where the ICSEA figures come from (provenance, as on the card). [icseaAsOf] is null
+ * and every [SuburbFilterValue.averageIcsea] is null when the schools data has not been loaded.
+ */
+@Serializable
+data class SuburbFiltersResponse(
+    val suburbs: List<SuburbFilterValue>,
+    val icseaSource: String,
+    val icseaAsOf: LocalDate? = null,
+)
 
 /** The same factors as a property, rolled up to suburb level. Every statistic carries its own provenance. */
 @Serializable

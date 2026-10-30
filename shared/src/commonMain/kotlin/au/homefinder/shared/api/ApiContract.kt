@@ -20,6 +20,12 @@ object ApiContract {
      */
     const val SUBURB_RATINGS_PATH: String = "/v1/suburbs/ratings"
 
+    /**
+     * The values the filter panel works on (ADR 0035): `GET /v1/suburbs/filters` gives every suburb's roll-up values in one
+     * response, so the browser can filter and restyle the map without further requests.
+     */
+    const val SUBURB_FILTERS_PATH: String = "/v1/suburbs/filters"
+
     fun suburbRatingPath(encodedSuburbId: String): String = "$SUBURBS_PATH/$encodedSuburbId/rating"
 
     /** Search: `GET /v1/search?q=` suggests suburbs and addresses for what has been typed so far (ADR 0026). */

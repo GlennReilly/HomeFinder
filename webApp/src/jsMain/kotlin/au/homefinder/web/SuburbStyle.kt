@@ -10,6 +10,8 @@ object SuburbStyle {
     const val SOURCE_ID: String = "suburbs"
     const val DIM_LAYER: String = "suburb-dim"
     const val SELECTED_FILL_LAYER: String = "suburb-selected-fill"
+    const val FILTER_MATCH_LAYER: String = "suburb-filter-match"
+    const val FILTER_DIM_LAYER: String = "suburb-filter-dim"
     const val OUTLINE_LAYER: String = "suburb-outline"
     const val SELECTED_OUTLINE_LAYER: String = "suburb-selected-outline"
     const val NAME_LAYER: String = "suburb-name"
@@ -20,6 +22,8 @@ object SuburbStyle {
     private const val LABEL_HALO = "rgba(255,255,255,0.9)"
     private const val SELECTED_FILL = "rgba(109,91,166,0.18)"
     private const val DIM = "rgba(0,0,0,0.12)"
+    private const val FILTER_MATCH = "rgba(46,160,67,0.30)"
+    private const val FILTER_DIM = "rgba(255,255,255,0.62)"
     private const val OUTLINE_WIDTH = 1.2
     private const val SELECTED_OUTLINE_WIDTH = 3.5
     private const val OUTLINE_FULL_UNTIL_ZOOM = 12
@@ -38,6 +42,19 @@ object SuburbStyle {
 
     fun dimFilter(suburbId: String?): dynamic =
         if (suburbId == null) MATCH_NOTHING else jsArray("!=", jsArray("get", SUBURB_ID), suburbId)
+
+    private fun passes(ids: Set<String>): dynamic = jsArray("in", jsArray("get", SUBURB_ID), jsArray("literal", ids.toTypedArray()))
+
+    /** Suburbs that pass the filter panel (ADR 0035); null means no filter is on, so nothing is tinted. */
+    fun filterMatchFilter(passing: Set<String>?): dynamic =
+        if (passing.isNullOrEmpty()) MATCH_NOTHING else passes(passing)
+
+    /** Suburbs that fail it, washed out; with no filter on nothing is, and with no passing suburb all are. */
+    fun filterDimFilter(passing: Set<String>?): dynamic = when {
+        passing == null -> MATCH_NOTHING
+        passing.isEmpty() -> jsArray("!=", jsArray("get", SUBURB_ID), "")
+        else -> jsArray("!", passes(passing))
+    }
 
     fun source(tilesUrl: String): dynamic = jsObject(
         "type" to "vector",
@@ -59,6 +76,8 @@ object SuburbStyle {
     fun layers(): List<dynamic> = listOf(
         polygonLayer(DIM_LAYER, "fill", jsObject("fill-color" to DIM), dimFilter(null)),
         polygonLayer(SELECTED_FILL_LAYER, "fill", jsObject("fill-color" to SELECTED_FILL), selectedFilter(null)),
+        polygonLayer(FILTER_DIM_LAYER, "fill", jsObject("fill-color" to FILTER_DIM), filterDimFilter(null)),
+        polygonLayer(FILTER_MATCH_LAYER, "fill", jsObject("fill-color" to FILTER_MATCH), filterMatchFilter(null)),
         polygonLayer(
             OUTLINE_LAYER, "line",
             jsObject(

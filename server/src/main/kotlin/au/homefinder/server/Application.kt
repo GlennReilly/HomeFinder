@@ -69,8 +69,9 @@ fun Application.module(
             get(ApiContract.STATUS_PATH.removePrefix(AUTHENTICATED_PREFIX)) {
                 call.respond(StatusResponse(authenticated = true))
             }
-            // The literal paths (ratings, at) are tried before the {suburbId} path, so they are not mistaken for ids.
+            // The literal paths (ratings, filters, at) are tried before the {suburbId} path, so they are not mistaken for ids.
             ratingRoutes(ratings, suburbs, today)
+            filterRoutes(suburbs)
             suburbRoutes(suburbs, ratings)
             lotRoutes(lots)
             searchRoutes(search)
