@@ -137,7 +137,6 @@ fun FlowContent.ratingForm(report: SuburbReport) {
                 +"Stars (0 to 5)"
                 input(type = InputType.text, name = RatingForm.STARS_FIELD) {
                     attributes["inputmode"] = "decimal"
-                    attributes["placeholder"] = "2.1"
                     attributes["autocomplete"] = "off"
                     attributes["required"] = "required"
                     current?.let { attributes["value"] = Formats.decimal(it.stars, 1) }
@@ -147,7 +146,6 @@ fun FlowContent.ratingForm(report: SuburbReport) {
                 +"Reviews (optional)"
                 input(type = InputType.text, name = RatingForm.REVIEWS_FIELD) {
                     attributes["inputmode"] = "numeric"
-                    attributes["placeholder"] = "7"
                     attributes["autocomplete"] = "off"
                     current?.reviewCount?.let { attributes["value"] = it.toString() }
                 }
