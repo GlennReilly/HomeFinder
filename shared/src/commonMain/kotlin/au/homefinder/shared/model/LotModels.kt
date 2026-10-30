@@ -31,4 +31,6 @@ data class LotReport(
     val parks: Attribute<ParkAccess>,
     val shopping: Attribute<ProximityList>,
     val transport: Attribute<TransportInfo>,
+    /** Mean height above sea level in metres (ADR 0036). */
+    val elevationM: Attribute<Double> = Attribute.unknown("Geoscience Australia 5 m LiDAR DEM", note = "Not computed yet"),
 )

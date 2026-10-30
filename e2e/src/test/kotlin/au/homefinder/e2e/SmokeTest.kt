@@ -148,6 +148,8 @@ class SmokeTest {
         page.locator("#search-results [role=option]").click()
         assertThat(page.locator("#card h2")).hasText("12 MAIN STREET, HAMILTON NSW 2303")
         assertThat(page.locator("#card")).containsText("Block size")
+        assertThat(page.locator("#card")).containsText("Moderate, 12.0% on average (steepest 21.3%)")
+        assertThat(page.locator("#card")).containsText("35.0 m")
 
         page.locator("#search-input").fill("120 main st")
         page.locator("#search-results [role=option]").click()

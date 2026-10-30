@@ -27,7 +27,7 @@ class LotCardHtmlTest {
         assertTrue("<h2>12 MAIN STREET, HAMILTON NSW 2303</h2>" in out)
         assertTrue("HAMILTON 2303 · Parcel 1//DP100" in out)
         assertTrue("561 m²" in out)
-        assertEquals(10, Regex("""class="value unknown"""").findAll(out).count())
+        assertEquals(11, Regex("""class="value unknown"""").findAll(out).count())
         assertTrue("Source: cadastre" in out)
         assertTrue(CARD_DISCLAIMER in out)
         assertFalse("<ul" in out, "one address needs no list")

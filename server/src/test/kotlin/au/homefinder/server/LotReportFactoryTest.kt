@@ -3,6 +3,7 @@ package au.homefinder.server
 import au.homefinder.shared.model.ApiJson
 import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.LotReport
+import au.homefinder.shared.model.SlopeClass
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.encodeToString
 import kotlin.test.Test
@@ -49,8 +50,8 @@ class LotReportFactoryTest {
             assertEquals(LotReportFactory.OSM_NOT_LOADED_NOTE, it.note)
             assertEquals(LotReportFactory.OSM_SOURCE, it.source)
         }
-        val others = listOf(report.wallMaterial, report.backyardAspect, report.flood, report.slope, report.estimatedPriceAud, report.schools, report.transport)
-        assertEquals(7, others.size)
+        val others = listOf(report.wallMaterial, report.backyardAspect, report.flood, report.estimatedPriceAud, report.schools, report.transport)
+        assertEquals(6, others.size)
         others.forEach {
             assertTrue(it.isUnknown)
             assertEquals(Confidence.NONE, it.confidence)
@@ -110,6 +111,50 @@ class LotReportFactoryTest {
         assertEquals(listOf("supermarket"), oneShop.shopping.value?.items?.map { it.category })
         val noShops = LotReportFactory.build(lot, nearby.copy(nearest = emptyList()))
         listOf(noShops.beach, noShops.parks, noShops.shopping).forEach { assertTrue(it.isUnknown) }
+    }
+
+    private val loaded = LocalDate(2026, 10, 30)
+
+    @Test
+    fun `terrain becomes a height and a slope class with source, date and notes`() {
+        val report = LotReportFactory.build(lot, terrain = LotTerrainData(LotTerrain(35.04, 12.04, 21.3, 418), loaded))
+        assertEquals(35.04, report.elevationM.value)
+        assertEquals(Confidence.MEDIUM, report.elevationM.confidence)
+        assertEquals(LotReportFactory.DEM_SOURCE, report.elevationM.source)
+        assertEquals(loaded, report.elevationM.asOf)
+        assertEquals(LotReportFactory.ELEVATION_NOTE, report.elevationM.note)
+        val slope = assertNotNull(report.slope.value)
+        assertEquals(SlopeClass.MODERATE, slope.slopeClass)
+        assertEquals(12.04, slope.meanPercent)
+        assertEquals(21.3, slope.maxPercent)
+        assertEquals(null, slope.fall, "which way the lot falls is not worked out")
+        assertTrue("not worked out" in report.slope.note.orEmpty())
+    }
+
+    @Test
+    fun `without a DEM load the height and slope are unknown and say so`() {
+        val report = LotReportFactory.build(lot)
+        assertTrue(report.elevationM.isUnknown && report.slope.isUnknown)
+        assertEquals(LotReportFactory.DEM_NOT_LOADED_NOTE, report.elevationM.note)
+        assertEquals(LotReportFactory.DEM_NOT_LOADED_NOTE, report.slope.note)
+    }
+
+    @Test
+    fun `a lot outside the DEM is unknown with a reason, a lot on tile edges keeps its height only`() {
+        val outside = LotReportFactory.build(lot, terrain = LotTerrainData(null, loaded))
+        assertTrue(outside.elevationM.isUnknown && outside.slope.isUnknown)
+        assertEquals(LotReportFactory.DEM_NO_COVERAGE_NOTE, outside.elevationM.note)
+        assertEquals(loaded, outside.elevationM.asOf)
+        val edge = LotReportFactory.build(lot, terrain = LotTerrainData(LotTerrain(12.0, null, null, 1), loaded))
+        assertEquals(12.0, edge.elevationM.value)
+        assertTrue(edge.slope.isUnknown)
+    }
+
+    @Test
+    fun `a flat lot is flat and a maximum below the mean is lifted to it`() {
+        val flat = assertNotNull(LotReportFactory.build(lot, terrain = LotTerrainData(LotTerrain(5.0, 0.5, 0.4, 20), loaded)).slope.value)
+        assertEquals(SlopeClass.FLAT, flat.slopeClass)
+        assertEquals(0.5, flat.maxPercent, "the model needs max >= mean; float rounding must not break a report")
     }
 
     @Test

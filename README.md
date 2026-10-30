@@ -111,7 +111,7 @@ rest are washed out, with no further requests. Suburbs with no ICSEA never match
 
 ### Selecting a suburb
 
-The Suburb Card's beach, parks and shopping rows come from the OpenStreetMap roll-up once `pipeline/scripts/load-osm.sh` has run ([ADR 0033](docs/adr/0033-suburb-osm-rollup.md)). The Suburb Card's Schools row lists the NSW public schools inside the suburb with their ICSEA once `pipeline/scripts/load-schools.sh` has run ([ADR 0034](docs/adr/0034-suburb-schools-and-icsea.md); data: NSW Department of Education, CC BY; ICSEA from ACARA). The Suburb Card ends with a link to the suburb's Homely page (no Homely data is fetched or shown; [ADR 0027](docs/adr/0027-link-out-to-homely-no-extraction.md)).
+The Suburb Card's beach, parks and shopping rows come from the OpenStreetMap roll-up once `pipeline/scripts/load-osm.sh` has run ([ADR 0033](docs/adr/0033-suburb-osm-rollup.md)). The Suburb Card's Schools row lists the NSW public schools inside the suburb with their ICSEA once `pipeline/scripts/load-schools.sh` has run ([ADR 0034](docs/adr/0034-suburb-schools-and-icsea.md); data: NSW Department of Education, CC BY; ICSEA from ACARA). The Lot Card's Height above sea level and Slope rows come from Geoscience Australia's 5 m LiDAR DEM once `pipeline/scripts/download-dem.sh` and `load-dem.sh` have run ([ADR 0036](docs/adr/0036-lot-height-and-slope-from-dem.md); CC BY 4.0, surveys 2001 to 2015; height is not flood risk). The Suburb Card ends with a link to the suburb's Homely page (no Homely data is fetched or shown; [ADR 0027](docs/adr/0027-link-out-to-homely-no-extraction.md)).
 
 
 Tap a suburb to select it: it is highlighted and a card opens (a bottom sheet on narrow windows, a side panel on wide

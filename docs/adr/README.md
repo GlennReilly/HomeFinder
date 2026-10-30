@@ -37,3 +37,4 @@
 | [0033](0033-suburb-osm-rollup.md) | Suburb roll-up of the OpenStreetMap features | Accepted |
 | [0034](0034-suburb-schools-and-icsea.md) | Suburb schools and ICSEA | Accepted |
 | [0035](0035-suburb-filter-panel.md) | Suburb filter side panel | Accepted |
+| [0036](0036-lot-height-and-slope-from-dem.md) | Lot height and slope from the 5 m DEM | Accepted |

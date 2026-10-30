@@ -4,6 +4,7 @@ import au.homefinder.shared.model.LotReport
 import au.homefinder.shared.model.ParkAccess
 import au.homefinder.shared.model.Proximity
 import au.homefinder.shared.model.ProximityList
+import au.homefinder.shared.model.SlopeSummary
 
 /** The rows of the basic lot card (ADR 0022): the measured block size, then every other factor in the spec's order. */
 object LotCardRows {
@@ -16,7 +17,8 @@ object LotCardRows {
         SuburbCardRows.row("Wall material", report.wallMaterial) { it.toString() },
         SuburbCardRows.row("Backyard aspect", report.backyardAspect) { it.toString() },
         SuburbCardRows.row("Flood", report.flood) { it.toString() },
-        SuburbCardRows.row("Slope", report.slope) { it.toString() },
+        SuburbCardRows.row("Slope", report.slope, ::slope),
+        SuburbCardRows.row("Height above sea level", report.elevationM, ::height),
         SuburbCardRows.row("Estimated price", report.estimatedPriceAud) { it.toString() },
         SuburbCardRows.row("Distance to the beach", report.beach, ::beach),
         SuburbCardRows.row("Schools", report.schools) { it.toString() },
@@ -24,6 +26,13 @@ object LotCardRows {
         SuburbCardRows.row("Shopping", report.shopping, ::shopping),
         SuburbCardRows.row("Transport", report.transport) { it.toString() },
     )
+
+    fun height(metres: Double): String = "${Formats.decimal(metres, 1)} m"
+
+    /** "Moderate, 12.0% on average (steepest 21.3%)": the class from the mean, then the figures it came from. */
+    fun slope(slope: SlopeSummary): String =
+        "${slope.slopeClass.name.lowercase().replaceFirstChar { it.uppercase() }}, " +
+            "${Formats.decimal(slope.meanPercent, 1)}% on average (steepest ${Formats.decimal(slope.maxPercent, 1)}%)"
 
     /** A walking estimate is only worth showing for a walk: beyond this many minutes the distance alone is said. */
     const val WALK_ESTIMATE_MAX_MINUTES: Int = 60

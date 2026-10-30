@@ -47,6 +47,8 @@ jobs:
         run: pipeline/tests/test_osm.sh
       - name: Pipeline integration test (public schools and ICSEA)
         run: pipeline/tests/test_schools.sh
+      - name: Pipeline integration test (height and slope from a DEM)
+        run: pipeline/tests/test_terrain.sh
 
   server-db:
     runs-on: ubuntu-latest

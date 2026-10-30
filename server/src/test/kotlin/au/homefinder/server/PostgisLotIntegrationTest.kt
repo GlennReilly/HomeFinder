@@ -180,6 +180,29 @@ class PostgisLotIntegrationTest {
     }
 
     @Test
+    fun `terrain is read per lot, a lot without a row has no coverage, and an empty table means nothing is loaded`() = withLots { directory, _ ->
+        execute("TRUNCATE lot_terrain")
+        assertNull(directory.terrain("1001"), "nothing loaded yet")
+        execute("INSERT INTO lot_terrain (lot_id, elevation_m, mean_slope_pct, max_slope_pct, pixels, dem_loaded_on) VALUES ('1001', 35.5, 12.25, 21.5, 418, '2026-10-30'), ('1002', 8, NULL, NULL, 1, '2026-10-30')")
+        val data = assertNotNull(directory.terrain("1001"))
+        assertEquals(kotlinx.datetime.LocalDate(2026, 10, 30), data.loadedOn)
+        assertEquals(LotTerrain(35.5, 12.25, 21.5, 418), data.terrain)
+        assertEquals(LotTerrain(8.0, null, null, 1), assertNotNull(directory.terrain("1002")).terrain)
+        assertNull(assertNotNull(directory.terrain("1003")).terrain, "loaded, but this lot has no coverage")
+        assertNull(assertNotNull(directory.terrain("1001' OR '1'='1")).terrain)
+    }
+
+    @Test
+    fun `a database without the terrain table has no terrain rather than an error`() = withLots { directory, _ ->
+        execute("ALTER TABLE lot_terrain RENAME TO lot_terrain_hidden")
+        try {
+            assertNull(directory.terrain("1001"))
+        } finally {
+            execute("ALTER TABLE lot_terrain_hidden RENAME TO lot_terrain")
+        }
+    }
+
+    @Test
     fun `a database without the proximity tables has no proximity rather than an error`() = withLots { directory, _ ->
         execute("ALTER TABLE osm_import RENAME TO osm_import_hidden")
         try {

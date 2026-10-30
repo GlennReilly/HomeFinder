@@ -14,6 +14,8 @@ import au.homefinder.shared.model.SchoolSector
 import au.homefinder.shared.model.SearchResponse
 import au.homefinder.shared.model.SearchResult
 import au.homefinder.shared.model.SearchResultKind
+import au.homefinder.shared.model.SlopeClass
+import au.homefinder.shared.model.SlopeSummary
 import au.homefinder.shared.model.SuburbFilterValue
 import au.homefinder.shared.model.SuburbFiltersResponse
 import au.homefinder.shared.model.SuburbRatingPoint
@@ -78,6 +80,9 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
     private fun lotReport() = LotReport(
         "1001", "1//DP100", "9001", "HAMILTON", "2303", listOf(address), Attribute(561.4, Confidence.HIGH, "Test cadastre"),
         unknown(), unknown(), unknown(), unknown(), unknown(), unknown(), unknown(), unknown(), unknown(), unknown(),
+    ).copy(
+        slope = Attribute(SlopeSummary(12.04, 21.3, SlopeClass.MODERATE), Confidence.MEDIUM, "Test DEM", LocalDate(2026, 10, 30)),
+        elevationM = Attribute(35.04, Confidence.MEDIUM, "Test DEM", LocalDate(2026, 10, 30)),
     )
 
     private fun search(query: String): SearchResponse {
