@@ -91,7 +91,19 @@ data class ProximityList(val items: List<Proximity>)
 data class ParkAccess(val nearest: List<Proximity>, val areaWithin800mM2: Double? = null)
 
 @Serializable
-data class School(val id: String, val name: String, val sector: SchoolSector, val level: SchoolLevel)
+data class School(
+    val id: String,
+    val name: String,
+    val sector: SchoolSector,
+    val level: SchoolLevel,
+    /** The school's ICSEA (national mean 1000, standard deviation 100); null where ACARA does not publish one. */
+    val icsea: Int? = null,
+    val enrolments: Int? = null,
+    /** The school's own website, only ever an http or https address. */
+    val website: String? = null,
+    /** The kind of school in the data's own words, for example "Primary School". */
+    val levelLabel: String? = null,
+)
 
 @Serializable
 data class NearbySchool(

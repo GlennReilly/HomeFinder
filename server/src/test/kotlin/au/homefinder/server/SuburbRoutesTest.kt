@@ -29,6 +29,7 @@ class SuburbRoutesTest {
         private val failure: Exception? = null,
         private val stats: Map<String, SuburbStats> = emptyMap(),
         private val amenities: Map<String, SuburbAmenity> = emptyMap(),
+        private val schools: Map<String, SuburbSchoolData> = emptyMap(),
     ) : SuburbDirectory {
         val atCalls = mutableListOf<Pair<Double, Double>>()
         override suspend fun findAt(latitude: Double, longitude: Double): SuburbRecord? {
@@ -42,6 +43,7 @@ class SuburbRoutesTest {
         }
         override suspend fun stats(suburbId: String): SuburbStats? = stats[suburbId]
         override suspend fun amenity(suburbId: String): SuburbAmenity? = amenities[suburbId]
+        override suspend fun schools(suburbId: String): SuburbSchoolData? = schools[suburbId]
     }
 
     private fun api(directory: SuburbDirectory?, block: suspend HttpClient.() -> Unit) = testApplication {
@@ -176,6 +178,22 @@ class SuburbRoutesTest {
         api(FakeDirectory(byId = mapOf("9001" to hamilton))) {
             val report = ApiJson.decodeFromString<SuburbReport>(get("${ApiContract.SUBURBS_PATH}/9001").bodyAsText())
             assertEquals(LotReportFactory.OSM_NOT_LOADED_NOTE, report.beach.note)
+        }
+    }
+
+    @Test
+    fun `a report lists the suburb's public schools with their ICSEA when school data is loaded`() {
+        val data = SuburbSchoolData(listOf(SchoolRecord(1, "Hamilton Public School", "Primary School", 1051, 412, "https://hamilton-p.schools.nsw.gov.au")), LocalDate(2026, 10, 2))
+        api(FakeDirectory(byId = mapOf("9001" to hamilton), schools = mapOf("9001" to data))) {
+            val report = ApiJson.decodeFromString<SuburbReport>(get("${ApiContract.SUBURBS_PATH}/9001").bodyAsText())
+            val schools = assertNotNull(report.schools.value)
+            assertEquals("Hamilton Public School", schools.publicSchoolsInside.single().name)
+            assertEquals(1051, schools.averageIcsea)
+            assertEquals("https://hamilton-p.schools.nsw.gov.au", schools.publicSchoolsInside.single().website)
+        }
+        api(FakeDirectory(byId = mapOf("9001" to hamilton))) {
+            val report = ApiJson.decodeFromString<SuburbReport>(get("${ApiContract.SUBURBS_PATH}/9001").bodyAsText())
+            assertEquals(SuburbReportFactory.SCHOOLS_NOT_LOADED_NOTE, report.schools.note)
         }
     }
 }

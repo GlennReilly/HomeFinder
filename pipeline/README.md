@@ -62,3 +62,15 @@ Needs suburbs and lots loaded first. Rules and thresholds are in [ADR 0023](../d
 `config/osm.env`. Source: OpenStreetMap contributors (ODbL).
 
 `load-osm.sh` also rebuilds the per-suburb roll-up (distance to the nearest ocean beach from the centre and the nearest edge, park share, shopping centres and supermarkets inside or within 2 km): [ADR 0033](../docs/adr/0033-suburb-osm-rollup.md).
+
+## Schools (ICSEA)
+
+```bash
+scripts/download-schools.sh   # the NSW public schools master dataset (CSV, CC BY) into ../data/raw/schools (run it yourself)
+scripts/load-schools.sh       # loads it and finds each school's pilot suburb
+tests/test_schools.sh         # fixture-based integration test (needs Docker)
+```
+
+Source: NSW Department of Education, "NSW public schools master dataset" (Creative Commons Attribution); the ICSEA value is ACARA's.
+See [ADR 0034](../docs/adr/0034-suburb-schools-and-icsea.md).
+

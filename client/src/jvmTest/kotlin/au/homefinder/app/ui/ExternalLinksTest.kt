@@ -31,4 +31,11 @@ class ExternalLinksTest {
         val url = ExternalLinks.homelySuburbProfile("a/../b?x=1#y", "2299")
         assertEquals("https://www.homely.com.au/suburb-profile/a-b-x-1-y-nsw-2299", url)
     }
+
+    @Test
+    fun `only an http or https address may be linked`() {
+        assertEquals("https://a.example/x", ExternalLinks.webAddress(" https://a.example/x "))
+        assertEquals("http://a.example", ExternalLinks.webAddress("http://a.example"))
+        listOf("javascript:alert(1)", "data:text/html,x", "//a.example", "ftp://a.example", "a.example", "", null).forEach { assertNull(ExternalLinks.webAddress(it), it.toString()) }
+    }
 }

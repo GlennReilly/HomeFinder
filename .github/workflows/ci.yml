@@ -45,6 +45,8 @@ jobs:
         run: pipeline/tests/test_sales.sh
       - name: Pipeline integration test (OpenStreetMap proximity)
         run: pipeline/tests/test_osm.sh
+      - name: Pipeline integration test (public schools and ICSEA)
+        run: pipeline/tests/test_schools.sh
 
   server-db:
     runs-on: ubuntu-latest

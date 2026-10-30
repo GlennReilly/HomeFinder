@@ -20,5 +20,11 @@ object ExternalLinks {
         return HOMELY_SUBURB_PROFILE + words.joinToString("-") + "-nsw-" + code
     }
 
+    /** My School's home page: a deep link to one school cannot be built from the data, so the card points here and names the schools. */
+    const val MY_SCHOOL_HOME: String = "https://www.myschool.edu.au/"
+
+    /** An address that may be linked from a card: http or https only, so a link can never run a script. Null otherwise. */
+    fun webAddress(address: String?): String? = address?.trim()?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
+
     private const val POSTCODE_LENGTH = 4
 }

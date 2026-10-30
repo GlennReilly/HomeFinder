@@ -159,4 +159,39 @@ class PostgisSuburbDirectoryIntegrationTest {
             execute("ALTER TABLE suburb_amenity_hidden RENAME TO suburb_amenity")
         }
     }
+
+    @Test
+    fun `a suburb's public schools are read with unpublished values as null, and no data means null`() = withDirectory { directory ->
+        execute("TRUNCATE school")
+        assertNull(directory.schools("9001"), "nothing loaded yet")
+        execute(
+            "INSERT INTO school (school_code, name, level_label, icsea, enrolment_fte, website, geom, suburb_id, extracted_on) VALUES " +
+                "(1, 'Hamilton Public School', 'Primary School', 1051, 412.5, 'https://h.example', ST_SetSRID(ST_MakePoint(151.745, -32.915), 7844), '9001', '2026-10-02'), " +
+                "(2, 'Alpha Small School', 'Primary School', NULL, NULL, NULL, ST_SetSRID(ST_MakePoint(151.746, -32.916), 7844), '9001', '2026-10-02'), " +
+                "(3, 'Belmont Public School', 'Primary School', 960, 188, NULL, ST_SetSRID(ST_MakePoint(151.665, -33.035), 7844), '9002', '2026-10-02')",
+        )
+        val hamilton = assertNotNull(directory.schools("9001"))
+        assertEquals(listOf("Alpha Small School", "Hamilton Public School"), hamilton.schools.map { it.name }, "by name")
+        val big = hamilton.schools.last()
+        assertEquals(1051, big.icsea)
+        assertEquals(412, big.enrolments)
+        assertEquals("https://h.example", big.website)
+        assertNull(hamilton.schools.first().icsea)
+        assertNull(hamilton.schools.first().enrolments)
+        assertEquals(kotlinx.datetime.LocalDate(2026, 10, 2), hamilton.extractedOn)
+        assertEquals(listOf("Belmont Public School"), assertNotNull(directory.schools("9002")).schools.map { it.name })
+        // Data is loaded but a suburb with none of its own gets an empty list, not "not loaded".
+        assertEquals(emptyList(), assertNotNull(directory.schools("9003")).schools)
+        assertEquals(emptyList(), assertNotNull(directory.schools("9001' OR '1'='1")).schools)
+    }
+
+    @Test
+    fun `a database without the school table has no school data rather than an error`() = withDirectory { directory ->
+        execute("ALTER TABLE school RENAME TO school_hidden")
+        try {
+            assertNull(directory.schools("9001"))
+        } finally {
+            execute("ALTER TABLE school_hidden RENAME TO school")
+        }
+    }
 }

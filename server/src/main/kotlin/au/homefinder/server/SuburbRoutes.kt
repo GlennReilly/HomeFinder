@@ -35,7 +35,7 @@ private suspend fun suburbAt(call: RoutingCall, directory: SuburbDirectory?) {
 
 private suspend fun suburbReport(call: RoutingCall, directory: SuburbDirectory?, ratings: RatingStore?) {
     val suburbId = call.parameters["suburbId"].orEmpty()
-    respondFrom(call, directory) { dir -> dir.find(suburbId)?.let { SuburbReportFactory.build(it, dir.stats(suburbId), ratings?.get(suburbId), dir.amenity(suburbId)) } }
+    respondFrom(call, directory) { dir -> dir.find(suburbId)?.let { SuburbReportFactory.build(it, dir.stats(suburbId), ratings?.get(suburbId), dir.amenity(suburbId), dir.schools(suburbId)) } }
 }
 
 /** Runs a lookup: 503 without a database or when it fails, 404 when nothing is found, otherwise the result as JSON. */

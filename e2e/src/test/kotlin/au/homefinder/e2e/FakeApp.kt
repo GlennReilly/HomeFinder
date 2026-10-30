@@ -8,12 +8,16 @@ import au.homefinder.shared.model.GeoBounds
 import au.homefinder.shared.model.HomelyRating
 import au.homefinder.shared.model.LotRef
 import au.homefinder.shared.model.LotReport
+import au.homefinder.shared.model.School
+import au.homefinder.shared.model.SchoolLevel
+import au.homefinder.shared.model.SchoolSector
 import au.homefinder.shared.model.SearchResponse
 import au.homefinder.shared.model.SearchResult
 import au.homefinder.shared.model.SearchResultKind
 import au.homefinder.shared.model.SuburbRatingPoint
 import au.homefinder.shared.model.SuburbRatingsResponse
 import au.homefinder.shared.model.SuburbReport
+import au.homefinder.shared.model.SuburbSchools
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import kotlinx.datetime.LocalDate
@@ -54,8 +58,17 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
     private fun <T> unknown(source: String = "test") = Attribute.unknown<T>(source, note = "Not computed yet")
 
     private fun suburbReport() = SuburbReport(
-        "9001", "HAMILTON", "2303", Attribute(1.46, Confidence.HIGH, "Test boundary"), unknown(), unknown(), unknown(), unknown(), unknown(),
-        unknown(), unknown(), unknown(), unknown(), unknown(), unknown(), unknown(),
+        suburbId = "9001", name = "HAMILTON", postcode = "2303", areaKm2 = Attribute(1.46, Confidence.HIGH, "Test boundary"),
+        medianHousePriceAud = unknown(), medianUnitPriceAud = unknown(), priceChange12MonthsPercent = unknown(), salesCount = unknown(),
+        blockSize = unknown(), floodShare = unknown(), brickShare = unknown(), beach = unknown(),
+        schools = Attribute(
+            SuburbSchools(
+                listOf(School("1", "Hamilton Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, 1051, 412, "https://hamilton-p.schools.nsw.gov.au", "Primary School")),
+                emptyList(), 1051,
+            ),
+            Confidence.HIGH, "Test schools", LocalDate(2026, 10, 2), "ICSEA is not a quality score",
+        ),
+        parkAreaShare = unknown(), shopping = unknown(), transport = unknown(),
         homelyRating = rating?.let { Attribute(it, Confidence.LOW, HomelyRating.SOURCE, LocalDate(2026, 10, 30), "typed in by you") }
             ?: Attribute.unknown(HomelyRating.SOURCE, note = "Not entered"),
     )

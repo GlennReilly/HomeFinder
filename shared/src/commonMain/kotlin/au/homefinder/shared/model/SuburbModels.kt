@@ -30,7 +30,12 @@ data class SuburbBrickShare(val likelyBrickShare: Double, val evidenceShare: Dou
 data class SuburbBeachDistance(val fromCentreM: Int, val fromNearestEdgeM: Int)
 
 @Serializable
-data class SuburbSchools(val publicSchoolsInside: List<School>, val catchments: List<School>)
+data class SuburbSchools(
+    val publicSchoolsInside: List<School>,
+    val catchments: List<School>,
+    /** The mean ICSEA of the schools that have one (rounded), or null when none has. */
+    val averageIcsea: Int? = null,
+)
 
 /** Shopping centres and supermarkets inside the suburb or within 2 km. */
 @Serializable
