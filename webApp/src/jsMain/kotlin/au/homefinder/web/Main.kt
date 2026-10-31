@@ -16,7 +16,12 @@ import au.homefinder.app.api.LookupResult
 import au.homefinder.app.api.RatingApi
 import au.homefinder.app.api.SearchApi
 import au.homefinder.app.api.SuburbApi
+import au.homefinder.app.selection.CardLayout
+import au.homefinder.app.selection.CardRow
+import au.homefinder.app.selection.LotCardRows
 import au.homefinder.app.selection.LotCardState
+import au.homefinder.app.selection.MapUiState
+import au.homefinder.app.selection.SuburbCardRows
 import au.homefinder.app.selection.MapViewModel
 import au.homefinder.app.selection.RatingOutcome
 import au.homefinder.app.selection.SearchViewModel
@@ -24,6 +29,7 @@ import au.homefinder.app.selection.SuburbCardState
 import au.homefinder.app.ui.CardActions
 import au.homefinder.app.ui.RatingForm
 import au.homefinder.app.ui.SearchIds
+import au.homefinder.app.ui.LayoutActions
 import au.homefinder.app.ui.lotCard
 import au.homefinder.app.ui.searchSuggestions
 import au.homefinder.app.ui.suburbCard
@@ -46,6 +52,8 @@ import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.events.KeyboardEvent
 
 private const val KEY_STORAGE = "homefinder.apiKey"
+private const val SUBURB_LAYOUT_STORAGE = "homefinder.layout.suburb"
+private const val LOT_LAYOUT_STORAGE = "homefinder.layout.lot"
 private const val ESCAPE = "Escape"
 private const val NOTICE_MILLIS = 4_000
 private const val ARROW_DOWN = "ArrowDown"
@@ -111,9 +119,15 @@ private fun start(apiKey: String) {
     }
     viewModel.ratingsVersion.onEach { refreshRatings() }.launchIn(scope)
 
+    val layouts = CardLayouts()
+    var latest = MapUiState()
+    fun redraw() = renderCard(card, latest.card, latest.lotCard, layouts)
+
     viewModel.state.onEach { state ->
         map.showSelection(state.selectedSuburbId, state.selectedLotId)
-        renderCard(card, state.card, state.lotCard)
+        if (state.selectedSuburbId != latest.selectedSuburbId || state.selectedLotId != latest.selectedLotId) layouts.customising = false
+        latest = state
+        redraw()
         if (state.notice != shownNotice) {
             val text = state.notice
             shownNotice = text
@@ -123,10 +137,18 @@ private fun start(apiKey: String) {
 
     // One listener for the buttons and one for the rating form, so re-rendering the card never loses them.
     card.addEventListener("click", { event ->
-        when ((event.target as? HTMLElement)?.getAttribute(CardActions.ATTRIBUTE)) {
+        val target = event.target as? HTMLElement
+        when (val action = target?.getAttribute(CardActions.ATTRIBUTE)) {
             CardActions.CLOSE -> viewModel.clear()
             CardActions.RETRY -> viewModel.retry()
             CardActions.REMOVE_RATING -> scope.launch { announce(viewModel.removeRating(), card, ::showNotice) }
+            LayoutActions.CUSTOMISE -> { layouts.customising = true; redraw() }
+            LayoutActions.DONE -> { layouts.customising = false; redraw() }
+            LayoutActions.RESET -> { layouts.reset(latest); redraw() }
+            LayoutActions.ROW_UP, LayoutActions.ROW_DOWN, LayoutActions.ROW_TOGGLE -> {
+                val label = target.getAttribute(LayoutActions.ROW_ATTRIBUTE)
+                if (label != null) { layouts.change(latest, action, label); redraw() }
+            }
         }
     })
     card.addEventListener("submit", { event ->
@@ -267,14 +289,59 @@ private fun wireSearch(scope: CoroutineScope, api: SearchApi, map: MapViewModel,
     })
 }
 
+/** Which rows each card shows and in what order (ADR 0039), kept in this browser; [customising] is the edit view and is not remembered. */
+private class CardLayouts {
+    var suburb: CardLayout = load(SUBURB_LAYOUT_STORAGE)
+    var lot: CardLayout = load(LOT_LAYOUT_STORAGE)
+    var customising: Boolean = false
+
+    private fun load(key: String): CardLayout = CardLayout.decode(runCatching { localStorage.getItem(key) }.getOrNull())
+
+    private fun save(key: String, layout: CardLayout) {
+        runCatching { localStorage.setItem(key, layout.encode()) }
+    }
+
+    /** The rows of the card on show, or null when it is not loaded. */
+    private fun rows(state: MapUiState): List<CardRow>? {
+        val lotCard = state.lotCard
+        val suburbCard = state.card
+        return when {
+            lotCard is LotCardState.Loaded -> LotCardRows.of(lotCard.report)
+            lotCard is LotCardState.Hidden && suburbCard is SuburbCardState.Loaded -> SuburbCardRows.of(suburbCard.report)
+            else -> null
+        }
+    }
+
+    private fun showsLot(state: MapUiState) = state.lotCard !is LotCardState.Hidden
+
+    fun change(state: MapUiState, action: String, label: String) {
+        val rows = rows(state) ?: return
+        val current = if (showsLot(state)) lot else suburb
+        val next = when (action) {
+            LayoutActions.ROW_UP -> current.moveUp(label, rows)
+            LayoutActions.ROW_DOWN -> current.moveDown(label, rows)
+            else -> current.toggle(label)
+        }
+        update(state, next)
+    }
+
+    fun reset(state: MapUiState) = update(state, CardLayout())
+
+    private fun update(state: MapUiState, next: CardLayout) {
+        if (showsLot(state)) { lot = next; save(LOT_LAYOUT_STORAGE, next) } else { suburb = next; save(SUBURB_LAYOUT_STORAGE, next) }
+    }
+}
+
 /** Shows the lot card when a lot is selected, else the suburb card; at most one is ever visible. */
-private fun renderCard(container: HTMLElement, suburb: SuburbCardState, lot: LotCardState) {
+private fun renderCard(container: HTMLElement, suburb: SuburbCardState, lot: LotCardState, layouts: CardLayouts) {
+    val scrolled = container.scrollTop
     container.hidden = suburb is SuburbCardState.Hidden && lot is LotCardState.Hidden
     container.innerHTML = ""
     when {
-        lot !is LotCardState.Hidden -> container.append { div { lotCard(lot) } }
-        suburb !is SuburbCardState.Hidden -> container.append { div { suburbCard(suburb) } }
+        lot !is LotCardState.Hidden -> container.append { div { lotCard(lot, layouts.lot, layouts.customising) } }
+        suburb !is SuburbCardState.Hidden -> container.append { div { suburbCard(suburb, layouts.suburb, layouts.customising) } }
     }
+    container.scrollTop = scrolled
 }
 
 /** Says how saving or removing a score went: success as a notice (the card has just been redrawn), a problem beside the form. */

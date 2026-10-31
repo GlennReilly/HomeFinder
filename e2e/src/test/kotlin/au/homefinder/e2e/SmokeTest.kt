@@ -113,6 +113,32 @@ class SmokeTest {
     }
 
     @Test
+    fun `rows can be hidden and moved on the suburb card, and the choice is remembered`() {
+        openWithKey()
+        tapSuburb()
+        val rows = page.locator("#card dl.rows .row")
+        page.locator("#card button[data-action=customise]").click()
+        page.locator("#card button[aria-label='Hide Flood']").click()
+        page.locator("#card button[aria-label='Move Typical block size up']").click()
+        assertThat(page.locator("#card dl.rows .row").first()).containsText("Typical block size")
+        assertThat(page.locator("#card .row-hidden")).containsText("Flood")
+        page.locator("#card button[data-action=customise-done]").click()
+        assertThat(page.locator("#card .row-controls")).hasCount(0)
+        assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Likely brick"))).hasCount(1)
+        assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Flood"))).hasCount(0)
+        assertThat(rows.first()).containsText("Typical block size")
+        page.reload()
+        assertThat(page.locator("#map canvas")).isVisible()
+        tapSuburb()
+        assertThat(rows.first()).containsText("Typical block size")
+        assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Flood"))).hasCount(0)
+        page.locator("#card button[data-action=customise]").click()
+        page.locator("#card button[data-action=layout-reset]").click()
+        assertThat(page.locator("#card dl.rows .row").first()).containsText("Typical block size".let { "Median house price" })
+        assertThat(page.locator("#card .row-hidden")).hasCount(0)
+    }
+
+    @Test
     fun `the Schools row lists the public schools with their ICSEA and own website, and links to My School`() {
         openWithKey()
         tapSuburb()

@@ -1,5 +1,7 @@
 package au.homefinder.app.ui
 
+import au.homefinder.app.selection.CardLayout
+import au.homefinder.app.selection.LotCardRows
 import au.homefinder.app.selection.LotCardState
 import au.homefinder.shared.api.SuburbRef
 import au.homefinder.shared.model.Attribute
@@ -62,5 +64,26 @@ class LotCardHtmlTest {
         val out = html(LotCardState.Loaded(report(listOf("<script>alert(1)</script>"))))
         assertFalse("<script>" in out)
         assertTrue(SuburbRef("1", "a", null).suburbId == "1")
+    }
+
+    private fun custom(layout: CardLayout, customising: Boolean) =
+        createHTML().div { lotCard(LotCardState.Loaded(report(listOf("12 MAIN STREET, HAMILTON NSW 2303"))), layout, customising) }
+
+    private fun labelsIn(out: String) = Regex("<dt>([^<]*)</dt>").findAll(out).map { it.groupValues[1] }.toList()
+
+    @Test
+    fun `hidden rows are left out and the chosen order is used`() {
+        val layout = CardLayout().toggle("Flood").moveDown("Block size", LotCardRows.of(report(emptyList())))
+        val labels = labelsIn(custom(layout, false))
+        assertFalse("Flood" in labels)
+        assertEquals(listOf("Wall material", "Block size"), labels.take(2))
+    }
+
+    @Test
+    fun `customising shows all twelve rows with controls and a Done button`() {
+        val out = custom(CardLayout().toggle("Flood"), true)
+        assertEquals(12, labelsIn(out).size)
+        assertEquals(12, Regex("""class="row-controls"""").findAll(out).count())
+        assertTrue("""aria-label="Show Flood"""" in out && """data-action="customise-done"""" in out)
     }
 }
