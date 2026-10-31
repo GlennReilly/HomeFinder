@@ -100,3 +100,12 @@ progress { width: 100%; margin: 16px 0; }
 #filters .hint, #filters .filter-status { font-size: .8rem; color: var(--muted); }
 #filters .filter-summary { font-weight: 600; }
 @media (max-width: 599.98px) { #filters { max-height: 40vh; } }
+
+/* Customising a card's rows (ADR 0039). */
+.layout-bar { margin: 8px 0; }
+.layout-bar .hint { margin: 0 0 6px; font-size: .85rem; color: var(--muted); }
+.layout-bar .buttons { display: flex; gap: 8px; }
+.layout-button { font-size: .8rem; padding: 4px 10px; cursor: pointer; }
+.layout-button:disabled { opacity: .4; cursor: default; }
+.row-controls { display: flex; gap: 6px; margin-top: 6px; }
+.row-hidden { opacity: .5; }

@@ -1,5 +1,7 @@
 package au.homefinder.app.ui
 
+import au.homefinder.app.selection.CardLayout
+import au.homefinder.app.selection.SuburbCardRows
 import au.homefinder.app.selection.SuburbCardState
 import au.homefinder.shared.api.SuburbRef
 import au.homefinder.shared.model.Attribute
@@ -181,5 +183,59 @@ class SuburbCardHtmlTest {
         assertTrue("No public schools inside the suburb" in out)
         assertFalse("myschool.edu.au" in out)
         assertFalse("""class="schools"""" in out)
+    }
+
+    private fun custom(layout: CardLayout, customising: Boolean) =
+        createHTML().div { suburbCard(SuburbCardState.Loaded(report), layout, customising) }
+
+    private fun labelsIn(out: String) = Regex("<dt>([^<]*)</dt>").findAll(out).map { it.groupValues[1] }.toList()
+
+    @Test
+    fun `a hidden row is not shown and the order you chose is used`() {
+        val layout = CardLayout().toggle("Flood").moveDown("Median house price", SuburbCardRows.of(report))
+        val labels = labelsIn(custom(layout, customising = false))
+        assertFalse("Flood" in labels)
+        assertEquals(listOf("Typical block size", "Median house price", "Median unit price"), labels.take(3))
+        assertTrue("Customise" in custom(layout, false))
+        assertFalse("row-controls" in custom(layout, false))
+    }
+
+    @Test
+    fun `customising shows every row with controls, hidden ones dimmed, and Done and Reset`() {
+        val out = custom(CardLayout().toggle("Flood"), customising = true)
+        assertEquals(12, labelsIn(out).size)
+        assertEquals(12, Regex("""class="row-controls"""").findAll(out).count())
+        assertEquals(1, Regex("""class="row row-hidden"""").findAll(out).count())
+        assertTrue("""aria-label="Show Flood"""" in out)
+        assertTrue("""aria-label="Hide Likely brick"""" in out)
+        assertTrue(Regex("""aria-label="Move Median house price up"[^>]*disabled""").containsMatchIn(out), "the first row cannot move up")
+        assertTrue(Regex("""aria-label="Move Transport down"[^>]*disabled""").containsMatchIn(out), "the last row cannot move down")
+        assertTrue("""data-action="customise-done"""" in out && """data-action="layout-reset"""" in out)
+        assertFalse("""data-action="customise"""" in out)
+    }
+
+    @Test
+    fun `the default layout offers no reset`() {
+        assertFalse("layout-reset" in custom(CardLayout(), customising = true))
+    }
+
+    @Test
+    fun `the Homely block stays under the price change row wherever it is moved, hidden or not`() {
+        val rows = SuburbCardRows.of(report)
+        val moved = CardLayout().moveUp(SuburbCardRows.PRICE_CHANGE_LABEL, rows).moveUp(SuburbCardRows.PRICE_CHANGE_LABEL, rows)
+        val out = custom(moved, false)
+        // The order is now house price, price change, block size, unit price: the Homely block follows the price change row.
+        assertTrue(out.indexOf("Median house price") < out.indexOf("Price change, 12 months"))
+        assertTrue(out.indexOf("Price change, 12 months") < out.indexOf("homely.com.au") && out.indexOf("homely.com.au") < out.indexOf("Typical block size"))
+        val hidden = custom(CardLayout().toggle(SuburbCardRows.PRICE_CHANGE_LABEL), false)
+        assertFalse("Price change, 12 months" in hidden)
+        assertTrue(hidden.indexOf("Sales behind") > hidden.indexOf("homely.com.au"), "the block keeps the hidden row's place")
+        assertTrue("Your Homely rating" in hidden)
+    }
+
+    @Test
+    fun `with every row hidden the card says so`() {
+        val all = CardLayout(hidden = SuburbCardRows.of(report).map { it.label }.toSet())
+        assertTrue(ALL_HIDDEN_HINT in custom(all, false))
     }
 }

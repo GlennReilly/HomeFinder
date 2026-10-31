@@ -1,5 +1,7 @@
 package au.homefinder.app.ui
 
+import au.homefinder.app.selection.ArrangedRow
+import au.homefinder.app.selection.CardLayout
 import au.homefinder.app.selection.CardRow
 import au.homefinder.app.selection.SuburbCardRows
 import au.homefinder.app.selection.SuburbCardState
@@ -73,7 +75,7 @@ fun provenanceLine(row: CardRow): String =
  * The Suburb Card as plain HTML (ADR 0019). Unknown values read "Unknown" in italics, never blank; every row names its
  * source, as-of date and confidence. Buttons carry a [CardActions.ATTRIBUTE] the page wires up.
  */
-fun FlowContent.suburbCard(card: SuburbCardState) {
+fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayout(), customising: Boolean = false) {
     section("suburb-card") {
         attributes["aria-label"] = "Suburb card"
         div("card-header") {
@@ -98,10 +100,14 @@ fun FlowContent.suburbCard(card: SuburbCardState) {
                 }
             }
             is SuburbCardState.Loaded -> {
-                val rows = SuburbCardRows.of(card.report)
-                // Under the price change: the link to Homely, then the score you entered (when there is one), then its entry form.
-                val split = rows.indexOfFirst { it.label == SuburbCardRows.PRICE_CHANGE_LABEL } + 1
-                dl("rows") { rows.take(split).forEach { cardRow(it) } }
+                // Customising shows every row (hidden ones dimmed) with its controls; otherwise only the rows not hidden.
+                val arranged = layout.arrange(SuburbCardRows.of(card.report)).filter { customising || !it.hidden }
+                layoutBar(customising, layout.isDefault)
+                if (arranged.isEmpty()) p("hint") { +ALL_HIDDEN_HINT }
+                // Under the price change, wherever you put it (the row's place counts even when it is hidden): the link to Homely,
+                // then the score you entered (when there is one), then its entry form.
+                val split = arranged.indexOfFirst { it.row.label == SuburbCardRows.PRICE_CHANGE_LABEL } + 1
+                dl("rows") { arranged.take(split).forEachIndexed { i, item -> cardRow(item, i, arranged.size, customising) } }
                 ExternalLinks.homelySuburbProfile(card.report.name, card.report.postcode)?.let { url ->
                     p("external") {
                         a(href = url, target = "_blank", classes = "external-link") {
@@ -110,11 +116,11 @@ fun FlowContent.suburbCard(card: SuburbCardState) {
                         }
                     }
                 }
-                SuburbCardRows.homely(card.report)?.let { homely -> dl("rows") { cardRow(homely) } }
+                SuburbCardRows.homely(card.report)?.let { homely -> dl("rows") { cardRow(ArrangedRow(homely, hidden = false), 0, 1, customising = false) } }
                 ratingForm(card.report)
                 dl("rows") {
-                    rows.drop(split).forEach { row ->
-                        cardRow(row, if (row.label == SuburbCardRows.SCHOOLS_LABEL) schoolList(card.report) else null)
+                    arranged.drop(split).forEachIndexed { i, item ->
+                        cardRow(item, split + i, arranged.size, customising, if (item.row.label == SuburbCardRows.SCHOOLS_LABEL) schoolList(card.report) else null)
                     }
                 }
                 p("disclaimer") { +CARD_DISCLAIMER }
@@ -203,15 +209,23 @@ private fun schoolList(report: SuburbReport): (kotlinx.html.DIV.() -> Unit)? {
     }
 }
 
-private fun kotlinx.html.DL.cardRow(row: CardRow, extra: (kotlinx.html.DIV.() -> Unit)? = null) {
+private fun kotlinx.html.DL.cardRow(
+    item: ArrangedRow,
+    index: Int,
+    count: Int,
+    customising: Boolean,
+    extra: (kotlinx.html.DIV.() -> Unit)? = null,
+) {
     val list = this
+    val row = item.row
     // dt and dd are only defined on the list, so call them through it from inside the row's div.
-    div("row") {
+    div(if (item.hidden) "row row-hidden" else "row") {
         list.dt { +row.label }
         val value = row.value
         list.dd(if (value == null) "value unknown" else "value") { +(value ?: SuburbCardRows.UNKNOWN) }
         list.dd("provenance") { +provenanceLine(row) }
         row.note?.let { list.dd("note") { +it } }
         extra?.invoke(this)
+        if (customising) rowControls(item, first = index == 0, last = index == count - 1)
     }
 }

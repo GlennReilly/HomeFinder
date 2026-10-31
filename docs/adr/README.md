@@ -40,3 +40,4 @@
 | [0036](0036-lot-height-and-slope-from-dem.md) | Lot height and slope from the 5 m DEM | Accepted |
 | [0037](0037-dem-request-in-degrees.md) | DEM request in degrees, resampled to metres | Accepted |
 | [0038](0038-sales-window-ends-on-latest-sale.md) | Sales windows end on the latest sale | Accepted |
+| [0039](0039-card-rows-hidden-and-reordered-in-the-browser.md) | Card rows are hidden and re-ordered in the browser | Accepted |

@@ -1,6 +1,7 @@
 package au.homefinder.app.ui
 
-import au.homefinder.app.selection.CardRow
+import au.homefinder.app.selection.ArrangedRow
+import au.homefinder.app.selection.CardLayout
 import au.homefinder.app.selection.LotCardRows
 import au.homefinder.app.selection.LotCardState
 import kotlinx.html.ButtonType
@@ -41,7 +42,7 @@ fun lotCardSubtitle(card: LotCardState): String? = when (card) {
  * The basic lot card as plain HTML (ADR 0022), sharing the Suburb Card's look, buttons and provenance lines. Several
  * addresses (a strata plan) are listed under the header.
  */
-fun FlowContent.lotCard(card: LotCardState) {
+fun FlowContent.lotCard(card: LotCardState, layout: CardLayout = CardLayout(), customising: Boolean = false) {
     section("suburb-card lot-card") {
         attributes["aria-label"] = "Lot card"
         div("card-header") {
@@ -69,20 +70,25 @@ fun FlowContent.lotCard(card: LotCardState) {
                 if (card.report.addresses.size > 1) {
                     ul("addresses") { card.report.addresses.forEach { li { +it } } }
                 }
-                dl("rows") { LotCardRows.of(card.report).forEach { lotRow(it) } }
+                val arranged = layout.arrange(LotCardRows.of(card.report)).filter { customising || !it.hidden }
+                layoutBar(customising, layout.isDefault)
+                if (arranged.isEmpty()) p("hint") { +ALL_HIDDEN_HINT }
+                dl("rows") { arranged.forEachIndexed { i, item -> lotRow(item, i, arranged.size, customising) } }
                 p("disclaimer") { +CARD_DISCLAIMER }
             }
         }
     }
 }
 
-private fun DL.lotRow(row: CardRow) {
+private fun DL.lotRow(item: ArrangedRow, index: Int, count: Int, customising: Boolean) {
     val list = this
-    div("row") {
+    val row = item.row
+    div(if (item.hidden) "row row-hidden" else "row") {
         list.dt { +row.label }
         val value = row.value
         list.dd(if (value == null) "value unknown" else "value") { +(value ?: "Unknown") }
         list.dd("provenance") { +provenanceLine(row) }
         row.note?.let { list.dd("note") { +it } }
+        if (customising) rowControls(item, first = index == 0, last = index == count - 1)
     }
 }
