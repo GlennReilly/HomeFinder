@@ -60,6 +60,7 @@ class SuburbCardHtmlTest {
         val out = html(SuburbCardState.Loaded(report))
         assertTrue("""data-action="close"""" in out)
         assertTrue("""aria-label="Close suburb card"""" in out)
+        assertTrue(Regex("""class="close"[^>]*>×</button>""").containsMatchIn(out), "the button shows a cross, not the word")
     }
 
     @Test

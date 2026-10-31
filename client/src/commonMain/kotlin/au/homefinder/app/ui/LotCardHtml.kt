@@ -53,7 +53,7 @@ fun FlowContent.lotCard(card: LotCardState, layout: CardLayout = CardLayout(), c
             button(type = ButtonType.button, classes = "close") {
                 attributes[CardActions.ATTRIBUTE] = CardActions.CLOSE
                 attributes["aria-label"] = "Close lot card"
-                +"Close"
+                +CLOSE_BUTTON_TEXT
             }
         }
         when (card) {
