@@ -37,6 +37,9 @@ object CardActions {
     const val REMOVE_RATING: String = "remove-rating"
 }
 
+/** The close button shows a cross; its aria-label carries the words. */
+const val CLOSE_BUTTON_TEXT: String = "×"
+
 /** The link's words say where it goes: it leaves this app. */
 const val HOMELY_LINK_TEXT: String = "Reviews on Homely (opens homely.com.au)"
 
@@ -86,7 +89,7 @@ fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayou
             button(type = ButtonType.button, classes = "close") {
                 attributes[CardActions.ATTRIBUTE] = CardActions.CLOSE
                 attributes["aria-label"] = "Close suburb card"
-                +"Close"
+                +CLOSE_BUTTON_TEXT
             }
         }
         when (card) {

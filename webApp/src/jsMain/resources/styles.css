@@ -109,3 +109,6 @@ progress { width: 100%; margin: 16px 0; }
 .layout-button:disabled { opacity: .4; cursor: default; }
 .row-controls { display: flex; gap: 6px; margin-top: 6px; }
 .row-hidden { opacity: .5; }
+
+/* The close button is a cross. */
+button.close { font-size: 1.3rem; line-height: 1; padding: 2px 10px; cursor: pointer; }
