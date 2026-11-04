@@ -153,7 +153,7 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
                     val values = buildList {
                         while (rows.next()) {
                             val icsea = rows.getInt("average_icsea").takeIf { !rows.wasNull() }
-                            add(SuburbFilterRow(rows.getString("suburb_id"), icsea, double("beach_km"), double("park_share"), double("rented_share")))
+                            add(SuburbFilterRow(rows.getString("suburb_id"), icsea, double("beach_km"), double("park_share"), double("rented_share"), rows.getString("name").orEmpty()))
                         }
                     }
                     SuburbFilterData(values, schoolsDate, schoolsLoaded = schools, osmLoaded = amenity, osmAsOf = osmDate, censusLoaded = census)
@@ -259,7 +259,7 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
             val rented = if (census) "CASE WHEN k.tenure_stated > 0 THEN k.rented::float8 / k.tenure_stated END" else "NULL::float8"
             val joins = (if (amenity) " LEFT JOIN suburb_amenity a ON a.suburb_id = s.suburb_id" else "") +
                 (if (census) " LEFT JOIN suburb_census k ON k.suburb_id = s.suburb_id" else "")
-            return "SELECT s.suburb_id, $icsea AS average_icsea, $beach AS beach_km, $park AS park_share, $rented AS rented_share " +
+            return "SELECT s.suburb_id, s.name, $icsea AS average_icsea, $beach AS beach_km, $park AS park_share, $rented AS rented_share " +
                 "FROM suburb s$joins ORDER BY s.suburb_id"
         }
 

@@ -6,6 +6,13 @@ import au.homefinder.app.filter.FilterCriterion
 import au.homefinder.app.filter.FilterData
 import au.homefinder.app.filter.FilterRange
 import au.homefinder.app.filter.FilterSelection
+import au.homefinder.app.filter.Preference
+import au.homefinder.app.filter.ScoreSetup
+import au.homefinder.app.filter.ScoreWeight
+import au.homefinder.app.ui.ScoreIds
+import au.homefinder.app.ui.scoreRankingLines
+import au.homefinder.app.ui.scoreSummaryText
+import org.w3c.dom.HTMLSelectElement
 import au.homefinder.app.ui.FILTER_LOADING_TEXT
 import au.homefinder.app.ui.FILTER_UNAVAILABLE_TEXT
 import au.homefinder.app.ui.FilterIds
@@ -189,8 +196,31 @@ private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap) 
         }.toMap(),
     )
 
+    fun scoreSetup(): ScoreSetup = ScoreSetup(
+        FilterCriterion.entries.mapNotNull { criterion ->
+            val weight = input(ScoreIds.weight(criterion))?.value?.toIntOrNull() ?: return@mapNotNull null
+            val preference = (document.getElementById(ScoreIds.preference(criterion)) as? HTMLSelectElement)?.value
+                ?.let { name -> Preference.entries.firstOrNull { it.name == name } } ?: return@mapNotNull null
+            criterion to ScoreWeight(weight.coerceIn(0, ScoreWeight.MAX_WEIGHT), preference)
+        }.toMap(),
+    )
+
+    fun refreshScores(loaded: FilterData) {
+        val scored = loaded.score(scoreSetup())
+        view.showScores(scored.scores)
+        document.getElementById(ScoreIds.SUMMARY)?.textContent = scoreSummaryText(scored)
+        FilterCriterion.entries.forEach { criterion ->
+            input(ScoreIds.weight(criterion))?.let { document.getElementById(ScoreIds.weightOut(criterion))?.textContent = it.value }
+        }
+        document.getElementById(ScoreIds.RANKING)?.let { list ->
+            list.innerHTML = ""
+            scoreRankingLines(scored).forEach { line -> list.appendChild(document.createElement("li").also { it.textContent = line }) }
+        }
+    }
+
     fun refresh() {
         val loaded = data ?: return
+        refreshScores(loaded)
         val result = loaded.apply(selection())
         view.showFilter(result.passingIds)
         document.getElementById(FilterIds.SUMMARY)?.textContent = filterSummaryText(result)

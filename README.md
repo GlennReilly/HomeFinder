@@ -110,8 +110,8 @@ distance to the beach (km from the suburb's centre), park share (%) and share of
 buttons), switch on one or more criteria and move their sliders: suburbs that pass every switched-on criterion are tinted green and the rest are
 washed out, with no further requests. A suburb with no value for a switched-on criterion never matches, and each slider says how many suburbs
 that is. A criterion whose data has not been loaded says so instead of showing sliders. The data comes from `pipeline/scripts/load-schools.sh`
-(ICSEA), `load-osm.sh` (beach and parks) and `load-census.sh` (homes rented). Transport and a weighted-score mode come later; see
-[ADR 0035](docs/adr/0035-suburb-filter-panel.md) and [ADR 0046](docs/adr/0046-filters-beach-parks-rented.md).
+(ICSEA), `load-osm.sh` (beach and parks) and `load-census.sh` (homes rented). Moving a slider switches its criterion on. Under the filters, **Score suburbs** gives each criterion a weight (0 to 5) and a better end; every suburb is scored 0 to 100 against the others, shaded blue on the map, and the top 10 are listed (a suburb missing a value is scored on the rest and marked partial). Transport comes later; see
+[ADR 0035](docs/adr/0035-suburb-filter-panel.md), [ADR 0046](docs/adr/0046-filters-beach-parks-rented.md) and [ADR 0047](docs/adr/0047-weighted-score-mode.md).
 
 ### Customising the cards
 
