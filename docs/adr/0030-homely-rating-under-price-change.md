@@ -1,6 +1,6 @@
 # 0030. The Homely score sits under the price change
 
-Status: Accepted
+Status: Superseded by 0043 (the Homely block's contents and the form's visibility); the anchor under the price change stands
 
 ## Context
 ADR 0028 put the "Homely rating" row right under Area and the entry form at the end of the card. You asked for both to
