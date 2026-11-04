@@ -1,10 +1,13 @@
 package au.homefinder.app.selection
 
+import au.homefinder.shared.model.DrainageHint
+import au.homefinder.shared.model.DrainageProximity
 import au.homefinder.shared.model.LotReport
 import au.homefinder.shared.model.ParkAccess
 import au.homefinder.shared.model.Proximity
 import au.homefinder.shared.model.ProximityList
 import au.homefinder.shared.model.SlopeSummary
+import kotlin.math.roundToLong
 
 /** The rows of the basic lot card (ADR 0022): the measured block size, then every other factor in the spec's order. */
 object LotCardRows {
@@ -19,6 +22,7 @@ object LotCardRows {
         SuburbCardRows.row("Flood", report.flood) { it.toString() },
         SuburbCardRows.row("Slope", report.slope, ::slope),
         SuburbCardRows.row("Height above sea level", report.elevationM, ::height),
+        SuburbCardRows.row("Height above drainage", report.heightAboveDrainage, ::drainage),
         SuburbCardRows.row("Estimated price", report.estimatedPriceAud) { it.toString() },
         SuburbCardRows.row("Distance to the beach", report.beach, ::beach),
         SuburbCardRows.row("Schools", report.schools) { it.toString() },
@@ -33,6 +37,26 @@ object LotCardRows {
     fun slope(slope: SlopeSummary): String =
         "${slope.slopeClass.name.lowercase().replaceFirstChar { it.uppercase() }}, " +
             "${Formats.decimal(slope.meanPercent, 1)}% on average (steepest ${Formats.decimal(slope.maxPercent, 1)}%)"
+
+    /** Streams draining fewer hectares than this show one decimal place, bigger ones whole hectares. */
+    private const val HECTARE_DECIMALS_BELOW: Double = 10.0
+
+    private fun hectares(value: Double): String =
+        if (value < HECTARE_DECIMALS_BELOW) "${Formats.decimal(value, 1)} ha" else "${Formats.grouped(value.roundToLong())} ha"
+
+    /**
+     * "Very close to a drainage line, 0.4 m above a stream draining 21 ha": the class first, then the figures behind it (ADR 0040). This
+     * says where water runs; it never says a lot floods.
+     */
+    fun drainage(hint: DrainageHint): String {
+        val position = when (hint.proximity) {
+            DrainageProximity.VERY_CLOSE -> "Very close to a drainage line"
+            DrainageProximity.CLOSE -> "Close to a drainage line"
+            DrainageProximity.MODERATE -> "Some way above a drainage line"
+            DrainageProximity.WELL_ABOVE -> "Well above any drainage line"
+        }
+        return "$position, ${Formats.decimal(hint.heightAboveDrainageM, 1)} m above a stream draining ${hectares(hint.streamCatchmentHa)}"
+    }
 
     /** A walking estimate is only worth showing for a walk: beyond this many minutes the distance alone is said. */
     const val WALK_ESTIMATE_MAX_MINUTES: Int = 60

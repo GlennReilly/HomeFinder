@@ -2,6 +2,8 @@ package au.homefinder.server
 
 import au.homefinder.shared.model.Attribute
 import au.homefinder.shared.model.Confidence
+import au.homefinder.shared.model.DrainageHint
+import au.homefinder.shared.model.DrainageProximity
 import au.homefinder.shared.model.LotReport
 import au.homefinder.shared.model.ParkAccess
 import au.homefinder.shared.model.Proximity
@@ -40,6 +42,13 @@ object LotReportFactory {
         "Mean height above sea level of the lot's 5 m pixels. Bare ground from LiDAR surveys between 2001 and 2015, so buildings and later earthworks are not shown"
     const val SLOPE_NOTE: String =
         "Rise over run between neighbouring 5 m pixels, averaged over the lot; the steepest step is the maximum. Which way the lot falls is not worked out yet"
+    const val DRAINAGE_NOT_LOADED_NOTE: String = "Height above drainage not computed yet"
+    const val DRAINAGE_NO_RESULT_NOTE: String =
+        "No result for this lot: no elevation data covers it, or its water leaves the mapped area before meeting a stream"
+    const val DRAINAGE_NOTE: String =
+        "How far the lot's ground stands above the first stream its water reaches, from the 5 m LiDAR DEM; a stream is where at least 5 ha drain through one pixel. " +
+            "An indication of where water runs, not a flood result: it ignores drains, culverts and levees, and the LiDAR surveys end in 2015. " +
+            "Checked against the council's 10% annual-chance flood corridor in ELERMORE VALE only (ADR 0040): under 1 m touched it for 43% of lots, over 5 m for under 1%"
     private const val PRICE_SOURCE = "NSW Valuer General"
     private const val LISTING_SOURCE = "Licensed listing text"
     private const val EDUCATION_SOURCE = "NSW Department of Education"
@@ -52,7 +61,12 @@ object LotReportFactory {
 
     private fun <T> unknown(source: String): Attribute<T> = Attribute.unknown(source, note = NOT_COMPUTED_NOTE)
 
-    fun build(record: LotRecord, proximity: LotProximity? = null, terrain: LotTerrainData? = null): LotReport {
+    fun build(
+        record: LotRecord,
+        proximity: LotProximity? = null,
+        terrain: LotTerrainData? = null,
+        drainage: LotDrainageData? = null,
+    ): LotReport {
         val strata = isStrata(record.parcelKey)
         return LotReport(
             lotId = record.lotId,
@@ -76,7 +90,18 @@ object LotReportFactory {
             shopping = shopping(proximity),
             transport = unknown(TRANSPORT_SOURCE),
             elevationM = elevation(terrain),
+            heightAboveDrainage = heightAboveDrainage(drainage),
         )
+    }
+
+    /** Low confidence on purpose: it is a proxy checked in one suburb (ADR 0040), and never a flood result. */
+    private fun heightAboveDrainage(data: LotDrainageData?): Attribute<DrainageHint> {
+        if (data == null) return Attribute.unknown(DEM_SOURCE, note = DRAINAGE_NOT_LOADED_NOTE)
+        val drainage = data.drainage ?: return Attribute.unknown(DEM_SOURCE, data.computedOn, DRAINAGE_NO_RESULT_NOTE)
+        val hint = DrainageHint(
+            drainage.heightAboveDrainageM, drainage.streamCatchmentHa, DrainageProximity.fromHeightM(drainage.heightAboveDrainageM),
+        )
+        return Attribute(hint, Confidence.LOW, DEM_SOURCE, data.computedOn, DRAINAGE_NOTE)
     }
 
     private fun <T> demUnknown(terrain: LotTerrainData?): Attribute<T> = when {

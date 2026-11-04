@@ -50,6 +50,21 @@ data class SlopeSummary(
     }
 }
 
+/**
+ * Where a lot's water goes (ADR 0040): the lot's ground height above the first stream it drains to, and the size of that stream's catchment
+ * in hectares (a gully draining 5 ha or a creek draining hundreds). Derived from the 5 m DEM; an indication, not a flood result.
+ */
+@Serializable
+data class DrainageHint(
+    val heightAboveDrainageM: Double,
+    val streamCatchmentHa: Double,
+    val proximity: DrainageProximity,
+) {
+    init {
+        require(heightAboveDrainageM >= 0.0 && streamCatchmentHa > 0.0) { "Height above drainage must be at least 0 and the catchment positive" }
+    }
+}
+
 @Serializable
 data class ComparableSale(
     val address: String,

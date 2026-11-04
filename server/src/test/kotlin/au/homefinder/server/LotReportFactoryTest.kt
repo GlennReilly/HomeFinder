@@ -2,6 +2,7 @@ package au.homefinder.server
 
 import au.homefinder.shared.model.ApiJson
 import au.homefinder.shared.model.Confidence
+import au.homefinder.shared.model.DrainageProximity
 import au.homefinder.shared.model.LotReport
 import au.homefinder.shared.model.SlopeClass
 import kotlinx.datetime.LocalDate
@@ -129,6 +130,32 @@ class LotReportFactoryTest {
         assertEquals(21.3, slope.maxPercent)
         assertEquals(null, slope.fall, "which way the lot falls is not worked out")
         assertTrue("not worked out" in report.slope.note.orEmpty())
+    }
+
+    @Test
+    fun `drainage becomes a hint with its class, low confidence and a note that it is not a flood result`() {
+        val report = LotReportFactory.build(lot, drainage = LotDrainageData(LotDrainage(0.45, 20.9), loaded))
+        val hint = assertNotNull(report.heightAboveDrainage.value)
+        assertEquals(0.45, hint.heightAboveDrainageM)
+        assertEquals(20.9, hint.streamCatchmentHa)
+        assertEquals(DrainageProximity.VERY_CLOSE, hint.proximity)
+        assertEquals(Confidence.LOW, report.heightAboveDrainage.confidence)
+        assertEquals(LotReportFactory.DEM_SOURCE, report.heightAboveDrainage.source)
+        assertEquals(loaded, report.heightAboveDrainage.asOf)
+        assertTrue("not a flood result" in report.heightAboveDrainage.note.orEmpty())
+        assertTrue(report.flood.isUnknown, "flood stays unknown: drainage is not a flood result")
+        assertEquals(DrainageProximity.WELL_ABOVE, LotReportFactory.build(lot, drainage = LotDrainageData(LotDrainage(7.2, 150.0), loaded)).heightAboveDrainage.value?.proximity)
+    }
+
+    @Test
+    fun `without a drainage load the hint is unknown and says so, and a lot with no result says why`() {
+        val notLoaded = LotReportFactory.build(lot)
+        assertTrue(notLoaded.heightAboveDrainage.isUnknown)
+        assertEquals(LotReportFactory.DRAINAGE_NOT_LOADED_NOTE, notLoaded.heightAboveDrainage.note)
+        val noResult = LotReportFactory.build(lot, drainage = LotDrainageData(null, loaded))
+        assertTrue(noResult.heightAboveDrainage.isUnknown)
+        assertEquals(LotReportFactory.DRAINAGE_NO_RESULT_NOTE, noResult.heightAboveDrainage.note)
+        assertEquals(loaded, noResult.heightAboveDrainage.asOf)
     }
 
     @Test

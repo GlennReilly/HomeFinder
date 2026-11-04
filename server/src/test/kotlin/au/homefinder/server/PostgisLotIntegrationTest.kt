@@ -193,6 +193,28 @@ class PostgisLotIntegrationTest {
     }
 
     @Test
+    fun `drainage is read per lot, a lot without a row has no result, and an empty table means nothing is loaded`() = withLots { directory, _ ->
+        execute("TRUNCATE lot_drainage")
+        assertNull(directory.drainage("1001"), "nothing loaded yet")
+        execute("INSERT INTO lot_drainage (lot_id, height_above_drainage_m, stream_catchment_ha, computed_on) VALUES ('1001', 0.45, 20.9, '2026-11-04')")
+        val data = assertNotNull(directory.drainage("1001"))
+        assertEquals(kotlinx.datetime.LocalDate(2026, 11, 4), data.computedOn)
+        assertEquals(LotDrainage(0.45, 20.9), data.drainage)
+        assertNull(assertNotNull(directory.drainage("1002")).drainage, "loaded, but this lot has no result")
+        assertNull(assertNotNull(directory.drainage("1001' OR '1'='1")).drainage)
+    }
+
+    @Test
+    fun `a database without the drainage table has no drainage rather than an error`() = withLots { directory, _ ->
+        execute("ALTER TABLE lot_drainage RENAME TO lot_drainage_hidden")
+        try {
+            assertNull(directory.drainage("1001"))
+        } finally {
+            execute("ALTER TABLE lot_drainage_hidden RENAME TO lot_drainage")
+        }
+    }
+
+    @Test
     fun `a database without the terrain table has no terrain rather than an error`() = withLots { directory, _ ->
         execute("ALTER TABLE lot_terrain RENAME TO lot_terrain_hidden")
         try {

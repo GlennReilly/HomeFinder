@@ -33,4 +33,6 @@ data class LotReport(
     val transport: Attribute<TransportInfo>,
     /** Mean height above sea level in metres (ADR 0036). */
     val elevationM: Attribute<Double> = Attribute.unknown("Geoscience Australia 5 m LiDAR DEM", note = "Not computed yet"),
+    /** How far the lot stands above the stream its water drains to, and how big that stream is (ADR 0040). Not a flood result. */
+    val heightAboveDrainage: Attribute<DrainageHint> = Attribute.unknown("Geoscience Australia 5 m LiDAR DEM", note = "Not computed yet"),
 )
