@@ -71,8 +71,13 @@ progress { width: 100%; margin: 16px 0; }
 .search-status.error { color: #b3261e; }
 
 /* The Homely score you type in. */
-.rating-form { margin: 0; padding: 12px 0; border-top: 1px solid rgba(128, 128, 128, .35); }
-.rating-form h3 { margin: 0 0 4px; font-size: 1rem; }
+.homely { padding: 0; border-top: 1px solid rgba(128, 128, 128, .35); }
+.homely dl.rows { margin: 0; }
+.homely .external { border-top: none; padding: 8px 0; }
+.rating-edit { padding: 0 0 12px; }
+.rating-edit summary { cursor: pointer; width: fit-content; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.rating-edit summary:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
+.rating-form { margin: 0; padding: 10px 0 0; }
 .rating-form .hint { margin: 0 0 10px; font-size: .8rem; color: var(--muted); }
 .rating-form .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .rating-form label { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); }

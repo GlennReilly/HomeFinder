@@ -98,7 +98,7 @@ flies to street level and opens its lot card, or says "No lot found for this add
 `GET /v1/suburbs/ratings` lists the Homely star scores you have typed in, and `PUT` / `DELETE /v1/suburbs/{id}/rating` set and remove one
 (stars 0 to 5, an optional review count). Nothing is fetched from Homely. They need migration V13.
 
-In the app: open a suburb's card, copy the score from its Homely page into "Your Homely rating" (stars, and the number of reviews if you like) and press Save.
+In the app: open a suburb's card, press "Edit the Homely rating" in the Homely block (under the price change, beside the "Reviews on Homely" link), copy the score from its Homely page into the form (stars, and the number of reviews if you like) and press Save.
 The card then shows a "Homely rating" row under the area, and a "★ 2.1" label appears under the suburb's name on the map. Remove clears both. See
 [ADR 0028](docs/adr/0028-manual-homely-rating.md).
 

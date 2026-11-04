@@ -209,10 +209,18 @@ class SmokeTest {
         assertThat(page.locator("#search-results")).containsText("No matches")
     }
 
+    /** The rating form stays closed until the "Edit the Homely rating" link is pressed. */
+    private fun openRatingForm() {
+        page.locator("#card details.rating-edit summary").click()
+    }
+
     @Test
     fun `a Homely score can be saved, shows under the price change and can be removed`() {
         openWithKey()
         tapSuburb()
+        assertThat(page.locator("#card details.rating-edit")).not().hasAttribute("open", "")
+        assertThat(page.locator("#card input[name=stars]")).isHidden()
+        openRatingForm()
         page.locator("#card input[name=stars]").fill("2.1")
         page.locator("#card input[name=reviews]").fill("7")
         page.locator("#card form.rating-form button[type=submit]").click()
@@ -220,14 +228,16 @@ class SmokeTest {
         assertThat(row).containsText("2.1 ★ (7 reviews)")
         assertThat(row).containsText("Homely (entered by you)")
         assertEquals(2.1, app.rating?.stars)
-        // The rows read in the order the card promises: price change, the link, the rating, then its form.
-        val order = page.locator("#card dl.rows .row dt, #card a.external-link, #card form.rating-form h3").allInnerTexts()
+        // The rows read in the order the card promises: price change, the rating, the link to its reviews, then the edit link.
+        val order = page.locator("#card dl.rows .row dt, #card a.external-link, #card details.rating-edit summary").allInnerTexts()
         val change = order.indexOfFirst { it.startsWith("Price change") }
-        val link = order.indexOfFirst { it.startsWith("Reviews on Homely") }
         val score = order.indexOf("Homely rating")
-        val form = order.indexOf("Your Homely rating")
-        assertTrue(change in 0 until link && link < score && score < form, "order was $order")
+        val link = order.indexOfFirst { it.startsWith("Reviews on Homely") }
+        val edit = order.indexOf("Edit the Homely rating")
+        assertTrue(change in 0 until score && score < link && link < edit, "order was $order")
+        assertThat(page.locator("#card details.rating-edit")).not().hasAttribute("open", "")
 
+        openRatingForm()
         page.locator("#card button", Page.LocatorOptions().setHasText("Remove")).click()
         assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Homely rating"))).hasCount(0)
         assertEquals(null, app.rating)
@@ -237,6 +247,7 @@ class SmokeTest {
     fun `a score out of range is refused with the reason and nothing is saved`() {
         openWithKey()
         tapSuburb()
+        openRatingForm()
         page.locator("#card input[name=stars]").fill("9")
         page.locator("#card form.rating-form button[type=submit]").click()
         assertThat(page.locator("#card .rating-message")).hasText("Stars must be a number from 0 to 5")
@@ -248,6 +259,7 @@ class SmokeTest {
         openWithKey()
         tapSuburb()
         app.failSavingRatings = true
+        openRatingForm()
         page.locator("#card input[name=stars]").fill("3")
         page.locator("#card form.rating-form button[type=submit]").click()
         assertThat(page.locator("#card .rating-message")).containsText("Could not save")

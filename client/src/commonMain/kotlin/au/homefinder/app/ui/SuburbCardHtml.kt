@@ -22,6 +22,9 @@ import kotlinx.html.a
 import kotlinx.html.button
 import kotlinx.html.dd
 import kotlinx.html.div
+import kotlinx.html.DETAILS
+import kotlinx.html.details
+import kotlinx.html.summary
 import kotlinx.html.dl
 import kotlinx.html.dt
 import kotlinx.html.h2
@@ -42,6 +45,9 @@ const val CLOSE_BUTTON_TEXT: String = "×"
 
 /** The link's words say where it goes: it leaves this app. */
 const val HOMELY_LINK_TEXT: String = "Reviews on Homely (opens homely.com.au)"
+
+/** The link that opens the rating form, which stays hidden until then. */
+const val RATING_EDIT_TEXT: String = "Edit the Homely rating"
 
 /** The link's words say where it goes and what to do there: the schools are named above, My School is searched by name. */
 const val MY_SCHOOL_LINK_TEXT: String = "Look these schools up on My School (opens myschool.edu.au)"
@@ -107,20 +113,22 @@ fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayou
                 val arranged = layout.arrange(SuburbCardRows.of(card.report)).filter { customising || !it.hidden }
                 layoutBar(customising, layout.isDefault)
                 if (arranged.isEmpty()) p("hint") { +ALL_HIDDEN_HINT }
-                // Under the price change, wherever you put it (the row's place counts even when it is hidden): the link to Homely,
-                // then the score you entered (when there is one), then its entry form.
+                // Under the price change, wherever you put it (the row's place counts even when it is hidden): the Homely block, which holds
+                // the score you entered (when there is one), the link to the suburb's reviews on Homely, and the form to edit the score.
                 val split = arranged.indexOfFirst { it.row.label == SuburbCardRows.PRICE_CHANGE_LABEL } + 1
                 dl("rows") { arranged.take(split).forEachIndexed { i, item -> cardRow(item, i, arranged.size, customising) } }
-                ExternalLinks.homelySuburbProfile(card.report.name, card.report.postcode)?.let { url ->
-                    p("external") {
-                        a(href = url, target = "_blank", classes = "external-link") {
-                            attributes["rel"] = "noopener noreferrer"
-                            +HOMELY_LINK_TEXT
+                section("homely") {
+                    SuburbCardRows.homely(card.report)?.let { homely -> dl("rows") { cardRow(ArrangedRow(homely, hidden = false), 0, 1, customising = false) } }
+                    ExternalLinks.homelySuburbProfile(card.report.name, card.report.postcode)?.let { url ->
+                        p("external") {
+                            a(href = url, target = "_blank", classes = "external-link") {
+                                attributes["rel"] = "noopener noreferrer"
+                                +HOMELY_LINK_TEXT
+                            }
                         }
                     }
+                    ratingForm(card.report)
                 }
-                SuburbCardRows.homely(card.report)?.let { homely -> dl("rows") { cardRow(ArrangedRow(homely, hidden = false), 0, 1, customising = false) } }
-                ratingForm(card.report)
                 dl("rows") {
                     arranged.drop(split).forEachIndexed { i, item ->
                         cardRow(item, split + i, arranged.size, customising, if (item.row.label == SuburbCardRows.SCHOOLS_LABEL) schoolList(card.report) else null)
@@ -141,15 +149,22 @@ object RatingForm {
 }
 
 /**
- * The form for the Homely score you copy across by hand (ADR 0028), filled with the current score if there is one. Remove
+ * The form for the Homely score you copy across by hand (ADR 0028), behind an "Edit the Homely rating" link (ADR 0043), filled with the current score if there is one. Remove
  * is offered only when there is something to remove. The message line starts empty; the page fills it after saving.
  */
 fun FlowContent.ratingForm(report: SuburbReport) {
     val current = report.homelyRating.value
+    details("rating-edit") {
+        summary { +RATING_EDIT_TEXT }
+        ratingFormBody(current)
+    }
+}
+
+/** The form itself, drawn inside [ratingForm]'s closed `details`, so the boxes exist but stay out of the way until you ask for them. */
+private fun DETAILS.ratingFormBody(current: au.homefinder.shared.model.HomelyRating?) {
     form(classes = "rating-form") {
         attributes[RatingForm.ATTRIBUTE] = "true"
         attributes["aria-label"] = "Your Homely rating"
-        h3 { +"Your Homely rating" }
         p("hint") { +"Copy the score from the suburb's Homely page by hand. Nothing is fetched from Homely." }
         div("fields") {
             label {

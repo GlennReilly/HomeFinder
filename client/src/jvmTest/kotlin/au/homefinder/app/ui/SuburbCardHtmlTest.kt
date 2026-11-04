@@ -98,7 +98,7 @@ class SuburbCardHtmlTest {
     }
 
     @Test
-    fun `under the price change come the Homely link, then the rating, then its form, and the other rows follow`() {
+    fun `under the price change come the Homely rating, then the link to its reviews, then its form, and the other rows follow`() {
         val out = html(SuburbCardState.Loaded(withRating(2.1, 7)))
         assertTrue("2.1 ★ (7 reviews)" in out)
         val house = out.indexOf("Median house price</dt>")
@@ -109,11 +109,23 @@ class SuburbCardHtmlTest {
         val homely = out.indexOf("Homely rating</dt>")
         val form = out.indexOf("data-rating-form")
         val sales = out.indexOf("Sales behind the prices</dt>")
-        assertTrue(house in 0 until block && block < unit && unit < change && change < link && link < homely && homely < form && form < sales, "order: $house $block $unit $change $link $homely $form $sales")
+        assertTrue(house in 0 until block && block < unit && unit < change && change < homely && homely < link && link < form && form < sales, "order: $house $block $unit $change $homely $link $form $sales")
         assertTrue("Source: Homely (entered by you) · as of 2026-10-30 · low confidence" in out)
         val formHtml = out.substringAfter("data-rating-form")
         assertTrue("value=\"2.1\"" in formHtml && "value=\"7\"" in formHtml)
         assertTrue("data-action=\"remove-rating\"" in formHtml)
+    }
+
+    @Test
+    fun `the rating form is hidden behind an edit link and the link, rating and form share one Homely block`() {
+        val out = html(SuburbCardState.Loaded(withRating(2.1, 7)))
+        assertTrue("""<details class="rating-edit"><summary>$RATING_EDIT_TEXT</summary>""" in out, out)
+        assertFalse("<details class=\"rating-edit\" open" in out, "the form starts closed")
+        val block = out.substringAfter("""<section class="homely">""").substringBefore("</section>")
+        assertTrue("Homely rating</dt>" in block && HOMELY_LINK_TEXT in block && "data-rating-form" in block, "one block holds the rating, the link and the form")
+        assertFalse(HOMELY_LINK_TEXT in out.substringBefore("""<section class="homely">"""), "the link is no longer above the block")
+        assertEquals(1, Regex("""<details""").findAll(out).count())
+        assertTrue(RATING_EDIT_TEXT in html(SuburbCardState.Loaded(report)), "with no rating the edit link is still there")
     }
 
     @Test
