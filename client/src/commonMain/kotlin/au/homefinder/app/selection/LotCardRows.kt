@@ -9,7 +9,10 @@ import au.homefinder.shared.model.ProximityList
 import au.homefinder.shared.model.SlopeSummary
 import kotlin.math.roundToLong
 
-/** The rows of the basic lot card (ADR 0022): the measured block size, then every other factor in the spec's order. */
+/**
+ * The rows of the basic lot card (ADR 0022): the measured block size, then the other factors in the spec's order. Wall material, Flood and
+ * Estimated price are not shown because nothing reliable can fill them (ADR 0041); their fields stay in the report.
+ */
 object LotCardRows {
     /**
      * The block size and the OpenStreetMap proximity factors (ADR 0023) have values. The remaining factors are
@@ -17,13 +20,10 @@ object LotCardRows {
      */
     fun of(report: LotReport): List<CardRow> = listOf(
         SuburbCardRows.row("Block size", report.blockAreaM2, Formats::squareMetres),
-        SuburbCardRows.row("Wall material", report.wallMaterial) { it.toString() },
         SuburbCardRows.row("Backyard aspect", report.backyardAspect) { it.toString() },
-        SuburbCardRows.row("Flood", report.flood) { it.toString() },
         SuburbCardRows.row("Slope", report.slope, ::slope),
         SuburbCardRows.row("Height above sea level", report.elevationM, ::height),
         SuburbCardRows.row("Height above drainage", report.heightAboveDrainage, ::drainage),
-        SuburbCardRows.row("Estimated price", report.estimatedPriceAud) { it.toString() },
         SuburbCardRows.row("Distance to the beach", report.beach, ::beach),
         SuburbCardRows.row("Schools", report.schools) { it.toString() },
         SuburbCardRows.row("Parks", report.parks, ::parks),

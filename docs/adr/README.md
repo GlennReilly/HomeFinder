@@ -42,3 +42,4 @@
 | [0038](0038-sales-window-ends-on-latest-sale.md) | Sales windows end on the latest sale | Accepted |
 | [0039](0039-card-rows-hidden-and-reordered-in-the-browser.md) | Card rows are hidden and re-ordered in the browser | Accepted |
 | [0040](0040-height-above-drainage-hint.md) | Height above drainage as an indicative hint | Accepted |
+| [0041](0041-cards-show-only-rows-with-a-reliable-source.md) | Cards show only rows with a reliable source | Accepted |

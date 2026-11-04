@@ -4,8 +4,6 @@ import au.homefinder.shared.model.Attribute
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.SuburbBeachDistance
-import au.homefinder.shared.model.SuburbBrickShare
-import au.homefinder.shared.model.SuburbFloodShare
 import au.homefinder.shared.model.SuburbReport
 import au.homefinder.shared.model.School
 import au.homefinder.shared.model.SchoolLevel
@@ -71,7 +69,8 @@ object SuburbCardRows {
 
     /**
      * The rows in the order you asked for: the prices, with the typical block size straight under the median house price. The
-     * suburb's area is not shown (it stays in the report for the map).
+     * suburb's area is not shown (it stays in the report for the map). Flood and Likely brick are not shown either: they have no
+     * reliable source (ADR 0041), though their fields stay in the report.
      */
     fun of(report: SuburbReport): List<CardRow> = listOf(
         row("Median house price", report.medianHousePriceAud, Formats::dollars),
@@ -79,8 +78,6 @@ object SuburbCardRows {
         row("Median unit price", report.medianUnitPriceAud, Formats::dollars),
         row(PRICE_CHANGE_LABEL, report.priceChange12MonthsPercent, Formats::signedPercent),
         row("Sales behind the prices", report.salesCount) { Formats.grouped(it.toLong()) },
-        row("Flood", report.floodShare, ::flood),
-        row("Likely brick", report.brickShare, ::brick),
         row("Distance to the beach", report.beach, ::beach),
         row(SCHOOLS_LABEL, report.schools, ::schools),
         row("Parks", report.parkAreaShare) { Formats.share(it) + " of the suburb is park" },
@@ -111,12 +108,6 @@ object SuburbCardRows {
 
     private fun blockSize(spread: BlockSizeSpread) =
         "${Formats.squareMetres(spread.medianM2)} median (${Formats.grouped(spread.p10M2.roundToLong())} to ${Formats.squareMetres(spread.p90M2)})"
-
-    private fun flood(share: SuburbFloodShare) =
-        "${Formats.share(share.lotsInFloodExtentShare)} of lots touch a mapped flood extent; ${Formats.share(share.mappedCoverageShare)} of the suburb has flood mapping"
-
-    private fun brick(share: SuburbBrickShare) =
-        "${Formats.share(share.likelyBrickShare)} of lots are likely brick; ${Formats.share(share.evidenceShare)} have enough evidence to say"
 
     private fun beach(distance: SuburbBeachDistance) =
         "${Formats.kilometres(distance.fromCentreM)} from the centre, ${Formats.kilometres(distance.fromNearestEdgeM)} from the nearest edge"

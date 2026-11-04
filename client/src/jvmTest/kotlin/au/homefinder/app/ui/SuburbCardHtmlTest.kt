@@ -29,7 +29,7 @@ class SuburbCardHtmlTest {
         assertTrue("<h2>HAMILTON</h2>" in out)
         assertTrue("Postcode 2303" in out)
         assertFalse("km²" in out)
-        assertEquals(12, Regex("""class="value unknown"""").findAll(out).count())
+        assertEquals(10, Regex("""class="value unknown"""").findAll(out).count())
         assertTrue("Source: Some source" in out)
         assertTrue("Not computed yet" in out)
         assertTrue(CARD_DISCLAIMER in out)
@@ -193,9 +193,9 @@ class SuburbCardHtmlTest {
 
     @Test
     fun `a hidden row is not shown and the order you chose is used`() {
-        val layout = CardLayout().toggle("Flood").moveDown("Median house price", SuburbCardRows.of(report))
+        val layout = CardLayout().toggle("Parks").moveDown("Median house price", SuburbCardRows.of(report))
         val labels = labelsIn(custom(layout, customising = false))
-        assertFalse("Flood" in labels)
+        assertFalse("Parks" in labels)
         assertEquals(listOf("Typical block size", "Median house price", "Median unit price"), labels.take(3))
         assertTrue("Customise" in custom(layout, false))
         assertFalse("row-controls" in custom(layout, false))
@@ -203,12 +203,12 @@ class SuburbCardHtmlTest {
 
     @Test
     fun `customising shows every row with controls, hidden ones dimmed, and Done and Reset`() {
-        val out = custom(CardLayout().toggle("Flood"), customising = true)
-        assertEquals(12, labelsIn(out).size)
-        assertEquals(12, Regex("""class="row-controls"""").findAll(out).count())
+        val out = custom(CardLayout().toggle("Parks"), customising = true)
+        assertEquals(10, labelsIn(out).size)
+        assertEquals(10, Regex("""class="row-controls"""").findAll(out).count())
         assertEquals(1, Regex("""class="row row-hidden"""").findAll(out).count())
-        assertTrue("""aria-label="Show Flood"""" in out)
-        assertTrue("""aria-label="Hide Likely brick"""" in out)
+        assertTrue("""aria-label="Show Parks"""" in out)
+        assertTrue("""aria-label="Hide Shopping"""" in out)
         assertTrue(Regex("""aria-label="Move Median house price up"[^>]*disabled""").containsMatchIn(out), "the first row cannot move up")
         assertTrue(Regex("""aria-label="Move Transport down"[^>]*disabled""").containsMatchIn(out), "the last row cannot move down")
         assertTrue("""data-action="customise-done"""" in out && """data-action="layout-reset"""" in out)
