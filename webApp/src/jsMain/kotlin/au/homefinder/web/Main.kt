@@ -209,6 +209,8 @@ private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap) 
         val targetId = (event.target as? HTMLElement)?.id
         val criterion = FilterIds.criterionOf(targetId)
         if (criterion != null) {
+            // Moving a slider is a request to filter on it, so it switches its criterion on.
+            if (targetId != FilterIds.on(criterion)) input(FilterIds.on(criterion))?.checked = true
             val low = input(FilterIds.min(criterion))
             val high = input(FilterIds.max(criterion))
             if (low != null && high != null && low.value.toInt() > high.value.toInt()) {
