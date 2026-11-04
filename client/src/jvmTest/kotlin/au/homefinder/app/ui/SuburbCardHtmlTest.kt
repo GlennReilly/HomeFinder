@@ -29,7 +29,7 @@ class SuburbCardHtmlTest {
         assertTrue("<h2>HAMILTON</h2>" in out)
         assertTrue("Postcode 2303" in out)
         assertFalse("km²" in out)
-        assertEquals(10, Regex("""class="value unknown"""").findAll(out).count())
+        assertEquals(12, Regex("""class="value unknown"""").findAll(out).count())
         assertTrue("Source: Some source" in out)
         assertTrue("Not computed yet" in out)
         assertTrue(CARD_DISCLAIMER in out)
@@ -216,8 +216,8 @@ class SuburbCardHtmlTest {
     @Test
     fun `customising shows every row with controls, hidden ones dimmed, and Done and Reset`() {
         val out = custom(CardLayout().toggle("Parks"), customising = true)
-        assertEquals(10, labelsIn(out).size)
-        assertEquals(10, Regex("""class="row-controls"""").findAll(out).count())
+        assertEquals(12, labelsIn(out).size)
+        assertEquals(12, Regex("""class="row-controls"""").findAll(out).count())
         assertEquals(1, Regex("""class="row row-hidden"""").findAll(out).count())
         assertTrue("""aria-label="Show Parks"""" in out)
         assertTrue("""aria-label="Hide Shopping"""" in out)

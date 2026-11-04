@@ -33,6 +33,15 @@ class ValueRulesTest {
     }
 
     @Test
+    fun `a dwelling mix needs shares from 0 to 1 that do not add to more than a whole`() {
+        DwellingMix(0.58, 0.25, 0.15)
+        DwellingMix(0.5, 0.25, 0.2) // other dwellings take the rest
+        assertFailsWith<IllegalArgumentException> { DwellingMix(-0.1, 0.5, 0.5) }
+        assertFailsWith<IllegalArgumentException> { DwellingMix(0.6, 0.3, 0.2) }
+        assertFailsWith<IllegalArgumentException> { DwellingMix(1.2, 0.0, 0.0) }
+    }
+
+    @Test
     fun `negative slope is rejected`() {
         assertFailsWith<IllegalArgumentException> { SlopeClass.fromMeanPercent(-0.1) }
         assertFailsWith<IllegalArgumentException> { SlopeSummary(-1.0, 2.0, SlopeClass.FLAT, FallDirection.FLAT) }

@@ -3,6 +3,7 @@ package au.homefinder.app.selection
 import au.homefinder.shared.model.Attribute
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
+import au.homefinder.shared.model.DwellingMix
 import au.homefinder.shared.model.SuburbBeachDistance
 import au.homefinder.shared.model.SuburbReport
 import au.homefinder.shared.model.School
@@ -78,6 +79,8 @@ object SuburbCardRows {
         row("Median unit price", report.medianUnitPriceAud, Formats::dollars),
         row(PRICE_CHANGE_LABEL, report.priceChange12MonthsPercent, Formats::signedPercent),
         row("Sales behind the prices", report.salesCount) { Formats.grouped(it.toLong()) },
+        row("Homes rented", report.rentedShare) { Formats.share(it) + " of homes are rented" },
+        row("Houses and units", report.dwellingMix, ::dwellingMix),
         row("Distance to the beach", report.beach, ::beach),
         row(SCHOOLS_LABEL, report.schools, ::schools),
         row("Parks", report.parkAreaShare) { Formats.share(it) + " of the suburb is park" },
@@ -108,6 +111,10 @@ object SuburbCardRows {
 
     private fun blockSize(spread: BlockSizeSpread) =
         "${Formats.squareMetres(spread.medianM2)} median (${Formats.grouped(spread.p10M2.roundToLong())} to ${Formats.squareMetres(spread.p90M2)})"
+
+    /** "58% houses, 25% townhouses, 15% units": separate houses, then semis and townhouses, then flats and apartments (2021 Census, ADR 0044). */
+    private fun dwellingMix(mix: DwellingMix) =
+        "${Formats.share(mix.houseShare)} houses, ${Formats.share(mix.townhouseShare)} townhouses, ${Formats.share(mix.unitShare)} units"
 
     private fun beach(distance: SuburbBeachDistance) =
         "${Formats.kilometres(distance.fromCentreM)} from the centre, ${Formats.kilometres(distance.fromNearestEdgeM)} from the nearest edge"

@@ -3,6 +3,7 @@ package au.homefinder.server
 import au.homefinder.shared.model.Attribute
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
+import au.homefinder.shared.model.DwellingMix
 import au.homefinder.shared.model.HomelyRating
 import au.homefinder.shared.model.School
 import au.homefinder.shared.model.SchoolLevel
@@ -46,6 +47,7 @@ object SuburbReportFactory {
         rating: StoredRating? = null,
         amenity: SuburbAmenity? = null,
         schools: SuburbSchoolData? = null,
+        census: SuburbCensus? = null,
     ): SuburbReport = SuburbReport(
         suburbId = record.suburbId,
         name = record.name,
@@ -66,7 +68,42 @@ object SuburbReportFactory {
         shopping = shopping(amenity),
         transport = unknown(TRANSPORT_SOURCE),
         homelyRating = homelyRating(rating),
+        rentedShare = rentedShare(census),
+        dwellingMix = dwellingMix(census),
     )
+
+    const val CENSUS_SOURCE: String = "ABS 2021 Census of Population and Housing (CC BY 4.0)"
+    const val CENSUS_NOT_LOADED_NOTE: String = "Census data not loaded yet"
+    const val CENSUS_ATTRIBUTION: String = "Based on Australian Bureau of Statistics data"
+    private const val CENSUS_YEAR = 2021
+    private const val CENSUS_NIGHT_MONTH = 8
+    private const val CENSUS_NIGHT_DAY = 10
+    private val CENSUS_DATE = kotlinx.datetime.LocalDate(CENSUS_YEAR, CENSUS_NIGHT_MONTH, CENSUS_NIGHT_DAY)
+    private const val SMALL_COUNT_NOTE = "The ABS randomly adjusts small counts, so a suburb with few homes is only roughly right"
+
+    /** Confidence follows how many dwellings the share rests on, as for sales (a share of a few homes is rough). */
+    private fun rentedShare(census: SuburbCensus?): Attribute<Double> {
+        if (census == null) return Attribute.unknown(CENSUS_SOURCE, note = CENSUS_NOT_LOADED_NOTE)
+        val share = census.rentedShare
+            ?: return Attribute.unknown(CENSUS_SOURCE, CENSUS_DATE, "No occupied homes with a stated tenure in the 2021 Census")
+        return Attribute(
+            share, confidenceForSamples(census.tenureStated), CENSUS_SOURCE, CENSUS_DATE,
+            "Share of the ${census.tenureStated} occupied private dwellings with a stated tenure that were rented on Census night. " +
+                "$SMALL_COUNT_NOTE. $CENSUS_ATTRIBUTION",
+        )
+    }
+
+    private fun dwellingMix(census: SuburbCensus?): Attribute<DwellingMix> {
+        if (census == null) return Attribute.unknown(CENSUS_SOURCE, note = CENSUS_NOT_LOADED_NOTE)
+        val base = census.structureStated
+        if (base <= 0) return Attribute.unknown(CENSUS_SOURCE, CENSUS_DATE, "No occupied private dwellings with a stated structure in the 2021 Census")
+        val mix = DwellingMix(census.houses.toDouble() / base, census.semis.toDouble() / base, census.flats.toDouble() / base)
+        return Attribute(
+            mix, confidenceForSamples(base), CENSUS_SOURCE, CENSUS_DATE,
+            "Of $base occupied private dwellings: houses are separate houses; townhouses include semi-detached, row and terrace houses; units are flats and apartments. " +
+                "Other dwellings such as caravans are counted but not shown. $SMALL_COUNT_NOTE. $CENSUS_ATTRIBUTION",
+        )
+    }
 
     const val HOMELY_NOT_ENTERED_NOTE: String = "Not entered"
 

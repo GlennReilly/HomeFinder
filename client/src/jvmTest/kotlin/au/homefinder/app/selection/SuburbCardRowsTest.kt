@@ -3,6 +3,7 @@ package au.homefinder.app.selection
 import au.homefinder.shared.model.Attribute
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
+import au.homefinder.shared.model.DwellingMix
 import au.homefinder.shared.model.School
 import au.homefinder.shared.model.SchoolLevel
 import au.homefinder.shared.model.SchoolSector
@@ -36,13 +37,13 @@ class SuburbCardRowsTest {
         known(BlockSizeSpread(560.0, 320.0, 810.0)), known(SuburbFloodShare(0.18, 0.9)), known(SuburbBrickShare(0.42, 0.3)),
         known(SuburbBeachDistance(3500, 2400)), known(SuburbSchools(listOf(school), listOf(school, school))), known(0.07),
         known(SuburbShopping(2, 5)), known(SuburbTransport(2, 0, 0, 96, 8.0)),
-    )
+    ).copy(rentedShare = known(0.452), dwellingMix = known(DwellingMix(0.58, 0.25, 0.15)))
 
     @Test
     fun `the rows have no area and put the typical block size under the median house price`() {
         assertEquals(
             listOf("Median house price", "Typical block size", "Median unit price", "Price change, 12 months", "Sales behind the prices",
-                "Distance to the beach", "Schools", "Parks", "Shopping", "Transport"),
+                "Homes rented", "Houses and units", "Distance to the beach", "Schools", "Parks", "Shopping", "Transport"),
             SuburbCardRows.of(allUnknown).map { it.label },
         )
     }
@@ -56,7 +57,7 @@ class SuburbCardRowsTest {
             assertEquals(Confidence.NONE, it.confidence, it.label)
             assertEquals("Not computed yet", it.note, it.label)
         }
-        assertEquals(listOf("A", "E", "B", "C", "D", "H", "I", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
+        assertEquals(listOf("A", "E", "B", "C", "D", "ABS 2021 Census", "ABS 2021 Census", "H", "I", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
     }
 
     @Test
@@ -67,6 +68,8 @@ class SuburbCardRowsTest {
         assertEquals("+4.2%", rows["Price change, 12 months"])
         assertEquals("1,187", rows["Sales behind the prices"])
         assertEquals("560 m² median (320 to 810 m²)", rows["Typical block size"])
+        assertEquals("45% of homes are rented", rows["Homes rented"])
+        assertEquals("58% houses, 25% townhouses, 15% units", rows["Houses and units"])
         assertEquals("3.5 km from the centre, 2.4 km from the nearest edge", rows["Distance to the beach"])
         assertEquals("1 public school", rows["Schools"])
         assertEquals("7% of the suburb is park", rows["Parks"])
