@@ -139,33 +139,47 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
     }
 
     override suspend fun filterValues(): SuburbFilterData? = withContext(Dispatchers.IO) {
-        try {
-            dataSource.connection.use { connection ->
-                val loaded = connection.prepareStatement(SCHOOLS_LOADED_SQL).use { statement ->
-                    statement.executeQuery().use { rows ->
-                        rows.next()
-                        if (rows.getInt("n") == 0) null else SchoolsLoaded(rows.getDate("latest")?.toLocalDate()?.let { LocalDate(it.year, it.monthValue, it.dayOfMonth) })
-                    }
-                } ?: return@use null
-                connection.prepareStatement(FILTER_VALUES_SQL).use { statement ->
-                    statement.executeQuery().use { rows ->
-                        val values = buildList {
-                            while (rows.next()) {
-                                val icsea = rows.getInt("average_icsea").takeIf { !rows.wasNull() }
-                                add(SuburbFilterRow(rows.getString("suburb_id"), icsea))
-                            }
+        dataSource.connection.use { connection ->
+            // Each criterion's data set may be missing or empty on its own, so each is looked for separately (ADR 0046).
+            val schools = hasRows(connection, "school")
+            val amenity = hasRows(connection, "suburb_amenity")
+            val census = hasRows(connection, "suburb_census")
+            if (!schools && !amenity && !census) return@use null
+            val schoolsDate = if (schools) singleDate(connection, "SELECT max(extracted_on) FROM school") else null
+            val osmDate = if (amenity && hasRows(connection, "osm_import")) singleDate(connection, OSM_AS_OF_SQL) else null
+            connection.prepareStatement(filterValuesSql(schools, amenity, census)).use { statement ->
+                statement.executeQuery().use { rows ->
+                    fun double(column: String): Double? = rows.getDouble(column).takeIf { !rows.wasNull() }
+                    val values = buildList {
+                        while (rows.next()) {
+                            val icsea = rows.getInt("average_icsea").takeIf { !rows.wasNull() }
+                            add(SuburbFilterRow(rows.getString("suburb_id"), icsea, double("beach_km"), double("park_share"), double("rented_share")))
                         }
-                        SuburbFilterData(values, loaded.extractedOn)
                     }
+                    SuburbFilterData(values, schoolsDate, schoolsLoaded = schools, osmLoaded = amenity, osmAsOf = osmDate, censusLoaded = census)
                 }
             }
-        } catch (failure: SQLException) {
-            // Before the first schools load the table does not exist; that is "no data", not an outage.
-            if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
         }
     }
 
-    private class SchoolsLoaded(val extractedOn: LocalDate?)
+    /** True when the table exists and has at least one row. Table names are constants of this class, never input. */
+    private fun hasRows(connection: java.sql.Connection, table: String): Boolean {
+        val exists = connection.prepareStatement("SELECT to_regclass(?) IS NOT NULL").use { statement ->
+            statement.setString(1, "public.$table")
+            statement.executeQuery().use { rows -> rows.next() && rows.getBoolean(1) }
+        }
+        if (!exists) return false
+        return connection.createStatement().use { statement ->
+            statement.executeQuery("SELECT EXISTS (SELECT 1 FROM $table)").use { rows -> rows.next() && rows.getBoolean(1) }
+        }
+    }
+
+    private fun singleDate(connection: java.sql.Connection, sql: String): LocalDate? =
+        connection.createStatement().use { statement ->
+            statement.executeQuery(sql).use { rows ->
+                if (rows.next()) rows.getDate(1)?.toLocalDate()?.let { LocalDate(it.year, it.monthValue, it.dayOfMonth) } else null
+            }
+        }
 
     private fun readStats(rows: java.sql.ResultSet): SuburbStats {
         fun long(column: String): Long? = rows.getLong(column).takeIf { !rows.wasNull() }
@@ -210,6 +224,8 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
             ORDER BY ST_Area(s.geom_mga), s.suburb_id LIMIT 1
         """.trimIndent()
 
+        val OSM_AS_OF_SQL = "SELECT (COALESCE(osm_base, imported_at) AT TIME ZONE 'UTC')::date FROM osm_import"
+
         val STATS_SQL = """
             SELECT as_of, house_sales, house_median_aud, unit_sales, unit_median_aud, house_prev_sales, house_change_pct,
                    block_lots, block_median_m2, block_p10_m2, block_p90_m2
@@ -232,11 +248,20 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
         """.trimIndent()
 
         /** The average is over schools that have an ICSEA, rounded half up like the card's average. */
-        val FILTER_VALUES_SQL = """
-            SELECT s.suburb_id, round(avg(c.icsea))::int AS average_icsea
-            FROM suburb s LEFT JOIN school c ON c.suburb_id = s.suburb_id
-            GROUP BY s.suburb_id ORDER BY s.suburb_id
-        """.trimIndent()
+        /**
+         * One row per suburb with every criterion's value; the columns of a data set that is not loaded are NULL (ADR 0046). A suburb with no
+         * mapped park has a NULL park share, as the card shows it as unknown rather than 0%.
+         */
+        fun filterValuesSql(schools: Boolean, amenity: Boolean, census: Boolean): String {
+            val icsea = if (schools) "(SELECT round(avg(c.icsea))::int FROM school c WHERE c.suburb_id = s.suburb_id)" else "NULL::int"
+            val beach = if (amenity) "a.beach_from_centre_m / 1000.0" else "NULL::float8"
+            val park = if (amenity) "CASE WHEN a.park_area_m2 > 0 AND a.suburb_area_m2 > 0 THEN least(a.park_area_m2 / a.suburb_area_m2, 1.0) END" else "NULL::float8"
+            val rented = if (census) "CASE WHEN k.tenure_stated > 0 THEN k.rented::float8 / k.tenure_stated END" else "NULL::float8"
+            val joins = (if (amenity) " LEFT JOIN suburb_amenity a ON a.suburb_id = s.suburb_id" else "") +
+                (if (census) " LEFT JOIN suburb_census k ON k.suburb_id = s.suburb_id" else "")
+            return "SELECT s.suburb_id, $icsea AS average_icsea, $beach AS beach_km, $park AS park_share, $rented AS rented_share " +
+                "FROM suburb s$joins ORDER BY s.suburb_id"
+        }
 
         val FIND_SQL = """
             SELECT $COLUMNS FROM suburb s LEFT JOIN suburb_label l ON l.suburb_id = s.suburb_id

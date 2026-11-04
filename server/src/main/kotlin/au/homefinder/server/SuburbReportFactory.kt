@@ -78,7 +78,8 @@ object SuburbReportFactory {
     private const val CENSUS_YEAR = 2021
     private const val CENSUS_NIGHT_MONTH = 8
     private const val CENSUS_NIGHT_DAY = 10
-    private val CENSUS_DATE = kotlinx.datetime.LocalDate(CENSUS_YEAR, CENSUS_NIGHT_MONTH, CENSUS_NIGHT_DAY)
+    /** Census night, the date the 2021 Census figures describe. */
+    val CENSUS_DATE: kotlinx.datetime.LocalDate = kotlinx.datetime.LocalDate(CENSUS_YEAR, CENSUS_NIGHT_MONTH, CENSUS_NIGHT_DAY)
     private const val SMALL_COUNT_NOTE = "The ABS randomly adjusts small counts, so a suburb with few homes is only roughly right"
 
     /** Confidence follows how many dwellings the share rests on, as for sales (a share of a few homes is rough). */

@@ -1,8 +1,10 @@
 package au.homefinder.app.ui
 
+import au.homefinder.app.filter.FilterCriterion
 import au.homefinder.app.filter.FilterData
+import au.homefinder.app.filter.FilterRange
 import au.homefinder.app.filter.FilterSelection
-import au.homefinder.app.filter.IcseaRange
+import au.homefinder.shared.model.FilterProvenance
 import au.homefinder.shared.model.SuburbFilterValue
 import au.homefinder.shared.model.SuburbFiltersResponse
 import kotlinx.datetime.LocalDate
@@ -23,8 +25,8 @@ class FilterPanelHtmlTest {
     @Test
     fun `the panel has a switch and two sliders spanning the data, in steps of ten`() {
         val out = html(data(1032, 961, null))
-        assertTrue("""id="${FilterIds.ICSEA_ON}"""" in out)
-        assertTrue("""id="${FilterIds.ICSEA_MIN}"""" in out && """id="${FilterIds.ICSEA_MAX}"""" in out)
+        assertTrue("""id="${FilterIds.on(FilterCriterion.ICSEA)}"""" in out)
+        assertTrue("""id="${FilterIds.min(FilterCriterion.ICSEA)}"""" in out && """id="${FilterIds.max(FilterCriterion.ICSEA)}"""" in out)
         assertTrue("""min="960"""" in out && """max="1040"""" in out && """step="10"""" in out, out)
     }
 
@@ -36,21 +38,65 @@ class FilterPanelHtmlTest {
     }
 
     @Test
-    fun `without any ICSEA it says the schools are not loaded and has no sliders`() {
+    fun `without any ICSEA it says the schools are not loaded and has no ICSEA sliders`() {
         val out = html(data(null, null))
-        assertTrue(FILTER_NO_SCHOOLS_TEXT in out)
-        assertFalse(FilterIds.ICSEA_MIN in out)
+        assertTrue(FILTER_NO_DATA_TEXT in out)
+        assertFalse(FilterIds.min(FilterCriterion.ICSEA) in out)
     }
 
     @Test
-    fun `the summary counts matches and unknowns`() {
+    fun `the summary counts the suburbs that match every switched-on filter`() {
         val d = data(1000, 1100, null)
-        assertTrue("Switch on a filter" in filterSummaryText(d.apply(FilterSelection())))
-        assertTrue("1 of 3 suburbs have no ICSEA" in filterSummaryText(d.apply(FilterSelection())))
+        assertEquals("Switch on a filter to highlight matching suburbs.", filterSummaryText(d.apply(FilterSelection())))
         assertEquals(
-            "1 of 3 suburbs match. 1 of 3 suburbs have no ICSEA and never match.",
-            filterSummaryText(d.apply(FilterSelection(IcseaRange(1050, 1200)))),
+            "1 of 3 suburbs match.",
+            filterSummaryText(d.apply(FilterSelection(mapOf(FilterCriterion.ICSEA to FilterRange(1050.0, 1200.0))))),
         )
+        val two = FilterSelection(mapOf(FilterCriterion.ICSEA to FilterRange(0.0, 2000.0), FilterCriterion.RENTED to FilterRange(0.0, 100.0)))
+        assertEquals("0 of 3 suburbs match all 2 filters.", filterSummaryText(d.apply(two)))
+    }
+
+    @Test
+    fun `each slider says how many suburbs have no value for it`() {
+        val d = data(1000, 1100, null)
+        assertEquals("1 of 3 suburbs have no ICSEA and never match.", filterUnknownText(d, FilterCriterion.ICSEA))
+        assertTrue("""id="${FilterIds.unknown(FilterCriterion.ICSEA)}"""" in html(d))
+    }
+
+    private val full = FilterData.from(
+        SuburbFiltersResponse(
+            listOf(SuburbFilterValue("a", 1000, 1.5, 0.2, 0.45), SuburbFilterValue("b", 1100, 12.0, null, 0.2)),
+            "NSW schools", LocalDate(2026, 10, 2),
+            beach = FilterProvenance("OpenStreetMap", LocalDate(2026, 10, 29)), parks = FilterProvenance("OpenStreetMap", LocalDate(2026, 10, 29)),
+            rented = FilterProvenance("ABS Census", LocalDate(2021, 8, 10)),
+        ),
+    )
+
+    @Test
+    fun `every criterion with data gets a switch, two sliders in its own unit and its source`() {
+        val out = html(full)
+        FilterCriterion.entries.forEach { c ->
+            assertTrue("""id="${FilterIds.on(c)}"""" in out && """id="${FilterIds.min(c)}"""" in out && """id="${FilterIds.max(c)}"""" in out, c.name)
+        }
+        assertTrue("""id="filter-rented-min-value">20%</span>""" in out, out)
+        assertTrue("""id="filter-beach-max-value">12 km</span>""" in out)
+        assertTrue("Homes rented: Source: ABS Census · as of 2021-08-10" in out)
+        assertTrue("Distance to the beach: Source: OpenStreetMap · as of 2026-10-29" in out)
+        assertTrue("a suburb with no park mapped has no value" in out)
+        assertTrue("1 of 2 suburbs have no mapped park and never match." in out)
+    }
+
+    @Test
+    fun `a criterion whose data is not loaded says so instead of showing sliders`() {
+        val out = html(data(1000, 1100))
+        assertTrue(FilterCriterion.RENTED.notLoadedText in out && FilterCriterion.BEACH.notLoadedText in out)
+        assertFalse(FilterIds.min(FilterCriterion.RENTED) in out)
+        assertTrue(FilterIds.min(FilterCriterion.ICSEA) in out)
+    }
+
+    @Test
+    fun `with nothing loaded at all the panel says there is nothing to filter on`() {
+        assertTrue(FILTER_NO_DATA_TEXT in html(data(null, null)))
     }
 
     @Test

@@ -16,6 +16,7 @@ import au.homefinder.shared.model.SearchResult
 import au.homefinder.shared.model.SearchResultKind
 import au.homefinder.shared.model.SlopeClass
 import au.homefinder.shared.model.SlopeSummary
+import au.homefinder.shared.model.FilterProvenance
 import au.homefinder.shared.model.SuburbFilterValue
 import au.homefinder.shared.model.SuburbFiltersResponse
 import au.homefinder.shared.model.SuburbRatingPoint
@@ -140,10 +141,17 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
         }
     }
 
-    /** Three suburbs: one above 1,000, one below, one with no ICSEA. */
+    /** Three suburbs: one above 1,000 (and near the beach, with parks, mostly rented), one below, one with no values at all. */
     private fun filters() = SuburbFiltersResponse(
-        listOf(SuburbFilterValue("9001", 1051), SuburbFilterValue("9002", 960), SuburbFilterValue("9003", null)),
+        listOf(
+            SuburbFilterValue("9001", 1051, beachKm = 1.5, parkShare = 0.20, rentedShare = 0.45),
+            SuburbFilterValue("9002", 960, beachKm = 12.0, parkShare = 0.05, rentedShare = 0.20),
+            SuburbFilterValue("9003", null),
+        ),
         "Test schools", LocalDate(2026, 10, 2),
+        beach = FilterProvenance("Test OpenStreetMap", LocalDate(2026, 10, 29)),
+        parks = FilterProvenance("Test OpenStreetMap", LocalDate(2026, 10, 29)),
+        rented = FilterProvenance("Test Census", LocalDate(2021, 8, 10)),
     )
 
     private fun ratings(): List<SuburbRatingPoint> =

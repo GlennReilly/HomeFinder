@@ -225,6 +225,45 @@ class PostgisSuburbDirectoryIntegrationTest {
     }
 
     @Test
+    fun `filter values add the beach distance, park share and rented share for the data sets that are loaded, each unknown where missing`() = withDirectory { directory ->
+        execute(
+            "TRUNCATE school, suburb_amenity, suburb_census, osm_import",
+            "INSERT INTO osm_import (imported_at, osm_base, features) VALUES ('2026-10-30 08:00+00', '2026-10-29 22:00+00', 7)",
+            "INSERT INTO suburb_amenity (suburb_id, beach_from_centre_m, beach_from_edge_m, beach_name, suburb_area_m2, park_area_m2, shopping_centres, supermarkets) VALUES " +
+                "('9001', 3500, 2400, 'Bar Beach', 1000000, 150000, 1, 2), " +
+                "('9002', NULL, NULL, NULL, 2000000, 0, 0, 0)",
+            "INSERT INTO suburb_census (suburb_id, sal_code, tenure_stated, rented, houses, semis, flats, other_dwellings) VALUES ('9001', 'SAL1', 1000, 450, 500, 250, 240, 10)",
+        )
+        val data = assertNotNull(directory.filterValues(), "OpenStreetMap and Census data are enough, even with no schools")
+        assertEquals(listOf(false, true, true), listOf(data.schoolsLoaded, data.osmLoaded, data.censusLoaded))
+        assertEquals(LocalDate(2026, 10, 29), data.osmAsOf)
+        val byId = data.suburbs.associateBy { it.suburbId }
+        assertEquals(3.5, byId.getValue("9001").beachKm)
+        assertEquals(0.15, byId.getValue("9001").parkShare)
+        assertEquals(0.45, byId.getValue("9001").rentedShare)
+        assertNull(byId.getValue("9001").averageIcsea, "no schools loaded")
+        assertNull(byId.getValue("9002").beachKm, "no beach found")
+        assertNull(byId.getValue("9002").parkShare, "a suburb with no mapped park is unknown, not 0%")
+        assertNull(byId.getValue("9002").rentedShare, "no Census row for this suburb")
+        assertNull(byId.getValue("9003").beachKm, "a suburb with no roll-up is listed with no values")
+    }
+
+    @Test
+    fun `filter values need only one data set, and a missing table counts as not loaded`() = withDirectory { directory ->
+        execute("TRUNCATE school, suburb_amenity, suburb_census")
+        assertNull(directory.filterValues(), "nothing loaded")
+        execute("INSERT INTO suburb_census (suburb_id, sal_code, tenure_stated, rented, houses, semis, flats, other_dwellings) VALUES ('9002', 'SAL2', 10, 4, 6, 0, 0, 0)")
+        execute("ALTER TABLE suburb_amenity RENAME TO suburb_amenity_hidden")
+        try {
+            val data = assertNotNull(directory.filterValues())
+            assertEquals(listOf(false, false, true), listOf(data.schoolsLoaded, data.osmLoaded, data.censusLoaded))
+            assertEquals(0.4, data.suburbs.first { it.suburbId == "9002" }.rentedShare)
+        } finally {
+            execute("ALTER TABLE suburb_amenity_hidden RENAME TO suburb_amenity")
+        }
+    }
+
+    @Test
     fun `a database without the school table has no school data rather than an error`() = withDirectory { directory ->
         execute("ALTER TABLE school RENAME TO school_hidden")
         try {

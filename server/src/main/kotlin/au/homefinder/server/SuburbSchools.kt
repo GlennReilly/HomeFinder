@@ -15,8 +15,24 @@ data class SchoolRecord(
 /** The public schools inside one suburb and the date the school data was extracted; [schools] may be empty. */
 data class SuburbSchoolData(val schools: List<SchoolRecord>, val extractedOn: LocalDate?)
 
-/** One suburb's values for the filter panel; the average is null when it has no school with an ICSEA. */
-data class SuburbFilterRow(val suburbId: String, val averageIcsea: Int?)
+/** One suburb's values for the filter panel; each is null when unknown for the suburb (ADR 0046). */
+data class SuburbFilterRow(
+    val suburbId: String,
+    val averageIcsea: Int?,
+    val beachKm: Double? = null,
+    val parkShare: Double? = null,
+    val rentedShare: Double? = null,
+)
 
-/** Every suburb's filter values and the day the schools data was extracted (null when unknown). */
-data class SuburbFilterData(val suburbs: List<SuburbFilterRow>, val icseaAsOf: LocalDate?)
+/**
+ * Every suburb's filter values and which data sets were loaded, with the day each was dated. A criterion's data set is "loaded" when its
+ * table exists and has rows; its as-of date may still be unknown (null).
+ */
+data class SuburbFilterData(
+    val suburbs: List<SuburbFilterRow>,
+    val icseaAsOf: LocalDate?,
+    val schoolsLoaded: Boolean = true,
+    val osmLoaded: Boolean = false,
+    val osmAsOf: LocalDate? = null,
+    val censusLoaded: Boolean = false,
+)

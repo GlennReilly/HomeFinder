@@ -24,6 +24,11 @@ class FilterApiTest {
             result,
         )
         assertEquals("http://host:8080/v1/suburbs/filters", reads.calls.single().first)
+        val newer = Reads(HttpResult.Response(200, """{"suburbs":[{"suburbId":"9001","beachKm":1.5,"parkShare":0.2,"rentedShare":0.45}],"icseaSource":"S","rented":{"source":"ABS","asOf":"2021-08-10"}}"""))
+        val found = FilterApi(config, newer).values() as LookupResult.Found
+        assertEquals(SuburbFilterValue("9001", null, 1.5, 0.2, 0.45), found.value.suburbs.single())
+        assertEquals("ABS", found.value.rented?.source)
+        assertEquals(null, found.value.beach, "a data set that is not loaded has no provenance")
         assertEquals(mapOf("X-API-Key" to "secret-key-123456"), reads.calls.single().second)
     }
 
