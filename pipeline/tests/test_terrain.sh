@@ -24,12 +24,25 @@ psql_db -t -A -q -c "SET postgis.gdal_enabled_drivers = 'GTiff'" -c "SELECT enco
      FROM (SELECT ST_Extent(geom) AS e FROM lot) x) y" | xxd -r -p > "$WORK/dem/plane.tif" || fail "could not make the test raster"
 [[ -s "$WORK/dem/plane.tif" ]] || fail "the test raster is empty"
 echo "ok: synthetic raster made"
+# The service answers with an empty tile where no LiDAR reaches: every pixel exactly 0 and no no-data value (ADR 0042). This one covers the
+# plane's extent and reaches 0.012 degrees further east; read as heights it would drag every lot's height and slope towards 0.
+psql_db -t -A -q -c "SET postgis.gdal_enabled_drivers = 'GTiff'" -c "SELECT encode(ST_AsGDALRaster(
+     ST_AddBand(ST_MakeEmptyRaster(
+         ((ST_XMax(e) - ST_XMin(e) + 0.016) / 0.000055063478)::int, ((ST_YMax(e) - ST_YMin(e) + 0.004) / 0.000051601233)::int,
+         ST_XMin(e) - 0.002, ST_YMax(e) + 0.002, 0.000055063478, -0.000051601233, 0, 0, 4283), '32BF'::text, 0), 'GTiff'), 'hex')
+   FROM (SELECT ST_Extent(geom) AS e FROM lot) x" | xxd -r -p > "$WORK/dem/empty.tif" || fail "could not make the empty test raster"
+[[ -s "$WORK/dem/empty.tif" ]] || fail "the empty test raster is empty"
+# A lot that only the empty tile reaches (east of the plane): it must get no terrain rather than 0.0 m.
+q "INSERT INTO lot (lot_id, suburb_id, geom) SELECT '9998', '9001', ST_Multi(ST_MakeEnvelope(ST_XMax(e) + 0.006, ST_YMin(e) + 0.001, ST_XMax(e) + 0.0061, ST_YMin(e) + 0.0011, 7844))
+   FROM (SELECT ST_Extent(geom) AS e FROM lot) x" >/dev/null
 # A lot too small to hold a pixel centre (a 1 m square 10 m east of lot 1001's centre) takes the pixel under it.
 q "INSERT INTO lot (lot_id, suburb_id, geom) SELECT '9999', '9001', ST_Multi(ST_Transform(ST_MakeEnvelope(ST_X(c) + 10, ST_Y(c), ST_X(c) + 11, ST_Y(c) + 1, 7856), 7844))
    FROM (SELECT ST_Centroid(geom_mga) AS c FROM lot WHERE lot_id = '1001') x" >/dev/null
 
 report="$("$HERE/../scripts/load-dem.sh" "$WORK/dem")"
-grep -q "4 of 4 lots have a height" <<< "$report" || fail "the report should count 4 of 4 lots: $report"
+grep -q "4 of 5 lots have a height" <<< "$report" || fail "the report should count 4 of 5 lots: $report"
+grep -q "1 empty tile" <<< "$report" || fail "the report should say one empty tile was skipped: $report"
+[[ -z "$(q "SELECT 1 FROM lot_terrain WHERE lot_id = '9998'")" ]] || fail "the lot only an empty tile reaches should have no terrain, not 0.0 m"
 t() { q "SELECT $1 FROM lot_terrain WHERE lot_id = '$2'"; }
 
 # The plane rises 0.514 m per 5.14 m pixel eastwards: a 10 % slope everywhere, and heights that grow to the east.
@@ -58,6 +71,12 @@ echo "not a raster" > "$WORK/bad/x.tif"
 if "$HERE/../scripts/load-dem.sh" "$WORK/bad" >/dev/null 2>"$WORK/err"; then fail "a bad file should fail"; fi
 grep -q "Could not read" "$WORK/err" || fail "the failure should name the bad file: $(cat "$WORK/err")"
 [[ "$before" == "$(q "SELECT md5(string_agg(z::text, '|' ORDER BY lot_id)) FROM lot_terrain z")" ]] || fail "a failed load must leave the terrain as it was"
+
+# A directory of nothing but empty tiles loads nothing and leaves the results as they were.
+mkdir -p "$WORK/allempty" && cp "$WORK/dem/empty.tif" "$WORK/allempty/"
+if "$HERE/../scripts/load-dem.sh" "$WORK/allempty" >/dev/null 2>"$WORK/err"; then fail "a directory of only empty tiles should fail"; fi
+grep -q "Every tile" "$WORK/err" || fail "the failure should say every tile is empty: $(cat "$WORK/err")"
+[[ "$before" == "$(q "SELECT md5(string_agg(z::text, '|' ORDER BY lot_id)) FROM lot_terrain z")" ]] || fail "an all-empty load must leave the terrain as it was"
 
 # The download script against a stand-in WCS shaped like the real one (the service's own name beside the coverage's, answers in degrees,
 # GeoTIFFs; one run has every request refused).
