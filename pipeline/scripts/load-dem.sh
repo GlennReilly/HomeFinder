@@ -23,9 +23,20 @@ for file in "${FILES[@]}"; do
   } | psql_db -q || { echo "Could not read $file as a GeoTIFF" >&2; exit 1; }
 done
 
+# A tile the service answers with no LiDAR coverage is a sparse GeoTIFF that reads as every pixel exactly 0 with no no-data value
+# declared. As heights it would put every lot on it at 0.0 m with a 0% slope (ADR 0042), so such tiles are dropped and those lots get no
+# result. A real tile can hold some zeros (sea level) but not nothing else.
+EMPTY="$(psql_db -t -A -c "WITH gone AS (DELETE FROM stg.dem_raw WHERE (ST_SummaryStats(rast, 1, false)).min = 0 AND (ST_SummaryStats(rast, 1, false)).max = 0 RETURNING 1) SELECT count(*) FROM gone")"
+if [[ "$(psql_db -t -A -c "SELECT count(*) FROM stg.dem_raw")" -eq 0 ]]; then
+  psql_db -q -c "DROP TABLE IF EXISTS stg.dem_raw"
+  echo "Every tile in $DIR is empty (no LiDAR coverage); nothing was loaded and the existing results are unchanged" >&2
+  exit 1
+fi
+
 psql_db -q -v srid="$DEM_SRID" -v pixel_m="$DEM_PIXEL_M" -v tile_px="$DEM_TILE_PX" -v min_m="$DEM_MIN_M" -v max_m="$DEM_MAX_M" \
   < "$PIPELINE_DIR/sql/terrain.sql"
 psql_db -q -c "DROP TABLE IF EXISTS stg.dem_raw"
 
 echo "Terrain loaded:"
 psql_db -t -A -F ' | ' -c "SELECT count(*) || ' of ' || (SELECT count(*) FROM lot) || ' lots have a height, mean slope ' || COALESCE(round(avg(mean_slope_pct)::numeric, 1)::text, 'n/a') || '%, heights ' || COALESCE(round(min(elevation_m)::numeric, 1)::text, 'n/a') || ' to ' || COALESCE(round(max(elevation_m)::numeric, 1)::text, 'n/a') || ' m' FROM lot_terrain"
+echo "$EMPTY empty tile(s) with no LiDAR coverage skipped; their lots have no height or slope"

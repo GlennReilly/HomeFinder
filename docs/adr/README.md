@@ -43,3 +43,4 @@
 | [0039](0039-card-rows-hidden-and-reordered-in-the-browser.md) | Card rows are hidden and re-ordered in the browser | Accepted |
 | [0040](0040-height-above-drainage-hint.md) | Height above drainage as an indicative hint | Accepted |
 | [0041](0041-cards-show-only-rows-with-a-reliable-source.md) | Cards show only rows with a reliable source | Accepted |
+| [0042](0042-empty-dem-tiles-are-no-data.md) | Empty DEM tiles are no data | Accepted |

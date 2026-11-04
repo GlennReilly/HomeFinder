@@ -79,6 +79,8 @@ Source: Geoscience Australia, "DEM of Australia derived from LiDAR 5 Metre Grid"
 for 0.05 degree squares (about 4.7 by 5.5 km) that touch a suburb; the loader resamples them to a 5 m metre grid before measuring slope. The service's one coverage is named `1`;
 if it ever offers several, the script lists them and you set `DEM_COVERAGE`. Slope is rise over
 run between neighbouring pixels (percent), averaged over the lot's pixels. See [ADR 0036](../docs/adr/0036-lot-height-and-slope-from-dem.md).
+Tiles the service returns empty (no LiDAR there: every pixel exactly 0) are skipped and counted, so those lots show Unknown rather than 0.0 m
+([ADR 0042](../docs/adr/0042-empty-dem-tiles-are-no-data.md)).
 
 ## Height above drainage
 
