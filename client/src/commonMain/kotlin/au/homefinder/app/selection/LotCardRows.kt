@@ -6,6 +6,7 @@ import au.homefinder.shared.model.LotReport
 import au.homefinder.shared.model.ParkAccess
 import au.homefinder.shared.model.Proximity
 import au.homefinder.shared.model.ProximityList
+import au.homefinder.shared.model.SchoolInfo
 import au.homefinder.shared.model.SlopeSummary
 import kotlin.math.roundToLong
 
@@ -25,7 +26,7 @@ object LotCardRows {
         SuburbCardRows.row("Height above sea level", report.elevationM, ::height),
         SuburbCardRows.row("Height above drainage", report.heightAboveDrainage, ::drainage),
         SuburbCardRows.row("Distance to the beach", report.beach, ::beach),
-        SuburbCardRows.row("Schools", report.schools) { it.toString() },
+        SuburbCardRows.row(SuburbCardRows.SCHOOLS_LABEL, report.schools, ::schools),
         SuburbCardRows.row("Parks", report.parks, ::parks),
         SuburbCardRows.row("Shopping", report.shopping, ::shopping),
         SuburbCardRows.row("Transport", report.transport) { it.toString() },
@@ -56,6 +57,21 @@ object LotCardRows {
             DrainageProximity.WELL_ABOVE -> "Well above any drainage line"
         }
         return "$position, ${Formats.decimal(hint.heightAboveDrainageM, 1)} m above a stream draining ${hectares(hint.streamCatchmentHa)}"
+    }
+
+    /**
+     * "Hamilton Public School (Primary School), 600 m away, about 8 min walk (estimated), ICSEA 1,051; ..." for the nearest primary and the
+     * nearest high school (ADR 0045). ICSEA is only said where ACARA publishes one.
+     */
+    private fun schools(info: SchoolInfo): String {
+        if (info.nearest.isEmpty()) return "No public school found nearby"
+        return info.nearest.joinToString("; ") { near ->
+            val school = near.school
+            val kind = school.levelLabel?.let { " ($it)" }.orEmpty()
+            val walk = near.walkingMinutes?.takeIf { it <= WALK_ESTIMATE_MAX_MINUTES }?.let { ", about $it min walk (estimated)" }.orEmpty()
+            val icsea = school.icsea?.let { ", ICSEA ${Formats.grouped(it.toLong())}" }.orEmpty()
+            "${school.name}$kind, ${Formats.distance(near.distanceM)} away$walk$icsea"
+        }
     }
 
     /** A walking estimate is only worth showing for a walk: beyond this many minutes the distance alone is said. */

@@ -11,6 +11,11 @@ import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.DrainageHint
 import au.homefinder.shared.model.DrainageProximity
 import au.homefinder.shared.model.LotReport
+import au.homefinder.shared.model.SchoolSector
+import au.homefinder.shared.model.SchoolLevel
+import au.homefinder.shared.model.SchoolInfo
+import au.homefinder.shared.model.School
+import au.homefinder.shared.model.NearbySchool
 import au.homefinder.shared.model.ParkAccess
 import au.homefinder.shared.model.Proximity
 import au.homefinder.shared.model.ProximityList
@@ -200,6 +205,24 @@ class LotSelectionTest {
         assertEquals("Well above any drainage line, 12.3 m above a stream draining 136 ha", row(12.3, 135.9).value)
         assertEquals(Confidence.LOW, row(0.4, 20.9).confidence)
         assertFalse("flood" in row(0.4, 20.9).value.orEmpty().lowercase(), "this is where water runs, never a flood claim")
+    }
+
+    @Test
+    fun `schools read as the nearest primary and high school with distance, estimated walk and ICSEA where published`() {
+        val base = report("1001", "12 MAIN STREET, HAMILTON NSW 2303")
+        fun row(vararg near: NearbySchool) = LotCardRows.of(
+            base.copy(schools = Attribute(SchoolInfo(nearest = near.toList()), Confidence.MEDIUM, "Dept")),
+        ).associateBy { it.label }.getValue("Schools").value
+        val primary = NearbySchool(School("1", "Hamilton Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, icsea = 1051, levelLabel = "Primary School"), 600, walkingMinutes = 10)
+        val high = NearbySchool(School("2", "Newcastle High", SchoolSector.PUBLIC, SchoolLevel.HIGH, levelLabel = "Secondary School"), 1_400, walkingMinutes = 23)
+        assertEquals(
+            "Hamilton Public School (Primary School), 600 m away, about 10 min walk (estimated), ICSEA 1,051; " +
+                "Newcastle High (Secondary School), 1.4 km away, about 23 min walk (estimated)",
+            row(primary, high),
+        )
+        val far = NearbySchool(School("3", "Far", SchoolSector.PUBLIC, SchoolLevel.COMBINED), 9_000, walkingMinutes = 146)
+        assertEquals("Far, 9.0 km away", row(far), "a walk over an hour is not offered, and a school with no kind or ICSEA says neither")
+        assertEquals("No public school found nearby", row())
     }
 
     @Test

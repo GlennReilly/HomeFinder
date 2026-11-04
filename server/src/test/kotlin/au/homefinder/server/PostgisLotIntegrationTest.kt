@@ -215,6 +215,38 @@ class PostgisLotIntegrationTest {
     }
 
     @Test
+    fun `the nearest schools are read in metre order from the lot, and no school data means nothing is loaded`() = withLots { directory, _ ->
+        execute("TRUNCATE school")
+        assertNull(directory.schools("1001"), "nothing loaded yet")
+        // Lot 1001 is at about 151.7501, -32.9202. The primary school is about 200 m east, the high school about 1 km east, the far one about 11 km.
+        execute(
+            "INSERT INTO school (school_code, name, level_label, icsea, enrolment_fte, website, geom, extracted_on) VALUES " +
+                "(1, 'High', 'Secondary School', 1020, 900.5, 'https://high.schools.nsw.gov.au', ST_SetSRID(ST_MakePoint(151.7610, -32.9202), 7844), '2026-10-30'), " +
+                "(2, 'Primary', 'Primary School', NULL, NULL, NULL, ST_SetSRID(ST_MakePoint(151.7521, -32.9202), 7844), '2026-10-30'), " +
+                "(3, 'Far', 'Primary School', 1100, 400, NULL, ST_SetSRID(ST_MakePoint(151.8500, -32.9202), 7844), '2026-10-30')",
+        )
+        val data = assertNotNull(directory.schools("1001"))
+        assertEquals(kotlinx.datetime.LocalDate(2026, 10, 30), data.extractedOn)
+        assertEquals(listOf("Primary", "High", "Far"), data.candidates.map { it.school.name }, "nearest first")
+        assertTrue(data.candidates[0].distanceM in 150.0..250.0, "about 200 m, was ${data.candidates[0].distanceM}")
+        assertTrue(data.candidates[1].distanceM in 900.0..1_100.0)
+        assertEquals(SchoolRecord(1, "High", "Secondary School", 1020, 901, "https://high.schools.nsw.gov.au"), data.candidates[1].school)
+        assertEquals(null, data.candidates[0].school.icsea, "an unpublished ICSEA stays null")
+        assertNull(directory.schools("no-such-lot"))
+        assertNull(directory.schools("1001' OR '1'='1"))
+    }
+
+    @Test
+    fun `a database without the school table has no schools for a lot rather than an error`() = withLots { directory, _ ->
+        execute("ALTER TABLE school RENAME TO school_hidden")
+        try {
+            assertNull(directory.schools("1001"))
+        } finally {
+            execute("ALTER TABLE school_hidden RENAME TO school")
+        }
+    }
+
+    @Test
     fun `a database without the terrain table has no terrain rather than an error`() = withLots { directory, _ ->
         execute("ALTER TABLE lot_terrain RENAME TO lot_terrain_hidden")
         try {
