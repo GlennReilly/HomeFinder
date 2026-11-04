@@ -29,7 +29,7 @@ class LotCardHtmlTest {
         assertTrue("<h2>12 MAIN STREET, HAMILTON NSW 2303</h2>" in out)
         assertTrue("HAMILTON 2303 · Parcel 1//DP100" in out)
         assertTrue("561 m²" in out)
-        assertEquals(12, Regex("""class="value unknown"""").findAll(out).count())
+        assertEquals(9, Regex("""class="value unknown"""").findAll(out).count())
         assertTrue("Source: cadastre" in out)
         assertTrue(CARD_DISCLAIMER in out)
         assertFalse("<ul" in out, "one address needs no list")
@@ -73,17 +73,17 @@ class LotCardHtmlTest {
 
     @Test
     fun `hidden rows are left out and the chosen order is used`() {
-        val layout = CardLayout().toggle("Flood").moveDown("Block size", LotCardRows.of(report(emptyList())))
+        val layout = CardLayout().toggle("Schools").moveDown("Block size", LotCardRows.of(report(emptyList())))
         val labels = labelsIn(custom(layout, false))
-        assertFalse("Flood" in labels)
-        assertEquals(listOf("Wall material", "Block size"), labels.take(2))
+        assertFalse("Schools" in labels)
+        assertEquals(listOf("Backyard aspect", "Block size"), labels.take(2))
     }
 
     @Test
-    fun `customising shows all thirteen rows with controls and a Done button`() {
-        val out = custom(CardLayout().toggle("Flood"), true)
-        assertEquals(13, labelsIn(out).size)
-        assertEquals(13, Regex("""class="row-controls"""").findAll(out).count())
-        assertTrue("""aria-label="Show Flood"""" in out && """data-action="customise-done"""" in out)
+    fun `customising shows all ten rows with controls and a Done button`() {
+        val out = custom(CardLayout().toggle("Schools"), true)
+        assertEquals(10, labelsIn(out).size)
+        assertEquals(10, Regex("""class="row-controls"""").findAll(out).count())
+        assertTrue("""aria-label="Show Schools"""" in out && """data-action="customise-done"""" in out)
     }
 }

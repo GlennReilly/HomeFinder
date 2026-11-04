@@ -42,7 +42,7 @@ class SuburbCardRowsTest {
     fun `the rows have no area and put the typical block size under the median house price`() {
         assertEquals(
             listOf("Median house price", "Typical block size", "Median unit price", "Price change, 12 months", "Sales behind the prices",
-                "Flood", "Likely brick", "Distance to the beach", "Schools", "Parks", "Shopping", "Transport"),
+                "Distance to the beach", "Schools", "Parks", "Shopping", "Transport"),
             SuburbCardRows.of(allUnknown).map { it.label },
         )
     }
@@ -56,7 +56,7 @@ class SuburbCardRowsTest {
             assertEquals(Confidence.NONE, it.confidence, it.label)
             assertEquals("Not computed yet", it.note, it.label)
         }
-        assertEquals(listOf("A", "E", "B", "C", "D", "F", "G", "H", "I", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
+        assertEquals(listOf("A", "E", "B", "C", "D", "H", "I", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
     }
 
     @Test
@@ -67,8 +67,6 @@ class SuburbCardRowsTest {
         assertEquals("+4.2%", rows["Price change, 12 months"])
         assertEquals("1,187", rows["Sales behind the prices"])
         assertEquals("560 m² median (320 to 810 m²)", rows["Typical block size"])
-        assertEquals("18% of lots touch a mapped flood extent; 90% of the suburb has flood mapping", rows["Flood"])
-        assertEquals("42% of lots are likely brick; 30% have enough evidence to say", rows["Likely brick"])
         assertEquals("3.5 km from the centre, 2.4 km from the nearest edge", rows["Distance to the beach"])
         assertEquals("1 public school", rows["Schools"])
         assertEquals("7% of the suburb is park", rows["Parks"])

@@ -164,6 +164,15 @@ class SuburbReportFactoryTest {
     }
 
     @Test
+    fun `a suburb with no mapped park is unknown with that reason, not zero percent`() {
+        val none = SuburbReportFactory.build(hamilton, amenity = nearby.copy(parkAreaM2 = 0.0)).parkAreaShare
+        assertTrue(none.isUnknown)
+        assertEquals(SuburbReportFactory.NO_PARK_NOTE, none.note)
+        assertEquals(day, none.asOf)
+        assertEquals(0.0125, SuburbReportFactory.build(hamilton, amenity = nearby).parkAreaShare.value, "a suburb with parks keeps its share")
+    }
+
+    @Test
     fun `no beach in the data is unknown with a reason, and a share cannot exceed all of the suburb`() {
         val noBeach = SuburbReportFactory.build(hamilton, amenity = nearby.copy(beachFromCentreM = null, beachFromEdgeM = null, beachName = null))
         assertTrue(noBeach.beach.isUnknown)

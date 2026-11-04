@@ -130,10 +130,16 @@ object SuburbReportFactory {
         )
     }
 
+    const val NO_PARK_NOTE: String = "No park of at least 0.5 ha is mapped in the suburb in the OpenStreetMap data loaded, which may be incomplete"
+
     private fun parks(amenity: SuburbAmenity?): Attribute<Double> {
         if (amenity == null) return osmNotLoaded()
         val share = amenity.parkShare
             ?: return Attribute.unknown(LotReportFactory.OSM_SOURCE, amenity.osmAsOf, "The suburb has no area to measure parks against")
+        if (share <= 0.0) {
+            // Zero would read as "no park here" when it usually means "none mapped" (58 of 173 pilot suburbs), so it is unknown with that reason.
+            return Attribute.unknown(LotReportFactory.OSM_SOURCE, amenity.osmAsOf, NO_PARK_NOTE)
+        }
         return Attribute(
             share, Confidence.MEDIUM, LotReportFactory.OSM_SOURCE, amenity.osmAsOf,
             "Parks of at least 0.5 ha as a share of the suburb's area; OpenStreetMap may be incomplete",

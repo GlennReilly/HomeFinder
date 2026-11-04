@@ -167,9 +167,9 @@ class LotSelectionTest {
         val rows = LotCardRows.of(report("1001", "12 MAIN STREET, HAMILTON NSW 2303"))
         assertEquals("Block size", rows.first().label)
         assertEquals("561 m²", rows.first().value)
-        assertEquals(13, rows.size)
-        assertEquals("Height above sea level", rows[5].label, "right after the slope")
-        assertEquals("Height above drainage", rows[6].label, "right after the height above sea level")
+        assertEquals(10, rows.size)
+        assertEquals(listOf("Block size", "Backyard aspect", "Slope", "Height above sea level", "Height above drainage"), rows.take(5).map { it.label })
+        assertTrue(rows.none { it.label in setOf("Wall material", "Flood", "Estimated price") }, "rows with no reliable source are not shown")
         assertTrue(rows.drop(1).all { it.isUnknown && it.confidence == Confidence.NONE })
         assertTrue(rows.drop(1).filter { it.label != "Height above sea level" && it.label != "Height above drainage" }.all { it.source == "src" })
     }
