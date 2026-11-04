@@ -5,6 +5,7 @@ import kotlinx.datetime.LocalDate
 import java.sql.SQLException
 import javax.sql.DataSource
 import kotlinx.coroutines.Dispatchers
+import kotlin.math.roundToInt
 import kotlinx.coroutines.withContext
 
 /** What the database knows about one lot; [addresses] are already formatted (see [AddressFormat]). */
@@ -30,6 +31,9 @@ interface LotDirectory {
 
     /** The OpenStreetMap proximity of a lot, or null when the pipeline has not produced it (no import, or the tables are missing). */
     suspend fun proximity(lotId: String): LotProximity? = null
+
+    /** The public schools nearest a lot (nearest first), or null when no school data has been loaded (or the table is missing). */
+    suspend fun schools(lotId: String): LotSchoolData? = null
 
     /** The DEM-derived height and slope of a lot, or null when no DEM has been loaded (or the table is missing). */
     suspend fun terrain(lotId: String): LotTerrainData? = null
@@ -82,6 +86,34 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
             }
         } catch (failure: SQLException) {
             // Before the first OSM load the tables hold nothing or do not exist; that is "no data", not an outage.
+            if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
+        }
+    }
+
+    override suspend fun schools(lotId: String): LotSchoolData? = withContext(Dispatchers.IO) {
+        try {
+            dataSource.connection.use { connection ->
+                connection.prepareStatement(SCHOOLS_NEAR_SQL).use { statement ->
+                    statement.setString(1, lotId)
+                    statement.executeQuery().use { rows ->
+                        val candidates = ArrayList<NearSchool>()
+                        var extracted: LocalDate? = null
+                        while (rows.next()) {
+                            extracted = rows.getDate("extracted_on")?.toLocalDate()?.let { LocalDate(it.year, it.monthValue, it.dayOfMonth) }
+                            val enrolment = rows.getDouble("enrolment_fte").takeIf { !rows.wasNull() }?.roundToInt()
+                            val icsea = rows.getInt("icsea").takeIf { !rows.wasNull() }
+                            candidates += NearSchool(
+                                SchoolRecord(rows.getInt("school_code"), rows.getString("name"), rows.getString("level_label"), icsea, enrolment, rows.getString("website")),
+                                rows.getDouble("distance_m"),
+                            )
+                        }
+                        // No rows means no school data (or no such lot): the same as not loaded.
+                        if (candidates.isEmpty()) null else LotSchoolData(candidates, extracted)
+                    }
+                }
+            }
+        } catch (failure: SQLException) {
+            // Before the first schools load the table does not exist; that is "no data", not an outage.
             if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
         }
     }
@@ -178,6 +210,9 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
             ORDER BY l.area_m2, l.lot_id LIMIT 1
         """.trimIndent()
 
+        /** How many nearby schools are fetched, so a primary and a high school are both found even where one kind is sparse. */
+        const val SCHOOL_CANDIDATES: Int = 30
+
         val IMPORT_SQL = "SELECT (COALESCE(osm_base, imported_at) AT TIME ZONE 'UTC')::date AS as_of FROM osm_import"
 
         /** One row whose load date is NULL when nothing has been loaded; the lot's own columns are NULL when it has no coverage. */
@@ -190,6 +225,16 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
         val DRAINAGE_SQL = """
             SELECT (SELECT max(computed_on) FROM lot_drainage) AS computed_on, d.height_above_drainage_m, d.stream_catchment_ha
             FROM (SELECT 1) one LEFT JOIN lot_drainage d ON d.lot_id = ?
+        """.trimIndent()
+
+        /** The candidates are the schools nearest the lot by the index (degrees), then put in true metre order from the lot's edge. */
+        val SCHOOLS_NEAR_SQL = """
+            SELECT (SELECT max(extracted_on) FROM school) AS extracted_on, s.school_code, s.name, s.level_label, s.icsea, s.enrolment_fte, s.website,
+                   ST_Distance(ST_Transform(s.geom, 7856), l.geom_mga) AS distance_m
+            FROM lot l
+            CROSS JOIN LATERAL (SELECT * FROM school ORDER BY geom <-> ST_PointOnSurface(l.geom) LIMIT $SCHOOL_CANDIDATES) s
+            WHERE l.lot_id = ?
+            ORDER BY distance_m, s.school_code
         """.trimIndent()
 
         val NEAREST_SQL = "SELECT kind, rank, name, distance_m FROM lot_nearest WHERE lot_id = ? ORDER BY kind, rank"

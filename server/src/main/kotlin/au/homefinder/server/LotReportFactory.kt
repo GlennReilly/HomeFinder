@@ -5,6 +5,11 @@ import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.DrainageHint
 import au.homefinder.shared.model.DrainageProximity
 import au.homefinder.shared.model.LotReport
+import au.homefinder.shared.model.NearbySchool
+import au.homefinder.shared.model.School
+import au.homefinder.shared.model.SchoolInfo
+import au.homefinder.shared.model.SchoolLevel
+import au.homefinder.shared.model.SchoolSector
 import au.homefinder.shared.model.ParkAccess
 import au.homefinder.shared.model.Proximity
 import au.homefinder.shared.model.ProximityList
@@ -51,7 +56,6 @@ object LotReportFactory {
             "Checked against the council's 10% annual-chance flood corridor in ELERMORE VALE only (ADR 0040): under 1 m touched it for 43% of lots, over 5 m for under 1%"
     private const val PRICE_SOURCE = "NSW Valuer General"
     private const val LISTING_SOURCE = "Licensed listing text"
-    private const val EDUCATION_SOURCE = "NSW Department of Education"
     private const val TRANSPORT_SOURCE = "Transport for NSW"
 
     /** Strata and community plans (SP and CP) share one parcel across many titles. */
@@ -66,6 +70,7 @@ object LotReportFactory {
         proximity: LotProximity? = null,
         terrain: LotTerrainData? = null,
         drainage: LotDrainageData? = null,
+        schools: LotSchoolData? = null,
     ): LotReport {
         val strata = isStrata(record.parcelKey)
         return LotReport(
@@ -85,7 +90,7 @@ object LotReportFactory {
             slope = slope(terrain),
             estimatedPriceAud = unknown(PRICE_SOURCE),
             beach = beach(proximity),
-            schools = unknown(EDUCATION_SOURCE),
+            schools = schools(schools),
             parks = parks(proximity),
             shopping = shopping(proximity),
             transport = unknown(TRANSPORT_SOURCE),
@@ -119,6 +124,39 @@ object LotReportFactory {
         val mean = terrain.meanSlopePercent ?: return demUnknown(data)
         val max = maxOf(terrain.maxSlopePercent ?: mean, mean)
         return Attribute(SlopeSummary(mean, max, SlopeClass.fromMeanPercent(mean)), Confidence.MEDIUM, DEM_SOURCE, data.loadedOn, SLOPE_NOTE)
+    }
+
+    const val LOT_SCHOOLS_NOTE: String =
+        "The nearest NSW public primary school and the nearest public high school, by straight line to the lot, not catchments or routes. " +
+            "$WALKING_ESTIMATE_NOTE. Private and Catholic schools are not in this data. ICSEA measures how socio-educationally advantaged a school's students are (national average 1000), not how good the school is"
+    const val LOT_SCHOOLS_NONE_NOTE: String = "No public school found near this lot in the data loaded"
+
+    /** The nearest primary and the nearest high school, nearest first; where the data has neither kind, the nearest two of any kind. */
+    fun chooseSchools(candidates: List<NearSchool>): List<NearSchool> {
+        val sorted = candidates.sortedBy { it.distanceM }
+        val primary = sorted.firstOrNull { SuburbReportFactory.schoolLevel(it.school.levelLabel) == SchoolLevel.PRIMARY }
+        val high = sorted.firstOrNull { SuburbReportFactory.schoolLevel(it.school.levelLabel) == SchoolLevel.HIGH }
+        return listOfNotNull(primary, high).sortedBy { it.distanceM }.ifEmpty { sorted.take(FALLBACK_SCHOOLS) }
+    }
+
+    private const val FALLBACK_SCHOOLS = 2
+
+    private fun schools(data: LotSchoolData?): Attribute<SchoolInfo> {
+        if (data == null) return Attribute.unknown(SuburbReportFactory.SCHOOLS_SOURCE, note = SuburbReportFactory.SCHOOLS_NOT_LOADED_NOTE)
+        val chosen = chooseSchools(data.candidates)
+        if (chosen.isEmpty()) return Attribute.unknown(SuburbReportFactory.SCHOOLS_SOURCE, data.extractedOn, LOT_SCHOOLS_NONE_NOTE)
+        val nearest = chosen.map { near ->
+            val record = near.school
+            val metres = near.distanceM.roundToInt()
+            NearbySchool(
+                School(
+                    id = record.code.toString(), name = record.name, sector = SchoolSector.PUBLIC, level = SuburbReportFactory.schoolLevel(record.levelLabel),
+                    icsea = record.icsea, enrolments = record.enrolments, website = SuburbReportFactory.safeWebsite(record.website), levelLabel = record.levelLabel,
+                ),
+                distanceM = metres, walkingMinutes = walkingMinutes(metres),
+            )
+        }
+        return Attribute(SchoolInfo(nearest = nearest), Confidence.MEDIUM, SuburbReportFactory.SCHOOLS_SOURCE, data.extractedOn, LOT_SCHOOLS_NOTE)
     }
 
     private fun <T> osmNotLoaded(): Attribute<T> = Attribute.unknown(OSM_SOURCE, note = OSM_NOT_LOADED_NOTE)

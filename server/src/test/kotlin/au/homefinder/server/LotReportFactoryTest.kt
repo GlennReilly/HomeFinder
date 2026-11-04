@@ -2,6 +2,7 @@ package au.homefinder.server
 
 import au.homefinder.shared.model.ApiJson
 import au.homefinder.shared.model.Confidence
+import au.homefinder.shared.model.SchoolSector
 import au.homefinder.shared.model.DrainageProximity
 import au.homefinder.shared.model.LotReport
 import au.homefinder.shared.model.SlopeClass
@@ -51,8 +52,10 @@ class LotReportFactoryTest {
             assertEquals(LotReportFactory.OSM_NOT_LOADED_NOTE, it.note)
             assertEquals(LotReportFactory.OSM_SOURCE, it.source)
         }
-        val others = listOf(report.wallMaterial, report.backyardAspect, report.flood, report.estimatedPriceAud, report.schools, report.transport)
-        assertEquals(6, others.size)
+        assertTrue(report.schools.isUnknown)
+        assertEquals(SuburbReportFactory.SCHOOLS_NOT_LOADED_NOTE, report.schools.note)
+        val others = listOf(report.wallMaterial, report.backyardAspect, report.flood, report.estimatedPriceAud, report.transport)
+        assertEquals(5, others.size)
         others.forEach {
             assertTrue(it.isUnknown)
             assertEquals(Confidence.NONE, it.confidence)
@@ -156,6 +159,52 @@ class LotReportFactoryTest {
         assertTrue(noResult.heightAboveDrainage.isUnknown)
         assertEquals(LotReportFactory.DRAINAGE_NO_RESULT_NOTE, noResult.heightAboveDrainage.note)
         assertEquals(loaded, noResult.heightAboveDrainage.asOf)
+    }
+
+    private fun school(code: Int, name: String, label: String?, metres: Double, icsea: Int? = 1000) =
+        NearSchool(SchoolRecord(code, name, label, icsea, 300, "https://x.schools.nsw.gov.au"), metres)
+
+    @Test
+    fun `the nearest primary and the nearest high school are shown, nearest first, with an estimated walk and ICSEA`() {
+        val data = LotSchoolData(
+            listOf(
+                school(1, "Far Primary", "Primary School", 2_400.0),
+                school(2, "Near High", "Secondary School", 900.0),
+                school(3, "Near Primary", "Primary School", 600.0, icsea = 1051),
+                school(4, "Central School", "Central/Community School", 300.0),
+            ),
+            loaded,
+        )
+        val report = LotReportFactory.build(lot, schools = data)
+        val nearest = assertNotNull(report.schools.value).nearest
+        assertEquals(listOf("Near Primary", "Near High"), nearest.map { it.school.name })
+        assertEquals(listOf(600, 900), nearest.map { it.distanceM })
+        assertEquals(LotReportFactory.walkingMinutes(600), nearest.first().walkingMinutes)
+        assertEquals(1051, nearest.first().school.icsea)
+        assertEquals(SchoolSector.PUBLIC, nearest.first().school.sector)
+        assertEquals(Confidence.MEDIUM, report.schools.confidence)
+        assertEquals(SuburbReportFactory.SCHOOLS_SOURCE, report.schools.source)
+        assertEquals(loaded, report.schools.asOf)
+        assertTrue("not catchments" in report.schools.note.orEmpty() && "Private and Catholic" in report.schools.note.orEmpty())
+    }
+
+    @Test
+    fun `where there is no primary or high school the nearest two of any kind are shown, and no candidates is unknown with a reason`() {
+        val onlyCombined = LotSchoolData(
+            listOf(school(1, "A", "Central/Community School", 500.0), school(2, "B", null, 800.0), school(3, "C", "Special School", 900.0)),
+            loaded,
+        )
+        assertEquals(listOf("A", "B"), assertNotNull(LotReportFactory.build(lot, schools = onlyCombined).schools.value).nearest.map { it.school.name })
+        val none = LotReportFactory.build(lot, schools = LotSchoolData(emptyList(), loaded)).schools
+        assertTrue(none.isUnknown)
+        assertEquals(LotReportFactory.LOT_SCHOOLS_NONE_NOTE, none.note)
+        assertEquals(loaded, none.asOf)
+    }
+
+    @Test
+    fun `a school's website is kept only when it is a web address`() {
+        val data = LotSchoolData(listOf(NearSchool(SchoolRecord(1, "P", "Primary School", 1000, null, "javascript:alert(1)"), 500.0)), loaded)
+        assertEquals(null, assertNotNull(LotReportFactory.build(lot, schools = data).schools.value).nearest.single().school.website)
     }
 
     @Test
