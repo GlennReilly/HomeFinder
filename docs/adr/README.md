@@ -47,3 +47,4 @@
 | [0043](0043-homely-block-with-hidden-edit-form.md) | The Homely block holds the rating, its reviews link and a hidden edit form | Accepted |
 | [0044](0044-census-tenure-and-dwelling-structure.md) | Share rented and the mix of houses and units from the 2021 Census | Accepted |
 | [0045](0045-lot-card-schools-nearest-by-straight-line.md) | The Lot Card shows the nearest public primary and high school | Accepted |
+| [0046](0046-filters-beach-parks-rented.md) | Filters on beach distance, park share and homes rented | Accepted |

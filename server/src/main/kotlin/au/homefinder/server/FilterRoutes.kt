@@ -2,6 +2,7 @@ package au.homefinder.server
 
 import au.homefinder.shared.api.ApiContract
 import au.homefinder.shared.api.ApiError
+import au.homefinder.shared.model.FilterProvenance
 import au.homefinder.shared.model.SuburbFilterValue
 import au.homefinder.shared.model.SuburbFiltersResponse
 import io.ktor.http.HttpStatusCode
@@ -13,8 +14,8 @@ import kotlinx.coroutines.CancellationException
 private const val AUTHENTICATED_PREFIX = "/v1"
 
 /**
- * The values the filter panel works on (ADR 0035), inside the API-key guarded `/v1` route. When the schools data has not
- * been loaded every suburb is listed with no ICSEA and no as-of date, so the panel can say the data is missing.
+ * The values the filter panel works on (ADR 0035, 0046), inside the API-key guarded `/v1` route. A criterion whose data has not been
+ * loaded has no provenance in the response and no values, so the panel can say the data is missing.
  */
 fun Route.filterRoutes(directory: SuburbDirectory?) {
     get(ApiContract.SUBURB_FILTERS_PATH.removePrefix(AUTHENTICATED_PREFIX)) {
@@ -28,9 +29,12 @@ fun Route.filterRoutes(directory: SuburbDirectory?) {
         }
         call.respond(
             SuburbFiltersResponse(
-                suburbs = data?.suburbs.orEmpty().map { SuburbFilterValue(it.suburbId, it.averageIcsea) },
+                suburbs = data?.suburbs.orEmpty().map { SuburbFilterValue(it.suburbId, it.averageIcsea, it.beachKm, it.parkShare, it.rentedShare) },
                 icseaSource = SuburbReportFactory.SCHOOLS_SOURCE,
                 icseaAsOf = data?.icseaAsOf,
+                beach = data?.takeIf { it.osmLoaded }?.let { FilterProvenance(LotReportFactory.OSM_SOURCE, it.osmAsOf) },
+                parks = data?.takeIf { it.osmLoaded }?.let { FilterProvenance(LotReportFactory.OSM_SOURCE, it.osmAsOf) },
+                rented = data?.takeIf { it.censusLoaded }?.let { FilterProvenance(SuburbReportFactory.CENSUS_SOURCE, SuburbReportFactory.CENSUS_DATE) },
             ),
         )
     }

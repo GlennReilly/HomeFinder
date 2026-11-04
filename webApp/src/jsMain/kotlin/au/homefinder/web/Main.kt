@@ -2,9 +2,10 @@ package au.homefinder.web
 
 import au.homefinder.app.api.ApiConfig
 import au.homefinder.app.api.FilterApi
+import au.homefinder.app.filter.FilterCriterion
 import au.homefinder.app.filter.FilterData
+import au.homefinder.app.filter.FilterRange
 import au.homefinder.app.filter.FilterSelection
-import au.homefinder.app.filter.IcseaRange
 import au.homefinder.app.ui.FILTER_LOADING_TEXT
 import au.homefinder.app.ui.FILTER_UNAVAILABLE_TEXT
 import au.homefinder.app.ui.FilterIds
@@ -179,20 +180,24 @@ private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap) 
 
     fun input(id: String) = document.getElementById(id) as? HTMLInputElement
 
-    fun selection(): FilterSelection {
-        val on = input(FilterIds.ICSEA_ON)?.checked == true
-        val low = input(FilterIds.ICSEA_MIN)?.value?.toIntOrNull()
-        val high = input(FilterIds.ICSEA_MAX)?.value?.toIntOrNull()
-        return if (on && low != null && high != null) FilterSelection(IcseaRange(minOf(low, high), high)) else FilterSelection()
-    }
+    fun selection(): FilterSelection = FilterSelection(
+        FilterCriterion.entries.mapNotNull { criterion ->
+            val on = input(FilterIds.on(criterion))?.checked == true
+            val low = input(FilterIds.min(criterion))?.value?.toDoubleOrNull()
+            val high = input(FilterIds.max(criterion))?.value?.toDoubleOrNull()
+            if (on && low != null && high != null) criterion to FilterRange(minOf(low, high), high) else null
+        }.toMap(),
+    )
 
     fun refresh() {
         val loaded = data ?: return
         val result = loaded.apply(selection())
         view.showFilter(result.passingIds)
         document.getElementById(FilterIds.SUMMARY)?.textContent = filterSummaryText(result)
-        input(FilterIds.ICSEA_MIN)?.let { document.getElementById(FilterIds.ICSEA_MIN_OUT)?.textContent = it.value }
-        input(FilterIds.ICSEA_MAX)?.let { document.getElementById(FilterIds.ICSEA_MAX_OUT)?.textContent = it.value }
+        FilterCriterion.entries.forEach { criterion ->
+            input(FilterIds.min(criterion))?.let { document.getElementById(FilterIds.minOut(criterion))?.textContent = criterion.format(it.value.toDouble()) }
+            input(FilterIds.max(criterion))?.let { document.getElementById(FilterIds.maxOut(criterion))?.textContent = criterion.format(it.value.toDouble()) }
+        }
     }
 
     toggle.addEventListener("click", {
@@ -200,12 +205,15 @@ private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap) 
         toggle.setAttribute("aria-expanded", (!panel.hidden).toString())
     })
     panel.addEventListener("input", { event ->
-        // The sliders never cross: dragging one past the other pulls the other along.
-        val low = input(FilterIds.ICSEA_MIN)
-        val high = input(FilterIds.ICSEA_MAX)
-        val target = (event.target as? HTMLElement)?.id
-        if (low != null && high != null && low.value.toInt() > high.value.toInt()) {
-            if (target == FilterIds.ICSEA_MIN) high.value = low.value else low.value = high.value
+        // A criterion's sliders never cross: dragging one past the other pulls the other along.
+        val targetId = (event.target as? HTMLElement)?.id
+        val criterion = FilterIds.criterionOf(targetId)
+        if (criterion != null) {
+            val low = input(FilterIds.min(criterion))
+            val high = input(FilterIds.max(criterion))
+            if (low != null && high != null && low.value.toInt() > high.value.toInt()) {
+                if (targetId == FilterIds.min(criterion)) high.value = low.value else low.value = high.value
+            }
         }
         refresh()
     })

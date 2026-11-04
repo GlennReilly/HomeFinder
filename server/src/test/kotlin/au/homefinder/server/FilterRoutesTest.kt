@@ -3,6 +3,7 @@ package au.homefinder.server
 import au.homefinder.shared.api.ApiContract
 import au.homefinder.shared.api.ApiError
 import au.homefinder.shared.model.ApiJson
+import au.homefinder.shared.model.FilterProvenance
 import au.homefinder.shared.model.SuburbFilterValue
 import au.homefinder.shared.model.SuburbFiltersResponse
 import io.ktor.client.HttpClient
@@ -42,6 +43,31 @@ class FilterRoutesTest {
         assertEquals(listOf(SuburbFilterValue("9001", 1032), SuburbFilterValue("9002", null)), body.suburbs)
         assertEquals(day, body.icseaAsOf)
         assertEquals(SuburbReportFactory.SCHOOLS_SOURCE, body.icseaSource)
+    }
+
+    @Test
+    fun `beach, park and rented values come with their own sources and dates, and only for the data sets that are loaded`() = api(
+        FakeDirectory(
+            SuburbFilterData(
+                listOf(SuburbFilterRow("9001", 1032, 3.5, 0.1, 0.45), SuburbFilterRow("9002", null, null, null, null)),
+                day, osmLoaded = true, osmAsOf = LocalDate(2026, 10, 29), censusLoaded = true,
+            ),
+        ),
+    ) {
+        val body = ApiJson.decodeFromString<SuburbFiltersResponse>(get(ApiContract.SUBURB_FILTERS_PATH) { header(ApiContract.API_KEY_HEADER, key) }.bodyAsText())
+        assertEquals(SuburbFilterValue("9001", 1032, 3.5, 0.1, 0.45), body.suburbs.first())
+        assertEquals(SuburbFilterValue("9002"), body.suburbs.last())
+        assertEquals(FilterProvenance(LotReportFactory.OSM_SOURCE, LocalDate(2026, 10, 29)), body.beach)
+        assertEquals(body.beach, body.parks)
+        assertEquals(FilterProvenance(SuburbReportFactory.CENSUS_SOURCE, SuburbReportFactory.CENSUS_DATE), body.rented)
+    }
+
+    @Test
+    fun `a data set that is not loaded has no provenance`() = api(FakeDirectory(SuburbFilterData(listOf(SuburbFilterRow("9001", 1032)), day))) {
+        val body = ApiJson.decodeFromString<SuburbFiltersResponse>(get(ApiContract.SUBURB_FILTERS_PATH) { header(ApiContract.API_KEY_HEADER, key) }.bodyAsText())
+        assertNull(body.beach)
+        assertNull(body.parks)
+        assertNull(body.rented)
     }
 
     @Test

@@ -191,7 +191,7 @@ class SmokeTest {
         page.locator("#filters-toggle").click()
         assertThat(page.locator("#filters-toggle")).hasAttribute("aria-expanded", "true")
         assertThat(page.locator("#filter-summary")).containsText("Switch on a filter")
-        assertThat(page.locator("#filter-summary")).containsText("1 of 3 suburbs have no ICSEA")
+        assertThat(page.locator("#filter-icsea-unknown")).containsText("1 of 3 suburbs have no ICSEA")
         assertThat(page.locator("#filters")).containsText("not a measure of school quality")
         page.locator("#filter-icsea-on").check()
         assertThat(page.locator("#filter-summary")).containsText("2 of 3 suburbs match")
@@ -199,6 +199,29 @@ class SmokeTest {
         assertThat(page.locator("#filter-icsea-min-value")).hasText("1000")
         assertThat(page.locator("#filter-summary")).containsText("1 of 3 suburbs match")
         page.locator("#filter-icsea-on").uncheck()
+        assertThat(page.locator("#filter-summary")).containsText("Switch on a filter")
+    }
+
+    @Test
+    fun `filters on the share rented and the beach distance combine, and the sliders show their own units`() {
+        openWithKey()
+        page.locator("#filters-toggle").click()
+        assertThat(page.locator("#filter-rented-min-value")).hasText("20%")
+        assertThat(page.locator("#filter-beach-max-value")).hasText("12 km")
+        assertThat(page.locator("#filter-rented-unknown")).containsText("1 of 3 suburbs have no Census figure")
+        assertThat(page.locator("#filters")).containsText("Homes rented: Source: Test Census · as of 2021-08-10")
+        page.locator("#filter-rented-on").check()
+        assertThat(page.locator("#filter-summary")).containsText("2 of 3 suburbs match")
+        page.locator("#filter-rented-min").fill("30")
+        assertThat(page.locator("#filter-rented-min-value")).hasText("30%")
+        assertThat(page.locator("#filter-summary")).containsText("1 of 3 suburbs match")
+        // A second filter must also pass: the one suburb that is rented enough is 1.5 km from the beach, so a 1 km limit removes it.
+        page.locator("#filter-beach-on").check()
+        assertThat(page.locator("#filter-summary")).containsText("1 of 3 suburbs match all 2 filters")
+        page.locator("#filter-beach-max").fill("1")
+        assertThat(page.locator("#filter-summary")).containsText("0 of 3 suburbs match all 2 filters")
+        page.locator("#filter-rented-on").uncheck()
+        page.locator("#filter-beach-on").uncheck()
         assertThat(page.locator("#filter-summary")).containsText("Switch on a filter")
     }
 

@@ -76,19 +76,39 @@ data class SuburbRatingPoint(val suburbId: String, val name: String, val rating:
 @Serializable
 data class SuburbRatingsResponse(val ratings: List<SuburbRatingPoint>)
 
-/** What the filter panel needs from one suburb. [averageIcsea] is null when the suburb has no public school with an ICSEA. */
+/**
+ * What the filter panel needs from one suburb (ADR 0035, 0046). A value is null when it is unknown for the suburb: no school with an ICSEA,
+ * no beach found, no park mapped, no Census figure, or that data has not been loaded at all.
+ */
 @Serializable
-data class SuburbFilterValue(val suburbId: String, val averageIcsea: Int? = null)
+data class SuburbFilterValue(
+    val suburbId: String,
+    val averageIcsea: Int? = null,
+    /** Straight-line distance in kilometres from the suburb's centre to the nearest ocean beach. */
+    val beachKm: Double? = null,
+    /** The share of the suburb that is park (parks of at least 0.5 ha), from 0 to 1. */
+    val parkShare: Double? = null,
+    /** The share of occupied private dwellings that are rented (2021 Census), from 0 to 1. */
+    val rentedShare: Double? = null,
+)
+
+/** Where one criterion's figures come from, as on the card. */
+@Serializable
+data class FilterProvenance(val source: String, val asOf: LocalDate? = null)
 
 /**
- * Every suburb's filter values, with where the ICSEA figures come from (provenance, as on the card). [icseaAsOf] is null
- * and every [SuburbFilterValue.averageIcsea] is null when the schools data has not been loaded.
+ * Every suburb's filter values, with where each criterion's figures come from (provenance, as on the card). [icseaAsOf] is null and
+ * every [SuburbFilterValue.averageIcsea] is null when the schools data has not been loaded; [beach], [parks] and [rented] are null when
+ * their data has not been loaded (the OpenStreetMap roll-up for the first two, the Census for the third).
  */
 @Serializable
 data class SuburbFiltersResponse(
     val suburbs: List<SuburbFilterValue>,
     val icseaSource: String,
     val icseaAsOf: LocalDate? = null,
+    val beach: FilterProvenance? = null,
+    val parks: FilterProvenance? = null,
+    val rented: FilterProvenance? = null,
 )
 
 /** The same factors as a property, rolled up to suburb level. Every statistic carries its own provenance. */

@@ -105,11 +105,13 @@ The card then shows a "Homely rating" row under the area, and a "★ 2.1" label 
 
 ### Filtering suburbs
 
-`GET /v1/suburbs/filters` gives every suburb's average school ICSEA (with its source and extraction date) in one response. In the app,
-press **Filters** (under the zoom buttons), switch on "School ICSEA" and move the two sliders: suburbs inside the range are tinted green and the
-rest are washed out, with no further requests. Suburbs with no ICSEA never match and are counted in the panel. It needs the schools data
-(`pipeline/scripts/load-schools.sh`). More criteria (beach distance, parkland, transport) and a weighted-score mode come later; see
-[ADR 0035](docs/adr/0035-suburb-filter-panel.md).
+`GET /v1/suburbs/filters` gives every suburb's values for four criteria, each with its source and date, in one response: average school ICSEA,
+distance to the beach (km from the suburb's centre), park share (%) and share of homes rented (%). In the app, press **Filters** (under the zoom
+buttons), switch on one or more criteria and move their sliders: suburbs that pass every switched-on criterion are tinted green and the rest are
+washed out, with no further requests. A suburb with no value for a switched-on criterion never matches, and each slider says how many suburbs
+that is. A criterion whose data has not been loaded says so instead of showing sliders. The data comes from `pipeline/scripts/load-schools.sh`
+(ICSEA), `load-osm.sh` (beach and parks) and `load-census.sh` (homes rented). Transport and a weighted-score mode come later; see
+[ADR 0035](docs/adr/0035-suburb-filter-panel.md) and [ADR 0046](docs/adr/0046-filters-beach-parks-rented.md).
 
 ### Customising the cards
 
