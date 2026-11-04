@@ -222,6 +222,7 @@ class PostgisSuburbDirectoryIntegrationTest {
         assertEquals(960, byId["9002"])
         assertNull(byId["9003"], "a suburb with no school is listed with no value")
         assertEquals(LocalDate(2026, 10, 2), data.icseaAsOf)
+        assertTrue(data.suburbs.all { it.name.isNotBlank() }, "each suburb carries its name for the score ranking")
     }
 
     @Test

@@ -22,6 +22,7 @@ data class SuburbFilterRow(
     val beachKm: Double? = null,
     val parkShare: Double? = null,
     val rentedShare: Double? = null,
+    val name: String = "",
 )
 
 /**

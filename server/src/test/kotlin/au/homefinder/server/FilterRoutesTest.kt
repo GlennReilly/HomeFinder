@@ -35,12 +35,12 @@ class FilterRoutesTest {
 
     @Test
     fun `every suburb is listed with its average ICSEA, the source and the extraction day`() = api(
-        FakeDirectory(SuburbFilterData(listOf(SuburbFilterRow("9001", 1032), SuburbFilterRow("9002", null)), day)),
+        FakeDirectory(SuburbFilterData(listOf(SuburbFilterRow("9001", 1032, name = "Alpha"), SuburbFilterRow("9002", null)), day)),
     ) {
         val response = get(ApiContract.SUBURB_FILTERS_PATH) { header(ApiContract.API_KEY_HEADER, key) }
         assertEquals(HttpStatusCode.OK, response.status)
         val body = ApiJson.decodeFromString<SuburbFiltersResponse>(response.bodyAsText())
-        assertEquals(listOf(SuburbFilterValue("9001", 1032), SuburbFilterValue("9002", null)), body.suburbs)
+        assertEquals(listOf(SuburbFilterValue("9001", 1032, name = "Alpha"), SuburbFilterValue("9002", null)), body.suburbs)
         assertEquals(day, body.icseaAsOf)
         assertEquals(SuburbReportFactory.SCHOOLS_SOURCE, body.icseaSource)
     }

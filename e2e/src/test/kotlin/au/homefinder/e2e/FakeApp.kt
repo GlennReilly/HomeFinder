@@ -144,9 +144,9 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
     /** Three suburbs: one above 1,000 (and near the beach, with parks, mostly rented), one below, one with no values at all. */
     private fun filters() = SuburbFiltersResponse(
         listOf(
-            SuburbFilterValue("9001", 1051, beachKm = 1.5, parkShare = 0.20, rentedShare = 0.45),
-            SuburbFilterValue("9002", 960, beachKm = 12.0, parkShare = 0.05, rentedShare = 0.20),
-            SuburbFilterValue("9003", null),
+            SuburbFilterValue("9001", 1051, beachKm = 1.5, parkShare = 0.20, rentedShare = 0.45, name = "HAMILTON"),
+            SuburbFilterValue("9002", 960, beachKm = 12.0, parkShare = 0.05, rentedShare = 0.20, name = "MAYFIELD"),
+            SuburbFilterValue("9003", null, name = "WICKHAM"),
         ),
         "Test schools", LocalDate(2026, 10, 2),
         beach = FilterProvenance("Test OpenStreetMap", LocalDate(2026, 10, 29)),

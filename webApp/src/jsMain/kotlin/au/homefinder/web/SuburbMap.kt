@@ -67,6 +67,7 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
     private var pendingLot: String? = null
     private var pendingRatings: List<SuburbRatingPoint> = emptyList()
     private var pendingPassing: Set<String>? = null
+    private var pendingScores: Map<String, Int>? = null
 
     init {
         // maplibreCss is read so webpack keeps the stylesheet import.
@@ -85,6 +86,7 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
             showSelection(pendingSuburb, pendingLot)
             showRatings(pendingRatings)
             showFilter(pendingPassing)
+            showScores(pendingScores)
         }
         // Settled (after a move, or once tiles have loaded): put each rated suburb's label where it can be seen.
         map.on("moveend") { placeRatingLabels() }
@@ -113,6 +115,13 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
         if (!loaded) return
         map.setFilter(SuburbStyle.FILTER_MATCH_LAYER, SuburbStyle.filterMatchFilter(passing))
         map.setFilter(SuburbStyle.FILTER_DIM_LAYER, SuburbStyle.filterDimFilter(passing))
+    }
+
+    /** Shades each scored suburb blue by its score (ADR 0047); null or empty clears it. */
+    fun showScores(scores: Map<String, Int>?) {
+        pendingScores = scores
+        if (!loaded) return
+        map.setPaintProperty(SuburbStyle.SCORE_LAYER, "fill-color", SuburbStyle.scoreFill(scores))
     }
 
     /** Shows each rated suburb's name with its star score under it, always; an empty list puts the ordinary names back. */

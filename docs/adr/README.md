@@ -48,3 +48,4 @@
 | [0044](0044-census-tenure-and-dwelling-structure.md) | Share rented and the mix of houses and units from the 2021 Census | Accepted |
 | [0045](0045-lot-card-schools-nearest-by-straight-line.md) | The Lot Card shows the nearest public primary and high school | Accepted |
 | [0046](0046-filters-beach-parks-rented.md) | Filters on beach distance, park share and homes rented | Accepted |
+| [0047](0047-weighted-score-mode.md) | Weighted-score mode for suburbs | Accepted |

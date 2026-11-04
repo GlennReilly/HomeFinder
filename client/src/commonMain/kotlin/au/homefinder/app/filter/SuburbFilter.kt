@@ -84,6 +84,7 @@ class FilterData(
     private val values: Map<FilterCriterion, Map<String, Double?>>,
     private val sources: Map<FilterCriterion, FilterSource>,
     private val suburbIds: Set<String>,
+    private val names: Map<String, String> = emptyMap(),
 ) {
     val total: Int get() = suburbIds.size
 
@@ -98,6 +99,11 @@ class FilterData(
     val hasAnyData: Boolean get() = FilterCriterion.entries.any(::hasData)
 
     fun source(criterion: FilterCriterion): FilterSource? = sources[criterion]
+
+    fun name(suburbId: String): String = names[suburbId]?.takeIf { it.isNotBlank() } ?: suburbId
+
+    /** Scores every suburb by the weighted criteria (ADR 0047). */
+    fun score(setup: ScoreSetup): ScoreResult = ScoreCalculator.score(setup, values, suburbIds, ::name)
 
     fun unknown(criterion: FilterCriterion): Int = suburbIds.count { values[criterion]?.get(it) == null }
 
@@ -127,7 +133,7 @@ class FilterData(
                 response.parks?.let { put(FilterCriterion.PARKS, FilterSource(it.source, it.asOf)) }
                 response.rented?.let { put(FilterCriterion.RENTED, FilterSource(it.source, it.asOf)) }
             }
-            return FilterData(values, sources, ids)
+            return FilterData(values, sources, ids, response.suburbs.associate { it.suburbId to it.name })
         }
     }
 }

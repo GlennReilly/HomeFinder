@@ -104,4 +104,23 @@ class FilterPanelHtmlTest {
         val d = FilterData.from(SuburbFiltersResponse(listOf(SuburbFilterValue("a", 1000)), "<b>x</b>", null))
         assertFalse("<b>x</b>" in html(d))
     }
+
+    @Test
+    fun `the score section has a weight slider and a better-end choice for each criterion with data`() {
+        val out = html(full)
+        FilterCriterion.entries.forEach { c ->
+            assertTrue("""id="${ScoreIds.weight(c)}"""" in out && """id="${ScoreIds.preference(c)}"""" in out, c.name)
+        }
+        assertTrue(SCORE_PREFER_LOWER_TEXT in out && SCORE_PREFER_HIGHER_TEXT in out)
+        assertTrue("""id="${ScoreIds.SUMMARY}"""" in out && """id="${ScoreIds.RANKING}"""" in out)
+        // Beach distance starts on "lower is better".
+        assertTrue(Regex("""id="score-beach-preference".*?<option value="LOWER" selected""").containsMatchIn(out.replace("\n", "")), out)
+    }
+
+    @Test
+    fun `the score section leaves out a criterion whose data is not loaded`() {
+        val out = html(data(1000, 1100))
+        assertTrue(ScoreIds.weight(FilterCriterion.ICSEA) in out)
+        assertFalse(ScoreIds.weight(FilterCriterion.RENTED) in out)
+    }
 }

@@ -29,7 +29,7 @@ fun Route.filterRoutes(directory: SuburbDirectory?) {
         }
         call.respond(
             SuburbFiltersResponse(
-                suburbs = data?.suburbs.orEmpty().map { SuburbFilterValue(it.suburbId, it.averageIcsea, it.beachKm, it.parkShare, it.rentedShare) },
+                suburbs = data?.suburbs.orEmpty().map { SuburbFilterValue(it.suburbId, it.averageIcsea, it.beachKm, it.parkShare, it.rentedShare, it.name) },
                 icseaSource = SuburbReportFactory.SCHOOLS_SOURCE,
                 icseaAsOf = data?.icseaAsOf,
                 beach = data?.takeIf { it.osmLoaded }?.let { FilterProvenance(LotReportFactory.OSM_SOURCE, it.osmAsOf) },

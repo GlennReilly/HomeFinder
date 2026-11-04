@@ -90,6 +90,8 @@ data class SuburbFilterValue(
     val parkShare: Double? = null,
     /** The share of occupied private dwellings that are rented (2021 Census), from 0 to 1. */
     val rentedShare: Double? = null,
+    /** The suburb's name, for the score ranking (ADR 0047). */
+    val name: String = "",
 )
 
 /** Where one criterion's figures come from, as on the card. */
