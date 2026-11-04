@@ -17,6 +17,22 @@ class ValueRulesTest {
     }
 
     @Test
+    fun `drainage proximity bands follow the council flood comparison`() {
+        val expected = listOf(
+            0.0 to DrainageProximity.VERY_CLOSE, 0.99 to DrainageProximity.VERY_CLOSE, 1.0 to DrainageProximity.CLOSE, 1.99 to DrainageProximity.CLOSE,
+            2.0 to DrainageProximity.MODERATE, 4.99 to DrainageProximity.MODERATE, 5.0 to DrainageProximity.WELL_ABOVE, 80.0 to DrainageProximity.WELL_ABOVE,
+        )
+        expected.forEach { (metres, proximity) -> assertEquals(proximity, DrainageProximity.fromHeightM(metres), "at $metres m") }
+    }
+
+    @Test
+    fun `a negative height above drainage or an empty catchment is rejected`() {
+        assertFailsWith<IllegalArgumentException> { DrainageProximity.fromHeightM(-0.1) }
+        assertFailsWith<IllegalArgumentException> { DrainageHint(-1.0, 5.0, DrainageProximity.VERY_CLOSE) }
+        assertFailsWith<IllegalArgumentException> { DrainageHint(1.0, 0.0, DrainageProximity.CLOSE) }
+    }
+
+    @Test
     fun `negative slope is rejected`() {
         assertFailsWith<IllegalArgumentException> { SlopeClass.fromMeanPercent(-0.1) }
         assertFailsWith<IllegalArgumentException> { SlopeSummary(-1.0, 2.0, SlopeClass.FLAT, FallDirection.FLAT) }

@@ -33,6 +33,9 @@ interface LotDirectory {
 
     /** The DEM-derived height and slope of a lot, or null when no DEM has been loaded (or the table is missing). */
     suspend fun terrain(lotId: String): LotTerrainData? = null
+
+    /** The height above drainage of a lot, or null when the pipeline has not produced it (or the table is missing). */
+    suspend fun drainage(lotId: String): LotDrainageData? = null
 }
 
 /** Reads the `lot`, `suburb`, `address_lot` and `address` tables loaded by the pipeline (ADR 0005). */
@@ -104,6 +107,27 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
         }
     }
 
+    override suspend fun drainage(lotId: String): LotDrainageData? = withContext(Dispatchers.IO) {
+        try {
+            dataSource.connection.use { connection ->
+                connection.prepareStatement(DRAINAGE_SQL).use { statement ->
+                    statement.setString(1, lotId)
+                    statement.executeQuery().use { rows ->
+                        if (!rows.next()) return@use null
+                        val computed = rows.getDate("computed_on")?.toLocalDate() ?: return@use null
+                        val height = rows.getDouble("height_above_drainage_m").takeIf { !rows.wasNull() }
+                        val catchment = rows.getDouble("stream_catchment_ha").takeIf { !rows.wasNull() }
+                        val drainage = if (height != null && catchment != null) LotDrainage(height, catchment) else null
+                        LotDrainageData(drainage, LocalDate(computed.year, computed.monthValue, computed.dayOfMonth))
+                    }
+                }
+            }
+        } catch (failure: SQLException) {
+            // Before the first drainage load the table does not exist; that is "no data", not an outage.
+            if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
+        }
+    }
+
     private fun load(connection: java.sql.Connection, lotId: String): LotRecord? {
         val lot = connection.prepareStatement(LOT_SQL).use { statement ->
             statement.setString(1, lotId)
@@ -160,6 +184,12 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
         val TERRAIN_SQL = """
             SELECT (SELECT max(dem_loaded_on) FROM lot_terrain) AS loaded_on, t.elevation_m, t.mean_slope_pct, t.max_slope_pct, t.pixels
             FROM (SELECT 1) one LEFT JOIN lot_terrain t ON t.lot_id = ?
+        """.trimIndent()
+
+        /** One row whose load date is NULL when nothing has been loaded; the lot's own columns are NULL when it has no result. */
+        val DRAINAGE_SQL = """
+            SELECT (SELECT max(computed_on) FROM lot_drainage) AS computed_on, d.height_above_drainage_m, d.stream_catchment_ha
+            FROM (SELECT 1) one LEFT JOIN lot_drainage d ON d.lot_id = ?
         """.trimIndent()
 
         val NEAREST_SQL = "SELECT kind, rank, name, distance_m FROM lot_nearest WHERE lot_id = ? ORDER BY kind, rank"

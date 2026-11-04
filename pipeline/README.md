@@ -80,6 +80,18 @@ for 0.05 degree squares (about 4.7 by 5.5 km) that touch a suburb; the loader re
 if it ever offers several, the script lists them and you set `DEM_COVERAGE`. Slope is rise over
 run between neighbouring pixels (percent), averaged over the lot's pixels. See [ADR 0036](../docs/adr/0036-lot-height-and-slope-from-dem.md).
 
+## Height above drainage
+
+```bash
+scripts/load-drainage.sh [dem dir] [stream ha]   # works out each lot's height above its nearest drainage line from the DEM into lot_drainage (migration V18)
+tests/test_drainage.sh                           # integration test on a synthetic valley (needs Docker, xxd and a JDK 17)
+```
+
+Needs `load-lots.sh` and the GeoTIFFs from `download-dem.sh`. It exports each lot's representative point, runs the Kotlin tool in the `drainage`
+module through Gradle (`./gradlew :drainage:run`), and loads its CSV. A stream starts where `DRAINAGE_STREAM_HA` hectares (default 5, `config/drainage.env`)
+drain through one pixel. The DEM directory path must not contain spaces. Tiles that are empty or cut short count as no data and are reported once. It is an indication of
+where water runs, not a flood result: see [ADR 0040](../docs/adr/0040-height-above-drainage-hint.md), which also records how it was checked.
+
 ## Schools (ICSEA)
 
 ```bash

@@ -29,7 +29,7 @@ class LotCardHtmlTest {
         assertTrue("<h2>12 MAIN STREET, HAMILTON NSW 2303</h2>" in out)
         assertTrue("HAMILTON 2303 · Parcel 1//DP100" in out)
         assertTrue("561 m²" in out)
-        assertEquals(11, Regex("""class="value unknown"""").findAll(out).count())
+        assertEquals(12, Regex("""class="value unknown"""").findAll(out).count())
         assertTrue("Source: cadastre" in out)
         assertTrue(CARD_DISCLAIMER in out)
         assertFalse("<ul" in out, "one address needs no list")
@@ -80,10 +80,10 @@ class LotCardHtmlTest {
     }
 
     @Test
-    fun `customising shows all twelve rows with controls and a Done button`() {
+    fun `customising shows all thirteen rows with controls and a Done button`() {
         val out = custom(CardLayout().toggle("Flood"), true)
-        assertEquals(12, labelsIn(out).size)
-        assertEquals(12, Regex("""class="row-controls"""").findAll(out).count())
+        assertEquals(13, labelsIn(out).size)
+        assertEquals(13, Regex("""class="row-controls"""").findAll(out).count())
         assertTrue("""aria-label="Show Flood"""" in out && """data-action="customise-done"""" in out)
     }
 }

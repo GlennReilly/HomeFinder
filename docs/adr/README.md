@@ -41,3 +41,4 @@
 | [0037](0037-dem-request-in-degrees.md) | DEM request in degrees, resampled to metres | Accepted |
 | [0038](0038-sales-window-ends-on-latest-sale.md) | Sales windows end on the latest sale | Accepted |
 | [0039](0039-card-rows-hidden-and-reordered-in-the-browser.md) | Card rows are hidden and re-ordered in the browser | Accepted |
+| [0040](0040-height-above-drainage-hint.md) | Height above drainage as an indicative hint | Accepted |

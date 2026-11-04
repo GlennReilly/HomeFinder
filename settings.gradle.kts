@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "HomeFinder"
 
-include(":shared", ":client", ":webApp", ":server", ":e2e")
+include(":shared", ":client", ":webApp", ":server", ":drainage", ":e2e")

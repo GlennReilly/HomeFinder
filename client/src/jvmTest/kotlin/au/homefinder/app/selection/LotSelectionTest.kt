@@ -8,6 +8,8 @@ import au.homefinder.app.api.SuburbApi
 import au.homefinder.shared.model.ApiJson
 import au.homefinder.shared.model.Attribute
 import au.homefinder.shared.model.Confidence
+import au.homefinder.shared.model.DrainageHint
+import au.homefinder.shared.model.DrainageProximity
 import au.homefinder.shared.model.LotReport
 import au.homefinder.shared.model.ParkAccess
 import au.homefinder.shared.model.Proximity
@@ -22,6 +24,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -164,10 +167,11 @@ class LotSelectionTest {
         val rows = LotCardRows.of(report("1001", "12 MAIN STREET, HAMILTON NSW 2303"))
         assertEquals("Block size", rows.first().label)
         assertEquals("561 m²", rows.first().value)
-        assertEquals(12, rows.size)
+        assertEquals(13, rows.size)
         assertEquals("Height above sea level", rows[5].label, "right after the slope")
+        assertEquals("Height above drainage", rows[6].label, "right after the height above sea level")
         assertTrue(rows.drop(1).all { it.isUnknown && it.confidence == Confidence.NONE })
-        assertTrue(rows.drop(1).filter { it.label != "Height above sea level" }.all { it.source == "src" })
+        assertTrue(rows.drop(1).filter { it.label != "Height above sea level" && it.label != "Height above drainage" }.all { it.source == "src" })
     }
 
     @Test
@@ -181,6 +185,21 @@ class LotSelectionTest {
         ).associateBy { it.label }
         assertEquals("Moderate, 12.0% on average (steepest 21.3%)", rows.getValue("Slope").value)
         assertEquals("35.0 m", rows.getValue("Height above sea level").value)
+    }
+
+    @Test
+    fun `height above drainage reads as a class first, then the height and the size of the stream`() {
+        val base = report("1001", "12 MAIN STREET, HAMILTON NSW 2303")
+        fun row(height: Double, hectares: Double) = LotCardRows.of(
+            base.copy(heightAboveDrainage = Attribute(DrainageHint(height, hectares, DrainageProximity.fromHeightM(height)), Confidence.LOW, "DEM")),
+        ).associateBy { it.label }.getValue("Height above drainage")
+
+        assertEquals("Very close to a drainage line, 0.4 m above a stream draining 21 ha", row(0.4, 20.9).value)
+        assertEquals("Close to a drainage line, 1.5 m above a stream draining 5.2 ha", row(1.5, 5.2).value)
+        assertEquals("Some way above a drainage line, 3.0 m above a stream draining 1,358 ha", row(3.0, 1357.9).value)
+        assertEquals("Well above any drainage line, 12.3 m above a stream draining 136 ha", row(12.3, 135.9).value)
+        assertEquals(Confidence.LOW, row(0.4, 20.9).confidence)
+        assertFalse("flood" in row(0.4, 20.9).value.orEmpty().lowercase(), "this is where water runs, never a flood claim")
     }
 
     @Test
