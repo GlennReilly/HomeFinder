@@ -223,6 +223,12 @@ class SmokeTest {
         page.locator("#filter-rented-on").uncheck()
         page.locator("#filter-beach-on").uncheck()
         assertThat(page.locator("#filter-summary")).containsText("Switch on a filter")
+
+        // Moving a slider on its own switches its filter on.
+        page.locator("#filter-beach-max").fill("12")
+        assertThat(page.locator("#filter-beach-on")).isChecked()
+        assertThat(page.locator("#filter-summary")).containsText("of 3 suburbs match")
+        page.locator("#filter-beach-on").uncheck()
     }
 
     @Test
