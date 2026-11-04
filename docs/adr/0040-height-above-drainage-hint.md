@@ -47,6 +47,12 @@ height 21 are in the corridor, of the 79 under 1 m above drainage 34 are). Above
   the council map is from 2012. Flat low-lying land is not checked: across the whole pilot 18.5% of lots come out under 1 m (against 4.5% in
   ELERMORE VALE), so on flat ground the hint may flag broad areas. A second suburb on the flat side should be compared before the row is
   trusted there.
+- **A check on flat harbour land was inconclusive.** The same method on the council's overview map (Map 1-A, 3.8 m a pixel) for Carrington,
+  Wickham, Islington, Hamilton, Tighes Hill, Mayfield East, Newcastle, The Junction and Broadmeadow (9,374 lots) could not place the map
+  reliably: sliding it by up to 760 m found no sharp peak (height above sea level reached at best AUC 0.60). At the best guess neither
+  measure separated lots in the corridor (24% of them) from the rest, and 72% of those lots read under 1 m above drainage, so on flat
+  land the hint says "very close" almost everywhere. The card note says to trust it less on flat land. A proper check there needs a
+  georeferenced flood layer or hand-picked control points.
 - It ignores drains, culverts and levees, flash flooding from ponding, and anything built since the LiDAR surveys (2001 to 2015).
 - The 5 ha stream size is a choice, not a measurement; a lot drains to a 5 ha gully or a 500 ha creek and the card says which.
 - 158,015 of 171,082 lots get a result. The rest have no DEM tile (see below) or their water leaves the window before meeting a stream; the card

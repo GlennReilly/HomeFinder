@@ -48,7 +48,8 @@ object LotReportFactory {
     const val DRAINAGE_NOTE: String =
         "How far the lot's ground stands above the first stream its water reaches, from the 5 m LiDAR DEM; a stream is where at least 5 ha drain through one pixel. " +
             "An indication of where water runs, not a flood result: it ignores drains, culverts and levees, and the LiDAR surveys end in 2015. " +
-            "Checked against the council's 10% annual-chance flood corridor in ELERMORE VALE only (ADR 0040): under 1 m touched it for 43% of lots, over 5 m for under 1%"
+            "Checked against the council's 10% annual-chance flood corridor in ELERMORE VALE only (ADR 0040): under 1 m touched it for 43% of lots, over 5 m for under 1%. " +
+            "On flat land near the harbour the check was inconclusive and most lots read as close to drainage, so trust it less there"
     private const val PRICE_SOURCE = "NSW Valuer General"
     private const val LISTING_SOURCE = "Licensed listing text"
     private const val EDUCATION_SOURCE = "NSW Department of Education"
