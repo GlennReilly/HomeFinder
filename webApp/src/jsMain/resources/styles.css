@@ -13,18 +13,28 @@
 html, body { margin: 0; height: 100%; }
 #map { position: fixed; inset: 0; }
 
-/* Card: a side panel from 600px wide, a bottom sheet below (spec; ADR 0017). */
-#card {
-  position: fixed; background: var(--surface); box-shadow: 0 2px 16px rgba(0, 0, 0, .3);
-  overflow-y: auto; box-sizing: border-box; z-index: 2;
+/* The right-hand panel (ADR 0048): Suburb and Filters tabs; a side panel from 600px wide, a bottom sheet below (spec; ADR 0017). */
+#side {
+  position: fixed; display: flex; flex-direction: column; background: var(--surface); box-shadow: 0 2px 16px rgba(0, 0, 0, .3);
+  box-sizing: border-box; z-index: 2;
 }
-#card[hidden] { display: none; }
+#side-tabs { display: flex; flex: none; border-bottom: 1px solid rgba(128, 128, 128, .35); }
+#side-tabs button {
+  flex: 1; font: inherit; font-weight: 600; padding: 12px 8px; cursor: pointer; border: 0; border-bottom: 3px solid transparent;
+  background: transparent; color: var(--muted);
+}
+#side-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--purple); }
+#side-tabs button:focus-visible { outline: 3px solid var(--purple); outline-offset: -3px; }
+#side [role="tabpanel"] { flex: 1; min-height: 0; overflow-y: auto; box-sizing: border-box; }
+#side [role="tabpanel"][hidden] { display: none; }
 @media (min-width: 600px) {
-  #card { top: 0; right: 0; bottom: 0; width: var(--panel-width); }
+  #side { top: 0; right: 0; bottom: 0; width: var(--panel-width); }
+  #side[data-collapsed="true"] { bottom: auto; }
 }
 @media (max-width: 599.98px) {
-  #card { left: 0; right: 0; bottom: 0; max-height: 60vh; border-radius: 16px 16px 0 0; }
+  #side { left: 0; right: 0; bottom: 0; max-height: 60vh; border-radius: 16px 16px 0 0; overflow: hidden; }
 }
+.side-empty { padding: 16px; color: var(--muted); }
 .suburb-card { padding: 16px; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .card-header h2 { margin: 0; font-size: 1.4rem; }
@@ -92,13 +102,8 @@ progress { width: 100%; margin: 16px 0; }
 .schools .detail { font-size: .8rem; color: var(--muted); }
 .row .hint { margin: 8px 0 0; font-size: .85rem; }
 
-/* Filter panel (ADR 0035): a button under the zoom controls and a panel beside it, left of the card. */
-#filters-toggle { position: fixed; top: 112px; left: 10px; z-index: 3; background: var(--surface); box-shadow: 0 1px 6px rgba(0, 0, 0, .25); }
-#filters {
-  position: fixed; top: 150px; left: 10px; width: min(300px, calc(100vw - 20px)); max-height: calc(100vh - 170px); overflow-y: auto;
-  box-sizing: border-box; padding: 4px 14px 12px; background: var(--surface); border-radius: 8px; box-shadow: 0 2px 16px rgba(0, 0, 0, .3); z-index: 3;
-}
-#filters[hidden] { display: none; }
+/* Filter panel (ADR 0035), the Filters tab of the right-hand panel. */
+#filters { padding: 4px 14px 12px; }
 #filters h2 { font-size: 1.1rem; margin: 10px 0; }
 #filters .range { display: grid; gap: 4px; margin: 8px 0 0 22px; }
 #filters .range input { width: 100%; }
@@ -106,7 +111,6 @@ progress { width: 100%; margin: 16px 0; }
 #filters .filter-summary { font-weight: 600; }
 #filters .score-criterion { display: grid; gap: 4px; margin: 8px 0; }
 #filters #score-ranking { list-style: none; padding: 0; margin: 4px 0; font-size: .85rem; }
-@media (max-width: 599.98px) { #filters { max-height: 40vh; } }
 
 /* Customising a card's rows (ADR 0039). */
 .layout-bar { margin: 8px 0; }

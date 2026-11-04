@@ -14,9 +14,14 @@
            maxlength="100" data-bwignore="true" data-lpignore="true" data-1p-ignore="true">
     <div id="search-results"></div>
   </div>
-  <button id="filters-toggle" type="button" aria-expanded="false" aria-controls="filters">Filters</button>
-  <aside id="filters" hidden aria-label="Filter suburbs"></aside>
-  <aside id="card" hidden aria-live="polite"></aside>
+  <aside id="side" aria-label="Suburb card and filters">
+    <div id="side-tabs" role="tablist">
+      <button id="tab-suburb" type="button" role="tab" aria-controls="card">Suburb</button>
+      <button id="tab-filters" type="button" role="tab" aria-controls="filters">Filters</button>
+    </div>
+    <div id="card" role="tabpanel" aria-labelledby="tab-suburb" aria-live="polite"></div>
+    <div id="filters" role="tabpanel" aria-labelledby="tab-filters" aria-label="Filter suburbs"></div>
+  </aside>
   <div id="notice" role="status" hidden></div>
   <div id="key-prompt" hidden>
     <form id="key-form">
