@@ -127,6 +127,26 @@ class PostgisSuburbDirectoryIntegrationTest {
     }
 
     @Test
+    fun `a suburb's Census counts are read, a suburb without a row has none, and an empty table means nothing is loaded`() = withDirectory { directory ->
+        execute("TRUNCATE suburb_census")
+        assertNull(directory.census("9001"), "nothing loaded yet")
+        execute("INSERT INTO suburb_census (suburb_id, sal_code, tenure_stated, rented, houses, semis, flats, other_dwellings) VALUES ('9001', 'SAL1', 1000, 450, 500, 250, 240, 10)")
+        assertEquals(SuburbCensus(1000, 450, 500, 250, 240, 10), directory.census("9001"))
+        assertNull(directory.census("9002"), "loaded, but this suburb has no row")
+        assertNull(directory.census("9001' OR '1'='1"))
+    }
+
+    @Test
+    fun `a database without the census table has no census rather than an error`() = withDirectory { directory ->
+        execute("ALTER TABLE suburb_census RENAME TO suburb_census_hidden")
+        try {
+            assertNull(directory.census("9001"))
+        } finally {
+            execute("ALTER TABLE suburb_census_hidden RENAME TO suburb_census")
+        }
+    }
+
+    @Test
     fun `a suburb's OpenStreetMap roll-up is read with nulls kept and the date of the data`() = withDirectory { directory ->
         execute(
             "TRUNCATE osm_import, suburb_amenity",

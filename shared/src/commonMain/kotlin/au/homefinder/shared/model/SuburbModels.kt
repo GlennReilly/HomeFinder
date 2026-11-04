@@ -112,4 +112,25 @@ data class SuburbReport(
     val transport: Attribute<SuburbTransport>,
     /** Present only when you have entered one; unknown ("Not entered") otherwise. Last, with a default, so older reports still decode. */
     val homelyRating: Attribute<HomelyRating> = Attribute.unknown(HomelyRating.SOURCE, note = "Not entered"),
+    /** The share of occupied private dwellings that are rented, from 0 to 1 (2021 Census, ADR 0044). */
+    val rentedShare: Attribute<Double> = Attribute.unknown("ABS 2021 Census", note = "Not computed yet"),
+    /** What the occupied private dwellings are: separate houses, townhouses and semis, or flats and units (2021 Census, ADR 0044). */
+    val dwellingMix: Attribute<DwellingMix> = Attribute.unknown("ABS 2021 Census", note = "Not computed yet"),
 )
+
+/**
+ * Shares of the suburb's occupied private dwellings by structure, each from 0 to 1. Houses are separate houses; [townhouseShare] covers
+ * semi-detached, row and terrace houses and townhouses; [unitShare] covers flats, units and apartments. Other dwellings (caravans, cabins,
+ * flats attached to shops) are in the base but not shown, so the three need not add to 1.
+ */
+@Serializable
+data class DwellingMix(val houseShare: Double, val townhouseShare: Double, val unitShare: Double) {
+    init {
+        require(houseShare in 0.0..1.0 && townhouseShare in 0.0..1.0 && unitShare in 0.0..1.0) { "Shares must be from 0 to 1" }
+        require(houseShare + townhouseShare + unitShare <= 1.0 + ROUNDING) { "The shares cannot add to more than a whole" }
+    }
+
+    private companion object {
+        const val ROUNDING = 1e-9
+    }
+}

@@ -25,6 +25,9 @@ interface SuburbDirectory {
     /** The suburb's OpenStreetMap roll-up, or null when the pipeline has not produced it (no OSM load, or the table is missing). */
     suspend fun amenity(suburbId: String): SuburbAmenity? = null
 
+    /** The suburb's 2021 Census tenure and dwelling counts, or null when none have been loaded (or the table is missing). */
+    suspend fun census(suburbId: String): SuburbCensus? = null
+
     /** The public schools inside the suburb, or null when no school data has been loaded (no load yet, or the table is missing). */
     suspend fun schools(suburbId: String): SuburbSchoolData? = null
 
@@ -76,6 +79,26 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
             }
         } catch (failure: SQLException) {
             // Before the first OSM load the table does not exist; that is "no data", not an outage.
+            if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
+        }
+    }
+
+    override suspend fun census(suburbId: String): SuburbCensus? = withContext(Dispatchers.IO) {
+        try {
+            dataSource.connection.use { connection ->
+                connection.prepareStatement(CENSUS_SQL).use { statement ->
+                    statement.setString(1, suburbId)
+                    statement.executeQuery().use { rows ->
+                        if (!rows.next()) return@use null
+                        SuburbCensus(
+                            tenureStated = rows.getInt("tenure_stated"), rented = rows.getInt("rented"), houses = rows.getInt("houses"),
+                            semis = rows.getInt("semis"), flats = rows.getInt("flats"), otherDwellings = rows.getInt("other_dwellings"),
+                        )
+                    }
+                }
+            }
+        } catch (failure: SQLException) {
+            // Before the first Census load the table does not exist; that is "no data", not an outage.
             if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
         }
     }
@@ -196,6 +219,10 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
         val AMENITY_SQL = """
             SELECT a.*, (SELECT (COALESCE(osm_base, imported_at) AT TIME ZONE 'UTC')::date FROM osm_import) AS as_of
             FROM suburb_amenity a WHERE a.suburb_id = ?
+        """.trimIndent()
+
+        val CENSUS_SQL = """
+            SELECT tenure_stated, rented, houses, semis, flats, other_dwellings FROM suburb_census WHERE suburb_id = ?
         """.trimIndent()
 
         val SCHOOLS_LOADED_SQL = "SELECT count(*) AS n, max(extracted_on) AS latest FROM school"

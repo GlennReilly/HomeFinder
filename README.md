@@ -12,6 +12,7 @@ Look up any NSW address or suburb on a map and see the factors that decide a pur
 | `webApp` | The web client: Kotlin/JS, MapLibre GL JS and a DOM UI ([webApp/README.md](webApp/README.md)) |
 | `e2e` | Browser smoke tests (Playwright for Java driving Chrome against a fake of the API), run with `./gradlew :e2e:e2eTest` |
 | `server` | Ktor API |
+| `census` | Kotlin tool for the pipeline: tenure and dwelling structure per suburb from the 2021 Census ([ADR 0044](docs/adr/0044-census-tenure-and-dwelling-structure.md)) |
 | `drainage` | Kotlin tool for the pipeline: height above nearest drainage per lot from the 5 m DEM ([ADR 0040](docs/adr/0040-height-above-drainage-hint.md)) |
 | `pipeline` | Data pipeline: PostGIS, G-NAF, suburbs, lots, sales statistics ([pipeline/README.md](pipeline/README.md)) |
 

@@ -164,6 +164,34 @@ class SuburbReportFactoryTest {
     }
 
     @Test
+    fun `Census counts become a share rented and a dwelling mix with the Census date and the ABS attribution`() {
+        val report = SuburbReportFactory.build(hamilton, census = SuburbCensus(tenureStated = 1000, rented = 450, houses = 500, semis = 250, flats = 240, otherDwellings = 10))
+        assertEquals(0.45, report.rentedShare.value)
+        assertEquals(Confidence.HIGH, report.rentedShare.confidence)
+        assertEquals(SuburbReportFactory.CENSUS_SOURCE, report.rentedShare.source)
+        assertEquals(LocalDate(2021, 8, 10), report.rentedShare.asOf, "Census night")
+        val mix = assertNotNull(report.dwellingMix.value)
+        assertEquals(listOf(0.5, 0.25, 0.24), listOf(mix.houseShare, mix.townhouseShare, mix.unitShare))
+        listOf(report.rentedShare.note, report.dwellingMix.note).forEach {
+            assertTrue(SuburbReportFactory.CENSUS_ATTRIBUTION in it.orEmpty(), "every derived figure carries the ABS attribution")
+            assertTrue("randomly adjusts small counts" in it.orEmpty())
+        }
+    }
+
+    @Test
+    fun `a suburb with few homes has low confidence, and no Census data or no homes is unknown with a reason`() {
+        val small = SuburbReportFactory.build(hamilton, census = SuburbCensus(tenureStated = 10, rented = 4, houses = 6, semis = 0, flats = 0, otherDwellings = 0))
+        assertEquals(Confidence.LOW, small.rentedShare.confidence)
+        assertEquals(Confidence.LOW, small.dwellingMix.confidence)
+        val none = SuburbReportFactory.build(hamilton)
+        assertTrue(none.rentedShare.isUnknown && none.dwellingMix.isUnknown)
+        assertEquals(SuburbReportFactory.CENSUS_NOT_LOADED_NOTE, none.rentedShare.note)
+        val empty = SuburbReportFactory.build(hamilton, census = SuburbCensus(0, 0, 0, 0, 0, 0))
+        assertTrue(empty.rentedShare.isUnknown && empty.dwellingMix.isUnknown)
+        assertEquals(LocalDate(2021, 8, 10), empty.rentedShare.asOf)
+    }
+
+    @Test
     fun `a suburb with no mapped park is unknown with that reason, not zero percent`() {
         val none = SuburbReportFactory.build(hamilton, amenity = nearby.copy(parkAreaM2 = 0.0)).parkAreaShare
         assertTrue(none.isUnknown)

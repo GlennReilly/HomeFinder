@@ -94,6 +94,19 @@ module through Gradle (`./gradlew :drainage:run`), and loads its CSV. A stream s
 drain through one pixel. The DEM directory path must not contain spaces. Tiles that are empty or cut short count as no data and are reported once. It is an indication of
 where water runs, not a flood result: see [ADR 0040](../docs/adr/0040-height-above-drainage-hint.md), which also records how it was checked.
 
+## Census: share rented and houses vs units
+
+```bash
+scripts/download-census.sh [dir]   # the ABS 2021 Census DataPack for suburbs, NSW (34 MB zip), unpacked into ../data/raw/census (run it yourself)
+scripts/load-census.sh [dir]       # works out and loads suburb_census (migration V19); lists suburbs it could not match
+tests/test_download_census.sh      # download script against a local stand-in (no Docker)
+tests/test_census.sh               # integration test on a tiny DataPack (needs Docker, python3 and a JDK 17)
+```
+
+The Kotlin tool in the `census` module reads table G37 and the geography workbook; the script loads its CSV and matches Census suburbs to ours by name,
+using the council area (`lga`) to tell shared names apart. Data: Australian Bureau of Statistics, Census of Population and Housing 2021, Creative Commons
+Attribution 4.0; derived figures are credited "Based on Australian Bureau of Statistics data". See [ADR 0044](../docs/adr/0044-census-tenure-and-dwelling-structure.md).
+
 ## Schools (ICSEA)
 
 ```bash
