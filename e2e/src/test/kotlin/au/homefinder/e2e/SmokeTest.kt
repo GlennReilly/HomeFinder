@@ -186,21 +186,6 @@ class SmokeTest {
     }
 
     @Test
-    fun `the score section ranks suburbs by the weights`() {
-        openWithKey()
-        assertThat(page.locator("#filters")).isVisible()
-        assertThat(page.locator("#score-summary")).containsText("Give a criterion a weight above 0")
-        page.locator("#score-icsea-weight").fill("3")
-        assertThat(page.locator("#score-icsea-weight-value")).hasText("3")
-        assertThat(page.locator("#score-summary")).containsText("2 suburbs scored, 1 with no values to score.")
-        assertThat(page.locator("#score-ranking li").first()).hasText("1. HAMILTON, 100")
-        page.locator("#score-icsea-preference").selectOption("LOWER")
-        assertThat(page.locator("#score-ranking li").first()).hasText("1. MAYFIELD, 100")
-        page.locator("#score-icsea-weight").fill("0")
-        assertThat(page.locator("#score-ranking li")).hasCount(0)
-    }
-
-    @Test
     fun `the filter panel counts matching suburbs as the ICSEA slider moves`() {
         openWithKey()
         assertThat(page.locator("#tab-filters")).hasAttribute("aria-selected", "true")

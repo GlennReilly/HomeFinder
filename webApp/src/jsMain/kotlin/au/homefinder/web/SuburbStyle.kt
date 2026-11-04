@@ -12,7 +12,6 @@ object SuburbStyle {
     const val SELECTED_FILL_LAYER: String = "suburb-selected-fill"
     const val FILTER_MATCH_LAYER: String = "suburb-filter-match"
     const val FILTER_DIM_LAYER: String = "suburb-filter-dim"
-    const val SCORE_LAYER: String = "suburb-score"
     const val OUTLINE_LAYER: String = "suburb-outline"
     const val SELECTED_OUTLINE_LAYER: String = "suburb-selected-outline"
     const val NAME_LAYER: String = "suburb-name"
@@ -23,11 +22,6 @@ object SuburbStyle {
     private const val LABEL_HALO = "rgba(255,255,255,0.9)"
     private const val SELECTED_FILL = "rgba(109,91,166,0.18)"
     private const val DIM = "rgba(0,0,0,0.12)"
-    private const val SCORE_RGB = "33,102,214"
-    private const val SCORE_MIN_ALPHA = 0.08
-    private const val SCORE_ALPHA_RANGE = 0.52
-    private const val SCORE_FULL = 100.0
-    private const val TRANSPARENT = "rgba(0,0,0,0)"
     private const val FILTER_MATCH = "rgba(46,160,67,0.30)"
     private const val FILTER_DIM = "rgba(255,255,255,0.62)"
     private const val OUTLINE_WIDTH = 1.2
@@ -62,18 +56,6 @@ object SuburbStyle {
         else -> jsArray("!", passes(passing))
     }
 
-    /** Blue that deepens with the score (0 to 100). */
-    fun scoreColour(score: Int): String = "rgba($SCORE_RGB,${SCORE_MIN_ALPHA + SCORE_ALPHA_RANGE * score / SCORE_FULL})"
-
-    /** The fill colour of the score layer: each scored suburb its shade, every other suburb clear; null (no score) clears all. */
-    fun scoreFill(scores: Map<String, Int>?): dynamic {
-        if (scores.isNullOrEmpty()) return TRANSPARENT
-        val expression = arrayListOf<dynamic>("match", jsArray("get", SUBURB_ID))
-        scores.forEach { (id, score) -> expression.add(id); expression.add(scoreColour(score)) }
-        expression.add(TRANSPARENT)
-        return expression.toTypedArray()
-    }
-
     fun source(tilesUrl: String): dynamic = jsObject(
         "type" to "vector",
         "tiles" to arrayOf(tilesUrl),
@@ -94,7 +76,6 @@ object SuburbStyle {
     fun layers(): List<dynamic> = listOf(
         polygonLayer(DIM_LAYER, "fill", jsObject("fill-color" to DIM), dimFilter(null)),
         polygonLayer(SELECTED_FILL_LAYER, "fill", jsObject("fill-color" to SELECTED_FILL), selectedFilter(null)),
-        polygonLayer(SCORE_LAYER, "fill", jsObject("fill-color" to TRANSPARENT)),
         polygonLayer(FILTER_DIM_LAYER, "fill", jsObject("fill-color" to FILTER_DIM), filterDimFilter(null)),
         polygonLayer(FILTER_MATCH_LAYER, "fill", jsObject("fill-color" to FILTER_MATCH), filterMatchFilter(null)),
         polygonLayer(

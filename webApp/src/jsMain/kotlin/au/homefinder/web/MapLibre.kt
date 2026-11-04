@@ -14,7 +14,6 @@ external object MapLibre {
         fun addSource(id: String, source: dynamic)
         fun addLayer(layer: dynamic)
         fun setFilter(layerId: String, filter: dynamic)
-        fun setPaintProperty(layerId: String, name: String, value: dynamic)
         fun getZoom(): Double
         fun getSource(id: String): dynamic
         fun getBounds(): dynamic

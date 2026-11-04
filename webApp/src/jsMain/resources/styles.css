@@ -109,8 +109,6 @@ progress { width: 100%; margin: 16px 0; }
 #filters .range input { width: 100%; }
 #filters .hint, #filters .filter-status { font-size: .8rem; color: var(--muted); }
 #filters .filter-summary { font-weight: 600; }
-#filters .score-criterion { display: grid; gap: 4px; margin: 8px 0; }
-#filters #score-ranking { list-style: none; padding: 0; margin: 4px 0; font-size: .85rem; }
 
 /* Customising a card's rows (ADR 0039). */
 .layout-bar { margin: 8px 0; }
