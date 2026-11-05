@@ -251,4 +251,15 @@ class SuburbCardHtmlTest {
         val all = CardLayout(hidden = SuburbCardRows.of(report).map { it.label }.toSet())
         assertTrue(ALL_HIDDEN_HINT in custom(all, false))
     }
+
+    @Test
+    fun `the header and the Customise bar sit together in the pinned block, ahead of the rows`() {
+        val out = html(SuburbCardState.Loaded(report))
+        val pinned = out.substringAfter("""class="$STICKY_TOP_CLASS"""").substringBefore("""<dl class="rows">""")
+        assertTrue("<h2>HAMILTON</h2>" in pinned && "Postcode 2303" in pinned && "Close suburb card" in pinned, pinned)
+        assertTrue("""data-action="customise"""" in pinned, "the Customise button is pinned too")
+        // While loading there is no Customise bar yet, but the name and the close button are still pinned.
+        val loading = html(SuburbCardState.Loading("9001", SuburbRef("9001", "HAMILTON", "2303")))
+        assertTrue(STICKY_TOP_CLASS in loading && "customise" !in loading)
+    }
 }

@@ -114,6 +114,8 @@ that is. A criterion whose data has not been loaded says so instead of showing i
 
 ### Customising the cards
 
+The card's name, postcode, close button and Customise bar stay pinned at the top while you scroll, and choosing another suburb keeps the card scrolled to the same place, so you can compare rows ([ADR 0053](docs/adr/0053-pinned-card-header-reset-all-kept-scroll.md)). The Filters tab has a **Reset all** button.
+
 Press **Customise** on the suburb or lot card to hide rows or move them up and down, then **Done**; **Reset to default** undoes it. The choice is
 kept in this browser only (nothing goes to the server). The Homely block stays under "Price change, 12 months". See
 [ADR 0039](docs/adr/0039-card-rows-hidden-and-reordered-in-the-browser.md).

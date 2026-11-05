@@ -87,16 +87,20 @@ fun provenanceLine(row: CardRow): String =
 fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayout(), customising: Boolean = false) {
     section("suburb-card") {
         attributes["aria-label"] = "Suburb card"
-        div("card-header") {
-            div {
-                h2 { +cardTitle(card) }
-                cardSubtitle(card)?.let { p("subtitle") { +it } }
+        // The name, postcode, close button and Customise bar stay pinned at the top while the rows scroll (ADR 0053).
+        div(STICKY_TOP_CLASS) {
+            div("card-header") {
+                div {
+                    h2 { +cardTitle(card) }
+                    cardSubtitle(card)?.let { p("subtitle") { +it } }
+                }
+                button(type = ButtonType.button, classes = "close") {
+                    attributes[CardActions.ATTRIBUTE] = CardActions.CLOSE
+                    attributes["aria-label"] = "Close suburb card"
+                    +CLOSE_BUTTON_TEXT
+                }
             }
-            button(type = ButtonType.button, classes = "close") {
-                attributes[CardActions.ATTRIBUTE] = CardActions.CLOSE
-                attributes["aria-label"] = "Close suburb card"
-                +CLOSE_BUTTON_TEXT
-            }
+            if (card is SuburbCardState.Loaded) layoutBar(customising, layout.isDefault)
         }
         when (card) {
             SuburbCardState.Hidden -> Unit
@@ -111,7 +115,6 @@ fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayou
             is SuburbCardState.Loaded -> {
                 // Customising shows every row (hidden ones dimmed) with its controls; otherwise only the rows not hidden.
                 val arranged = layout.arrange(SuburbCardRows.of(card.report)).filter { customising || !it.hidden }
-                layoutBar(customising, layout.isDefault)
                 if (arranged.isEmpty()) p("hint") { +ALL_HIDDEN_HINT }
                 // Under the price change, wherever you put it (the row's place counts even when it is hidden): the Homely block, which holds
                 // the score you entered (when there is one), the link to the suburb's reviews on Homely, and the form to edit the score.
