@@ -58,3 +58,4 @@
 | [0054](0054-hand-not-suitable-for-flat-areas.md) | Height above drainage is not offered in flat suburbs | Accepted |
 | [0055](0055-capped-crime-sliders.md) | Capped crime sliders with a "No limit" position | Accepted |
 | [0056](0056-school-catchments.md) | The Lot Card shows the school catchments the lot lies in | Accepted |
+| [0058](0058-hide-unknown-card-rows.md) | Rows without data are left off the cards | Accepted |

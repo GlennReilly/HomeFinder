@@ -82,6 +82,12 @@ class SmokeTest {
         assertThat(page.locator("#map canvas")).isVisible()
     }
 
+    /** The fake suburb has rows with no data, which the card leaves off; this reveals them (ADR 0058). */
+    private fun showUnknownRows() {
+        page.locator("#card button[data-action=show-unknown]").click()
+        assertThat(page.locator("#card button[data-action=hide-unknown]")).isVisible()
+    }
+
     private fun tapSuburb() {
         page.locator("#map canvas").click()
         assertThat(page.locator("#card h2")).hasText("HAMILTON")
@@ -334,6 +340,7 @@ class SmokeTest {
     fun `the card's header and Customise bar stay in view while the rows scroll`() {
         openWithKey()
         tapSuburb()
+        showUnknownRows()
         page.evaluate("document.getElementById('card').scrollTop = 100000")
         assertTrue(cardScrollTop() > 0, "the card should be long enough to scroll")
         val offset = page.evaluate(
@@ -366,6 +373,7 @@ class SmokeTest {
     fun `choosing another suburb keeps the card scrolled to the same place`() {
         openWithKey()
         tapSuburb()
+        showUnknownRows()
         page.evaluate("document.getElementById('card').scrollTop = 400")
         val before = cardScrollTop()
         assertTrue(before > 100, "the card should be long enough to scroll ($before)")
@@ -408,5 +416,27 @@ class SmokeTest {
         page.setViewportSize(400, 700)
         assertThat(scale).isVisible()
         clearOfPanel()
+    }
+
+    @Test
+    fun `rows without data are left off the card, counted in a note, and can be shown and hidden again`() {
+        openWithKey()
+        tapSuburb()
+        assertThat(page.locator("#card .value.unknown")).hasCount(0)
+        assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Transport"))).hasCount(0)
+        assertThat(page.locator("#card .unknown-note")).containsText("rows without data are hidden.")
+        // The Homely block still sits under the price change.
+        val order = page.locator("#card dl.rows .row dt, #card details.rating-edit summary").allInnerTexts()
+        assertTrue(order.indexOf("Price change, 12 months") < order.indexOf("Edit the Homely rating"), "order was $order")
+        page.locator("#card button[data-action=show-unknown]").click()
+        assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Transport"))).hasCount(1)
+        assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Transport"))).containsText("Not computed yet")
+        assertThat(page.locator("#card .unknown-note")).containsText("Showing")
+        // Customising lists every row either way, with no note.
+        page.locator("#card button[data-action=customise]").click()
+        assertThat(page.locator("#card .unknown-note")).hasCount(0)
+        page.locator("#card button[data-action=customise-done]").click()
+        page.locator("#card button[data-action=hide-unknown]").click()
+        assertThat(page.locator("#card .value.unknown")).hasCount(0)
     }
 }

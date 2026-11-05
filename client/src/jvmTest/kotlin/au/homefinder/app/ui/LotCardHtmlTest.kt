@@ -21,7 +21,8 @@ class LotCardHtmlTest {
     private fun report(addresses: List<String>, label: String? = "1//DP100", area: Attribute<Double> = Attribute(561.4, Confidence.HIGH, "cadastre", null, "Measured")) =
         LotReport("1001", label, "9001", "HAMILTON", "2303", addresses, area, u(), u(), u(), u(), u(), u(), u(), u(), u(), u())
 
-    private fun html(card: LotCardState) = createHTML().div { lotCard(card) }
+    /** These fixtures are mostly unknown, so by default the rows are shown (the tests are about layout); the hiding has its own test below. */
+    private fun html(card: LotCardState, showUnknown: Boolean = true) = createHTML().div { lotCard(card, showUnknown = showUnknown) }
 
     @Test
     fun `a loaded lot shows its address, suburb, parcel, measured area and unknown factors`() {
@@ -66,8 +67,8 @@ class LotCardHtmlTest {
         assertTrue(SuburbRef("1", "a", null).suburbId == "1")
     }
 
-    private fun custom(layout: CardLayout, customising: Boolean) =
-        createHTML().div { lotCard(LotCardState.Loaded(report(listOf("12 MAIN STREET, HAMILTON NSW 2303"))), layout, customising) }
+    private fun custom(layout: CardLayout, customising: Boolean, showUnknown: Boolean = true) =
+        createHTML().div { lotCard(LotCardState.Loaded(report(listOf("12 MAIN STREET, HAMILTON NSW 2303"))), layout, customising, showUnknown) }
 
     private fun labelsIn(out: String) = Regex("<dt>([^<]*)</dt>").findAll(out).map { it.groupValues[1] }.toList()
 
@@ -91,5 +92,18 @@ class LotCardHtmlTest {
     fun `the lot card's header is pinned too`() {
         val out = html(LotCardState.Loading("1001", null))
         assertTrue(STICKY_TOP_CLASS in out && "Close lot card" in out.substringAfter(STICKY_TOP_CLASS))
+    }
+
+    @Test
+    fun `lot rows without data are left off with a count and a way to show them`() {
+        val loaded = LotCardState.Loaded(report(listOf("12 MAIN STREET, HAMILTON NSW 2303")))
+        val hidden = html(loaded, showUnknown = false)
+        val shown = html(loaded, showUnknown = true)
+        val unknownRows = Regex("""class="value unknown"""").findAll(shown).count()
+        assertTrue(unknownRows > 0)
+        assertEquals(0, Regex("""class="value unknown"""").findAll(hidden).count())
+        assertTrue("$unknownRows rows without data are hidden." in hidden || "1 row without data is hidden." in hidden, hidden)
+        assertTrue("Block size" in hidden, "a row with a value stays")
+        assertTrue(">Show them<" in hidden || ">Show it<" in hidden)
     }
 }

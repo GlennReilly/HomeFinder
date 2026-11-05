@@ -5,6 +5,7 @@ import au.homefinder.app.selection.CardLayout
 import au.homefinder.app.selection.CardRow
 import au.homefinder.app.selection.SuburbCardRows
 import au.homefinder.app.selection.SuburbCardState
+import au.homefinder.app.selection.UnknownRows
 import au.homefinder.app.selection.Formats
 import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.SuburbReport
@@ -38,6 +39,8 @@ object CardActions {
     const val CLOSE: String = "close"
     const val RETRY: String = "retry"
     const val REMOVE_RATING: String = "remove-rating"
+    const val SHOW_UNKNOWN: String = "show-unknown"
+    const val HIDE_UNKNOWN: String = "hide-unknown"
 }
 
 /** The close button shows a cross; its aria-label carries the words. */
@@ -84,7 +87,7 @@ fun provenanceLine(row: CardRow): String =
  * The Suburb Card as plain HTML (ADR 0019). Unknown values read "Unknown" in italics, never blank; every row names its
  * source, as-of date and confidence. Buttons carry a [CardActions.ATTRIBUTE] the page wires up.
  */
-fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayout(), customising: Boolean = false) {
+fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayout(), customising: Boolean = false, showUnknown: Boolean = false) {
     section("suburb-card") {
         attributes["aria-label"] = "Suburb card"
         // The name, postcode, close button and Customise bar stay pinned at the top while the rows scroll (ADR 0053).
@@ -113,12 +116,14 @@ fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayou
                 }
             }
             is SuburbCardState.Loaded -> {
-                // Customising shows every row (hidden ones dimmed) with its controls; otherwise only the rows not hidden.
-                val arranged = layout.arrange(SuburbCardRows.of(card.report)).filter { customising || !it.hidden }
-                if (arranged.isEmpty()) p("hint") { +ALL_HIDDEN_HINT }
-                // Under the price change, wherever you put it (the row's place counts even when it is hidden): the Homely block, which holds
+                // Customising shows every row (hidden ones dimmed) with its controls; otherwise only the rows not hidden, and not the unknown ones
+                // unless you asked to see them (ADR 0058).
+                val full = layout.arrange(SuburbCardRows.of(card.report))
+                val arranged = UnknownRows.visible(full, customising, showUnknown)
+                if (arranged.isEmpty() && UnknownRows.unknownCount(full, customising) == 0) p("hint") { +ALL_HIDDEN_HINT }
+                // Under the price change, wherever you put it (the row's place counts even when it is hidden or unknown): the Homely block, which holds
                 // the score you entered (when there is one), the link to the suburb's reviews on Homely, and the form to edit the score.
-                val split = arranged.indexOfFirst { it.row.label == SuburbCardRows.PRICE_CHANGE_LABEL } + 1
+                val split = UnknownRows.splitAfter(full, SuburbCardRows.PRICE_CHANGE_LABEL, customising, showUnknown)
                 dl("rows") { arranged.take(split).forEachIndexed { i, item -> cardRow(item, i, arranged.size, customising) } }
                 section("homely") {
                     SuburbCardRows.homely(card.report)?.let { homely -> dl("rows") { cardRow(ArrangedRow(homely, hidden = false), 0, 1, customising = false) } }
@@ -137,6 +142,7 @@ fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayou
                         cardRow(item, split + i, arranged.size, customising, if (item.row.label == SuburbCardRows.SCHOOLS_LABEL) schoolList(card.report) else null)
                     }
                 }
+                unknownRowsNote(UnknownRows.unknownCount(full, customising), showUnknown)
                 p("disclaimer") { +CARD_DISCLAIMER }
             }
         }

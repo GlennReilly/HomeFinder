@@ -3,6 +3,8 @@ package au.homefinder.e2e
 import au.homefinder.shared.api.SuburbRef
 import au.homefinder.shared.model.ApiJson
 import au.homefinder.shared.model.Attribute
+import au.homefinder.shared.model.SuburbShopping
+import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.GeoBounds
 import au.homefinder.shared.model.HomelyRating
@@ -64,8 +66,12 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
 
     private fun suburbReport(id: String = "9001", name: String = "HAMILTON", postcode: String = "2303") = SuburbReport(
         suburbId = id, name = name, postcode = postcode, areaKm2 = Attribute(1.46, Confidence.HIGH, "Test boundary"),
-        medianHousePriceAud = unknown(), medianUnitPriceAud = unknown(), priceChange12MonthsPercent = unknown(), salesCount = unknown(),
-        blockSize = unknown(), floodShare = unknown(), brickShare = unknown(), beach = unknown(),
+        // The rows a real suburb would have data for are known; the rest stay unknown, so the card leaves them off (ADR 0058).
+        medianHousePriceAud = Attribute(900_000L, Confidence.HIGH, "Test sales", LocalDate(2026, 10, 9)),
+        medianUnitPriceAud = Attribute(600_000L, Confidence.MEDIUM, "Test sales", LocalDate(2026, 10, 9)),
+        priceChange12MonthsPercent = Attribute(4.2, Confidence.MEDIUM, "Test sales", LocalDate(2026, 10, 9)),
+        salesCount = Attribute(120, Confidence.HIGH, "Test sales", LocalDate(2026, 10, 9)),
+        blockSize = Attribute(BlockSizeSpread(560.0, 300.0, 900.0), Confidence.HIGH, "Test cadastre"), floodShare = unknown(), brickShare = unknown(), beach = unknown(),
         schools = Attribute(
             SuburbSchools(
                 listOf(School("1", "Hamilton Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, 1051, 412, "https://hamilton-p.schools.nsw.gov.au", "Primary School")),
@@ -73,7 +79,8 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
             ),
             Confidence.HIGH, "Test schools", LocalDate(2026, 10, 2), "ICSEA is not a quality score",
         ),
-        parkAreaShare = unknown(), shopping = unknown(), transport = unknown(),
+        parkAreaShare = Attribute(0.12, Confidence.MEDIUM, "Test OpenStreetMap", LocalDate(2026, 10, 29)),
+        shopping = Attribute(SuburbShopping(1, 2), Confidence.MEDIUM, "Test OpenStreetMap", LocalDate(2026, 10, 29)), transport = unknown(),
         homelyRating = rating?.let { Attribute(it, Confidence.LOW, HomelyRating.SOURCE, LocalDate(2026, 10, 30), "typed in by you") }
             ?: Attribute.unknown(HomelyRating.SOURCE, note = "Not entered"),
     )
