@@ -132,3 +132,11 @@ tests/test_schools.sh         # fixture-based integration test (needs Docker)
 Source: NSW Department of Education, "NSW public schools master dataset" (Creative Commons Attribution); the ICSEA value is ACARA's.
 See [ADR 0034](../docs/adr/0034-suburb-schools-and-icsea.md).
 
+## BOCSAR crime (download only so far)
+
+```bash
+scripts/download-bocsar.sh [dir]   # the BOCSAR recorded-crime-by-suburb zip (over 10 MB), unpacked into ../data/raw/bocsar; prints each file's first lines (run it yourself)
+tests/test_download_bocsar.sh      # download script against a local stand-in (no Docker)
+```
+
+Only the download exists: the file's layout has not been seen yet, so there is no loader. Data: NSW Bureau of Crime Statistics and Research on Data.NSW, Creative Commons Attribution.
