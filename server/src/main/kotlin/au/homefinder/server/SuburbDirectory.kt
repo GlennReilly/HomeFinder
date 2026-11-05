@@ -31,6 +31,9 @@ interface SuburbDirectory {
     /** The suburb's SEIFA 2021 socio-economic advantage, or null when none has been loaded (or the table is missing). */
     suspend fun seifa(suburbId: String): SuburbSeifa? = null
 
+    /** The suburb's BOCSAR crime counts (with its SEIFA population), or null when none have been loaded (or a table is missing). */
+    suspend fun crime(suburbId: String): SuburbCrime? = null
+
     /** The public schools inside the suburb, or null when no school data has been loaded (no load yet, or the table is missing). */
     suspend fun schools(suburbId: String): SuburbSchoolData? = null
 
@@ -127,6 +130,27 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
         }
     }
 
+    override suspend fun crime(suburbId: String): SuburbCrime? = withContext(Dispatchers.IO) {
+        try {
+            dataSource.connection.use { connection ->
+                connection.prepareStatement(CRIME_SQL).use { statement ->
+                    statement.setString(1, suburbId)
+                    statement.executeQuery().use { rows ->
+                        if (!rows.next()) return@use null
+                        val asOf = rows.getDate("as_of").toLocalDate()
+                        SuburbCrime(
+                            rows.getInt("violent_incidents"), rows.getInt("property_incidents"), rows.getString("window_text"),
+                            LocalDate(asOf.year, asOf.monthValue, asOf.dayOfMonth), rows.getInt("population").takeIf { !rows.wasNull() },
+                        )
+                    }
+                }
+            }
+        } catch (failure: SQLException) {
+            // Before the first crime (or SEIFA) load a table does not exist; that is "no data", not an outage.
+            if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
+        }
+    }
+
     override suspend fun schools(suburbId: String): SuburbSchoolData? = withContext(Dispatchers.IO) {
         try {
             dataSource.connection.use { connection ->
@@ -169,19 +193,21 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
             val amenity = hasRows(connection, "suburb_amenity")
             val census = hasRows(connection, "suburb_census")
             val seifa = hasRows(connection, "suburb_seifa")
-            if (!schools && !amenity && !census && !seifa) return@use null
+            val crime = hasRows(connection, "suburb_crime")
+            if (!schools && !amenity && !census && !seifa && !crime) return@use null
             val schoolsDate = if (schools) singleDate(connection, "SELECT max(extracted_on) FROM school") else null
+            val crimeDate = if (crime) singleDate(connection, "SELECT max(as_of) FROM suburb_crime") else null
             val osmDate = if (amenity && hasRows(connection, "osm_import")) singleDate(connection, OSM_AS_OF_SQL) else null
-            connection.prepareStatement(filterValuesSql(schools, amenity, census, seifa)).use { statement ->
+            connection.prepareStatement(filterValuesSql(schools, amenity, census, seifa, crime)).use { statement ->
                 statement.executeQuery().use { rows ->
                     fun double(column: String): Double? = rows.getDouble(column).takeIf { !rows.wasNull() }
                     val values = buildList {
                         while (rows.next()) {
                             val icsea = rows.getInt("average_icsea").takeIf { !rows.wasNull() }
-                            add(SuburbFilterRow(rows.getString("suburb_id"), icsea, double("beach_km"), double("park_share"), double("rented_share"), rows.getInt("seifa_decile").takeIf { !rows.wasNull() }, rows.getString("name").orEmpty()))
+                            add(SuburbFilterRow(rows.getString("suburb_id"), icsea, double("beach_km"), double("park_share"), double("rented_share"), rows.getInt("seifa_decile").takeIf { !rows.wasNull() }, double("violent_per_1000"), double("property_per_1000"), rows.getString("name").orEmpty()))
                         }
                     }
-                    SuburbFilterData(values, schoolsDate, schoolsLoaded = schools, osmLoaded = amenity, osmAsOf = osmDate, censusLoaded = census, seifaLoaded = seifa)
+                    SuburbFilterData(values, schoolsDate, schoolsLoaded = schools, osmLoaded = amenity, osmAsOf = osmDate, censusLoaded = census, seifaLoaded = seifa, crimeLoaded = crime, crimeAsOf = crimeDate)
                 }
             }
         }
@@ -268,6 +294,16 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
 
         val SEIFA_SQL = "SELECT irsad_decile, irsad_score, population, irsd_decile, ier_decile, ieo_decile FROM suburb_seifa WHERE suburb_id = ?"
 
+        /** Crime joined to the SEIFA population; a suburb with no SEIFA row has a null population. */
+        val CRIME_SQL = """
+            SELECT c.violent_incidents, c.property_incidents, c.window_text, c.as_of, e.population
+            FROM suburb_crime c LEFT JOIN suburb_seifa e ON e.suburb_id = c.suburb_id WHERE c.suburb_id = ?
+        """.trimIndent()
+
+        /** Under this many residents a crime rate is too noisy to filter on (ADR 0051). */
+        const val CRIME_FILTER_MIN_POPULATION: Int = 500
+        private const val PER_THOUSAND = 1000.0
+
         val SCHOOLS_LOADED_SQL = "SELECT count(*) AS n, max(extracted_on) AS latest FROM school"
 
         val SCHOOLS_SQL = """
@@ -279,7 +315,7 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
          * One row per suburb with every criterion's value; the columns of a data set that is not loaded are NULL (ADR 0046). A suburb with no
          * mapped park has a NULL park share, as the card shows it as unknown rather than 0%.
          */
-        fun filterValuesSql(schools: Boolean, amenity: Boolean, census: Boolean, seifa: Boolean = false): String {
+        fun filterValuesSql(schools: Boolean, amenity: Boolean, census: Boolean, seifa: Boolean = false, crime: Boolean = false): String {
             val icsea = if (schools) "(SELECT round(avg(c.icsea))::int FROM school c WHERE c.suburb_id = s.suburb_id)" else "NULL::int"
             val beach = if (amenity) "a.beach_from_centre_m / 1000.0" else "NULL::float8"
             val park = if (amenity) "CASE WHEN a.park_area_m2 > 0 AND a.suburb_area_m2 > 0 THEN least(a.park_area_m2 / a.suburb_area_m2, 1.0) END" else "NULL::float8"
@@ -287,8 +323,13 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
             val decile = if (seifa) "e.irsad_decile::int" else "NULL::int"
             val joins = (if (amenity) " LEFT JOIN suburb_amenity a ON a.suburb_id = s.suburb_id" else "") +
                 (if (census) " LEFT JOIN suburb_census k ON k.suburb_id = s.suburb_id" else "") +
-                (if (seifa) " LEFT JOIN suburb_seifa e ON e.suburb_id = s.suburb_id" else "")
-            return "SELECT s.suburb_id, s.name, $icsea AS average_icsea, $beach AS beach_km, $park AS park_share, $rented AS rented_share, $decile AS seifa_decile " +
+                (if (seifa || crime) " LEFT JOIN suburb_seifa e ON e.suburb_id = s.suburb_id" else "") +
+                (if (crime) " LEFT JOIN suburb_crime x ON x.suburb_id = s.suburb_id" else "")
+            // A rate needs a population big enough to mean something; below it (or with none) the suburb has no rate and never matches.
+            fun rate(column: String) =
+                if (crime) "CASE WHEN e.population >= $CRIME_FILTER_MIN_POPULATION THEN x.$column * $PER_THOUSAND / e.population END" else "NULL::float8"
+            return "SELECT s.suburb_id, s.name, $icsea AS average_icsea, $beach AS beach_km, $park AS park_share, $rented AS rented_share, $decile AS seifa_decile, " +
+                "${rate("violent_incidents")} AS violent_per_1000, ${rate("property_incidents")} AS property_per_1000 " +
                 "FROM suburb s$joins ORDER BY s.suburb_id"
         }
 

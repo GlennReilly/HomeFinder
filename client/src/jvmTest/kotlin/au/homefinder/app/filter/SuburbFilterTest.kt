@@ -135,4 +135,23 @@ class SuburbFilterTest {
         assertEquals("filter-icsea-on", au.homefinder.app.ui.FilterIds.on(FilterCriterion.ICSEA), "the ICSEA ids are unchanged")
         assertNull(au.homefinder.app.ui.FilterIds.criterionOf("filter-summary"))
     }
+
+    @Test
+    fun `crime rates are filterable per 1,000 residents, unknown where there is no rate`() {
+        val d = FilterData.from(
+            SuburbFiltersResponse(
+                listOf(
+                    SuburbFilterValue("calm", violentPer1000 = 4.2, propertyPer1000 = 20.0),
+                    SuburbFilterValue("busy", violentPer1000 = 31.0, propertyPer1000 = 90.0),
+                    SuburbFilterValue("tiny"),
+                ),
+                "Schools", day, crime = FilterProvenance("BOCSAR", day),
+            ),
+        )
+        assertEquals(FilterRange(4.0, 31.0), d.bounds(FilterCriterion.VIOLENT))
+        val result = d.apply(FilterSelection(mapOf(FilterCriterion.VIOLENT to FilterRange(0.0, 10.0), FilterCriterion.PROPERTY to FilterRange(0.0, 50.0))))
+        assertEquals(setOf("calm"), result.passingIds, "'busy' is over both limits and 'tiny' has no rate")
+        assertEquals(1, result.unknown.getValue(FilterCriterion.VIOLENT))
+        assertEquals("BOCSAR", d.source(FilterCriterion.PROPERTY)?.source)
+    }
 }

@@ -1,5 +1,6 @@
 package au.homefinder.server
 
+import au.homefinder.shared.model.CrimeRate
 import au.homefinder.shared.model.SocioEconomic
 import au.homefinder.shared.model.ApiJson
 import au.homefinder.shared.model.BlockSizeSpread
@@ -203,6 +204,33 @@ class SuburbReportFactoryTest {
         assertTrue("4614 residents" in note && "not any one household" in note && "Based on Australian Bureau of Statistics data" in note, note)
         assertEquals(Confidence.MEDIUM, SuburbReportFactory.build(hamilton, seifa = SuburbSeifa(5, 990.0, 500)).socioEconomic.confidence)
         assertEquals(Confidence.LOW, SuburbReportFactory.build(hamilton, seifa = SuburbSeifa(1, 880.0, 33)).socioEconomic.confidence)
+    }
+
+    @Test
+    fun `crime counts become a rate per 1,000 residents with the window, the BOCSAR source and the caveat`() {
+        val report = SuburbReportFactory.build(hamilton, crime = SuburbCrime(violent = 31, property = 60, windowText = "Jul 2024 to Jun 2026", asOf = LocalDate(2026, 6, 30), population = 7380))
+        val violent = assertNotNull(report.violentCrime.value)
+        assertEquals(CrimeRate(31, 24, 31 * 1000.0 / 7380, 7380), violent)
+        assertEquals(Confidence.HIGH, report.violentCrime.confidence)
+        assertEquals(LocalDate(2026, 6, 30), report.violentCrime.asOf)
+        assertEquals(SuburbReportFactory.CRIME_SOURCE, report.violentCrime.source)
+        val note = assertNotNull(report.violentCrime.note)
+        assertTrue("Jul 2024 to Jun 2026" in note && "counted where it happens" in note && "reporting and policing" in note && "7380 residents" in note, note)
+        assertEquals(60 * 1000.0 / 7380, report.propertyCrime.value?.perThousand)
+    }
+
+    @Test
+    fun `a small suburb has low confidence, one with no population has the count only, and no crime data is unknown with a reason`() {
+        val small = SuburbReportFactory.build(hamilton, crime = SuburbCrime(3, 5, "w", LocalDate(2026, 6, 30), population = 200))
+        assertEquals(Confidence.LOW, small.violentCrime.confidence)
+        assertEquals(Confidence.MEDIUM, SuburbReportFactory.build(hamilton, crime = SuburbCrime(3, 5, "w", LocalDate(2026, 6, 30), 1_000)).violentCrime.confidence)
+        val none = SuburbReportFactory.build(hamilton, crime = SuburbCrime(3, 5, "w", LocalDate(2026, 6, 30), population = null))
+        assertEquals(CrimeRate(3, 24, null, null), none.violentCrime.value)
+        assertEquals(Confidence.LOW, none.violentCrime.confidence)
+        assertTrue("No population figure" in assertNotNull(none.violentCrime.note))
+        val unloaded = SuburbReportFactory.build(hamilton)
+        assertTrue(unloaded.violentCrime.isUnknown && unloaded.propertyCrime.isUnknown)
+        assertEquals(SuburbReportFactory.CRIME_NOT_LOADED_NOTE, unloaded.violentCrime.note)
     }
 
     @Test

@@ -52,3 +52,4 @@
 | [0048](0048-right-hand-tabs.md) | Suburb and Filters tabs in the right-hand panel | Accepted |
 | [0049](0049-seifa-socio-economic-advantage.md) | Socio-economic advantage from SEIFA 2021 | Accepted |
 | [0050](0050-other-seifa-indexes.md) | The other three SEIFA indexes on the Suburb Card | Accepted |
+| [0051](0051-bocsar-crime-rates.md) | Recorded crime per 1,000 residents from BOCSAR | Accepted |

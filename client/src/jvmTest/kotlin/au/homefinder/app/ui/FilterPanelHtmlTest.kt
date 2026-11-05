@@ -65,10 +65,10 @@ class FilterPanelHtmlTest {
 
     private val full = FilterData.from(
         SuburbFiltersResponse(
-            listOf(SuburbFilterValue("a", 1000, 1.5, 0.2, 0.45, 8), SuburbFilterValue("b", 1100, 12.0, null, 0.2, 3)),
+            listOf(SuburbFilterValue("a", 1000, 1.5, 0.2, 0.45, 8, 4.2, 12.5), SuburbFilterValue("b", 1100, 12.0, null, 0.2, 3, 30.0, 40.0)),
             "NSW schools", LocalDate(2026, 10, 2),
             beach = FilterProvenance("OpenStreetMap", LocalDate(2026, 10, 29)), parks = FilterProvenance("OpenStreetMap", LocalDate(2026, 10, 29)),
-            rented = FilterProvenance("ABS Census", LocalDate(2021, 8, 10)), seifa = FilterProvenance("ABS SEIFA", LocalDate(2021, 8, 10)),
+            rented = FilterProvenance("ABS Census", LocalDate(2021, 8, 10)), seifa = FilterProvenance("ABS SEIFA", LocalDate(2021, 8, 10)), crime = FilterProvenance("BOCSAR", LocalDate(2026, 6, 30)),
         ),
     )
 
@@ -81,6 +81,8 @@ class FilterPanelHtmlTest {
         assertTrue("""id="filter-rented-min-value">20%</span>""" in out, out)
         assertTrue("""id="filter-beach-max-value">12 km</span>""" in out)
         assertTrue("Homes rented: Source: ABS Census · as of 2021-08-10" in out)
+        assertTrue("Violent crime: Source: BOCSAR · as of 2026-06-30" in out)
+        assertTrue("Break-ins, car and home theft: Source: BOCSAR · as of 2026-06-30" in out)
         assertTrue("Distance to the beach: Source: OpenStreetMap · as of 2026-10-29" in out)
         assertTrue("a suburb with no park mapped has no value" in out)
         assertTrue("1 of 2 suburbs have no mapped park and never match." in out)

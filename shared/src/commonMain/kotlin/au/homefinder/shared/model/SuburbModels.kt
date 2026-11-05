@@ -92,6 +92,10 @@ data class SuburbFilterValue(
     val rentedShare: Double? = null,
     /** The SEIFA decile of socio-economic advantage (1 most disadvantaged, 10 most advantaged; ADR 0049). */
     val seifaDecile: Int? = null,
+    /** Recorded violent incidents per 1,000 residents over 24 months (BOCSAR); null for a suburb under 500 residents or with no population (ADR 0051). */
+    val violentPer1000: Double? = null,
+    /** Recorded break-in, vehicle theft, theft from cars and homes and malicious damage incidents per 1,000 residents over 24 months (ADR 0051). */
+    val propertyPer1000: Double? = null,
     /** The suburb's name, for the score ranking (ADR 0047). */
     val name: String = "",
 )
@@ -114,6 +118,7 @@ data class SuburbFiltersResponse(
     val parks: FilterProvenance? = null,
     val rented: FilterProvenance? = null,
     val seifa: FilterProvenance? = null,
+    val crime: FilterProvenance? = null,
 )
 
 /** The same factors as a property, rolled up to suburb level. Every statistic carries its own provenance. */
@@ -149,7 +154,22 @@ data class SuburbReport(
     val economicResources: Attribute<Int> = Attribute.unknown("ABS SEIFA 2021", note = "Not computed yet"),
     /** The SEIFA decile of education and occupation (IEO): 1 the lowest qualifications and skills, 10 the highest (ADR 0050). */
     val educationOccupation: Attribute<Int> = Attribute.unknown("ABS SEIFA 2021", note = "Not computed yet"),
+    /** Recorded violent crime (assaults, robberies, sexual offences) over 24 months, from BOCSAR (ADR 0051). */
+    val violentCrime: Attribute<CrimeRate> = Attribute.unknown("NSW BOCSAR", note = "Not computed yet"),
+    /** Recorded break-ins, vehicle theft, theft from cars and homes and malicious damage over 24 months, from BOCSAR (ADR 0051). */
+    val propertyCrime: Attribute<CrimeRate> = Attribute.unknown("NSW BOCSAR", note = "Not computed yet"),
 )
+
+/**
+ * Recorded incidents of one kind of crime in a suburb over [months] months. [perThousand] is the rate per 1,000 residents, null when the suburb has no
+ * population figure to divide by; [population] is the figure used.
+ */
+@Serializable
+data class CrimeRate(val incidents: Int, val months: Int, val perThousand: Double? = null, val population: Int? = null) {
+    init {
+        require(incidents >= 0 && months > 0) { "Incidents cannot be negative and the window must be at least a month" }
+    }
+}
 
 /**
  * The Index of Relative Socio-economic Advantage and Disadvantage (IRSAD) for a suburb: [decile] from 1 (most disadvantaged tenth of areas
