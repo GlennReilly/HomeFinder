@@ -4,7 +4,6 @@ import au.homefinder.app.api.ApiConfig
 import au.homefinder.app.api.FilterApi
 import au.homefinder.app.filter.FilterCriterion
 import au.homefinder.app.filter.FilterData
-import au.homefinder.app.filter.FilterRange
 import au.homefinder.app.filter.FilterSelection
 import au.homefinder.app.ui.FILTER_LOADING_TEXT
 import au.homefinder.app.ui.FILTER_UNAVAILABLE_TEXT
@@ -212,7 +211,7 @@ private const val NARROW_WINDOW_PX = 600
 private fun wireSidePanel(): SidePanel = SidePanel(narrow = window.innerWidth < NARROW_WINDOW_PX)
 
 /**
- * The filter panel (ADR 0035): the values load once, the inputs are drawn once, and moving a slider only recomputes which
+ * The filter panel (ADR 0035): the values load once, the inputs are drawn once, and moving a slider (one per criterion, ADR 0052) only recomputes which
  * suburbs pass and restyles the map, with no request.
  */
 private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap, onResult: (FilterResult?) -> Unit) {
@@ -224,9 +223,8 @@ private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap, 
     fun selection(): FilterSelection = FilterSelection(
         FilterCriterion.entries.mapNotNull { criterion ->
             val on = input(FilterIds.on(criterion))?.checked == true
-            val low = input(FilterIds.min(criterion))?.value?.toDoubleOrNull()
-            val high = input(FilterIds.max(criterion))?.value?.toDoubleOrNull()
-            if (on && low != null && high != null) criterion to FilterRange(minOf(low, high), high) else null
+            val limit = input(FilterIds.limit(criterion))?.value?.toDoubleOrNull()
+            if (on && limit != null) criterion to limit else null
         }.toMap(),
     )
 
@@ -237,23 +235,16 @@ private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap, 
         onResult(result)
         document.getElementById(FilterIds.SUMMARY)?.textContent = filterSummaryText(result)
         FilterCriterion.entries.forEach { criterion ->
-            input(FilterIds.min(criterion))?.let { document.getElementById(FilterIds.minOut(criterion))?.textContent = criterion.format(it.value.toDouble()) }
-            input(FilterIds.max(criterion))?.let { document.getElementById(FilterIds.maxOut(criterion))?.textContent = criterion.format(it.value.toDouble()) }
+            input(FilterIds.limit(criterion))?.let { document.getElementById(FilterIds.limitOut(criterion))?.textContent = criterion.format(it.value.toDouble()) }
         }
     }
 
     panel.addEventListener("input", { event ->
-        // A criterion's sliders never cross: dragging one past the other pulls the other along.
         val targetId = (event.target as? HTMLElement)?.id
         val criterion = FilterIds.criterionOf(targetId)
         if (criterion != null) {
             // Moving a slider is a request to filter on it, so it switches its criterion on.
             if (targetId != FilterIds.on(criterion)) input(FilterIds.on(criterion))?.checked = true
-            val low = input(FilterIds.min(criterion))
-            val high = input(FilterIds.max(criterion))
-            if (low != null && high != null && low.value.toInt() > high.value.toInt()) {
-                if (targetId == FilterIds.min(criterion)) high.value = low.value else low.value = high.value
-            }
         }
         refresh()
     })

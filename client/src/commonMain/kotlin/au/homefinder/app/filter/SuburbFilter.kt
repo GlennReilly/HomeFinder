@@ -6,13 +6,23 @@ import kotlinx.datetime.LocalDate
 import kotlin.math.ceil
 import kotlin.math.floor
 
-/** One thing the panel can filter suburbs on (ADR 0035, 0046). Every value is a number in the unit shown beside its slider. */
+/** Which side of its limit a suburb must be on to pass a criterion (ADR 0052). */
+enum class Direction(val word: String) {
+    AT_LEAST("At least"),
+    AT_MOST("At most");
+
+    fun passes(value: Double, limit: Double): Boolean = if (this == AT_LEAST) value >= limit else value <= limit
+}
+
+/** One thing the panel can filter suburbs on (ADR 0035, 0046, 0052). Every value is a number in the unit shown beside its slider. */
 enum class FilterCriterion(
-    /** Part of the element ids (`filter-<key>-on`, `-min`, `-max`), so the page can find the pieces. */
+    /** Part of the element ids (`filter-<key>-on`, `-limit`, `-limit-value`), so the page can find the pieces. */
     val key: String,
     val label: String,
-    /** What a value ends with: nothing, " km" or "%". */
+    /** What a value ends with: nothing, " km", "%" or " per 1,000". */
     val unit: String,
+    /** The one slider's direction: the side of the limit that passes (a high ICSEA is better, a short distance to the beach is better). */
+    val direction: Direction,
     /** The slider step, also the grid the slider's ends are rounded out to. */
     val step: Double,
     /** What a suburb with no value lacks, for "N of M suburbs have no <this> and never match". */
@@ -23,42 +33,45 @@ enum class FilterCriterion(
     val notLoadedText: String,
 ) {
     ICSEA(
-        "icsea", "School ICSEA (average of public schools in the suburb)", "", 10.0, "ICSEA",
+        "icsea", "School ICSEA (average of public schools in the suburb)", "", Direction.AT_LEAST, 10.0, "ICSEA",
         "ICSEA measures the socio-educational advantage of a school's students (1,000 is the average). It is not a measure of school quality.",
         "School data has not been loaded yet, so there is nothing to filter on.",
     ),
     BEACH(
-        "beach", "Distance to the beach (from the suburb's centre)", " km", 1.0, "beach distance",
+        "beach", "Distance to the beach (from the suburb's centre)", " km", Direction.AT_MOST, 1.0, "beach distance",
         "A straight line from the suburb's centre to the nearest ocean beach on the mapped coastline, not a route.",
         "OpenStreetMap data has not been loaded yet, so there is no beach distance to filter on.",
     ),
     PARKS(
-        "parks", "Park share of the suburb", "%", 1.0, "mapped park",
+        "parks", "Park share of the suburb", "%", Direction.AT_LEAST, 1.0, "mapped park",
         "Parks of at least 0.5 ha as a share of the suburb's area. OpenStreetMap may be incomplete, and a suburb with no park mapped has no value.",
         "OpenStreetMap data has not been loaded yet, so there is no park share to filter on.",
     ),
     RENTED(
-        "rented", "Homes rented", "%", 1.0, "Census figure",
+        "rented", "Homes rented", "%", Direction.AT_MOST, 1.0, "Census figure",
         "The share of occupied homes that were rented on Census night 2021. A suburb with few homes is only roughly right.",
         "Census data has not been loaded yet, so there is nothing to filter on.",
     ),
     SEIFA(
-        "seifa", "Socio-economic advantage (SEIFA decile, 10 = most advantaged)", "", 1.0, "SEIFA decile",
+        "seifa", "Socio-economic advantage (SEIFA decile, 10 = most advantaged)", "", Direction.AT_LEAST, 1.0, "SEIFA decile",
         "From the ABS SEIFA 2021: it describes the residents of the suburb as a group, ranked across Australia from decile 1 (most disadvantaged) to 10 (most advantaged).",
         "SEIFA data has not been loaded yet, so there is nothing to filter on.",
     ),
     VIOLENT(
-        "violent", "Violent crime (incidents per 1,000 residents in 24 months)", "", 1.0, "violent crime rate",
+        "violent", "Violent crime (incidents per 1,000 residents in 24 months)", " per 1,000", Direction.AT_MOST, 1.0, "violent crime rate",
         "Assaults, robberies and sexual offences recorded by the NSW Bureau of Crime Statistics and Research. Crime is counted where it happens, so a suburb with a shopping or business district looks worse than its residents warrant. Suburbs under 500 residents have no rate.",
         "Crime data (and the SEIFA population it needs) has not been loaded yet, so there is nothing to filter on.",
     ),
     PROPERTY(
-        "property", "Break-ins, car and home theft (incidents per 1,000 residents in 24 months)", "", 1.0, "property crime rate",
+        "property", "Break-ins, car and home theft (incidents per 1,000 residents in 24 months)", " per 1,000", Direction.AT_MOST, 1.0, "property crime rate",
         "Break-ins, vehicle theft, stealing from cars and homes and malicious damage, recorded by the NSW Bureau of Crime Statistics and Research. Counted where it happens, and reflects reporting and policing. Suburbs under 500 residents have no rate.",
         "Crime data (and the SEIFA population it needs) has not been loaded yet, so there is nothing to filter on.",
     );
 
     fun format(value: Double): String = Formats.decimal(value, 0) + unit
+
+    /** The end of the slider that every suburb with a value passes, where it starts: the lowest value for "at least", the highest for "at most". */
+    fun startLimit(bounds: FilterRange): Double = if (direction == Direction.AT_LEAST) bounds.min else bounds.max
 }
 
 /** An inclusive range of a criterion's values. */
@@ -70,9 +83,9 @@ data class FilterRange(val min: Double, val max: Double) {
     operator fun contains(value: Double): Boolean = value in min..max
 }
 
-/** What the panel has switched on, by criterion (ADR 0035, 0046). Nothing is switched on at first, so nothing is dimmed. */
-data class FilterSelection(val ranges: Map<FilterCriterion, FilterRange> = emptyMap()) {
-    val isActive: Boolean get() = ranges.isNotEmpty()
+/** What the panel has switched on: each criterion's limit, read in its own [FilterCriterion.direction] (ADR 0052). Nothing is on at first, so nothing is dimmed. */
+data class FilterSelection(val limits: Map<FilterCriterion, Double> = emptyMap()) {
+    val isActive: Boolean get() = limits.isNotEmpty()
 }
 
 /**
@@ -103,7 +116,7 @@ class FilterData(
 ) {
     val total: Int get() = suburbIds.size
 
-    /** The range a criterion's sliders span: its lowest and highest value, rounded out to whole steps; null when no suburb has one. */
+    /** The range a criterion's slider spans: its lowest and highest value, rounded out to whole steps; null when no suburb has one. */
     fun bounds(criterion: FilterCriterion): FilterRange? {
         val known = values[criterion].orEmpty().values.filterNotNull()
         if (known.isEmpty()) return null
@@ -123,7 +136,7 @@ class FilterData(
         val unknown = FilterCriterion.entries.associateWith(::unknown)
         if (!selection.isActive) return FilterResult(selection, null, total, unknown)
         val passing = suburbIds.filterTo(HashSet()) { id ->
-            selection.ranges.all { (criterion, range) -> values[criterion]?.get(id)?.let { it in range } == true }
+            selection.limits.all { (criterion, limit) -> values[criterion]?.get(id)?.let { criterion.direction.passes(it, limit) } == true }
         }
         return FilterResult(selection, passing, total, unknown)
     }

@@ -47,9 +47,10 @@
 | [0043](0043-homely-block-with-hidden-edit-form.md) | The Homely block holds the rating, its reviews link and a hidden edit form | Accepted |
 | [0044](0044-census-tenure-and-dwelling-structure.md) | Share rented and the mix of houses and units from the 2021 Census | Accepted |
 | [0045](0045-lot-card-schools-nearest-by-straight-line.md) | The Lot Card shows the nearest public primary and high school | Accepted |
-| [0046](0046-filters-beach-parks-rented.md) | Filters on beach distance, park share and homes rented | Accepted |
+| [0046](0046-filters-beach-parks-rented.md) | Filters on beach distance, park share and homes rented | Partly superseded by 0052 |
 | [0047](0047-weighted-score-mode.md) | Weighted-score mode for suburbs | Superseded by 0048 |
 | [0048](0048-right-hand-tabs.md) | Suburb and Filters tabs in the right-hand panel | Accepted |
 | [0049](0049-seifa-socio-economic-advantage.md) | Socio-economic advantage from SEIFA 2021 | Accepted |
 | [0050](0050-other-seifa-indexes.md) | The other three SEIFA indexes on the Suburb Card | Accepted |
 | [0051](0051-bocsar-crime-rates.md) | Recorded crime per 1,000 residents from BOCSAR | Accepted |
+| [0052](0052-single-slider-filters.md) | One slider with a fixed direction for each filter | Accepted |
