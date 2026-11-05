@@ -3,11 +3,6 @@ package au.homefinder.app.ui
 import au.homefinder.app.filter.FilterCriterion
 import au.homefinder.app.filter.FilterData
 import au.homefinder.app.filter.FilterResult
-import au.homefinder.app.filter.Preference
-import au.homefinder.app.filter.ScoreResult
-import au.homefinder.app.filter.ScoreSetup
-import au.homefinder.app.filter.ScoreWeight
-import au.homefinder.app.filter.defaultPreference
 import kotlinx.html.FlowContent
 import kotlinx.html.InputType
 import kotlinx.html.div
@@ -15,9 +10,6 @@ import kotlinx.html.h2
 import kotlinx.html.id
 import kotlinx.html.input
 import kotlinx.html.label
-import kotlinx.html.ul
-import kotlinx.html.option
-import kotlinx.html.select
 import kotlinx.html.p
 import kotlinx.html.span
 
@@ -46,9 +38,13 @@ val FILTER_ICSEA_HELP: String = checkNotNull(FilterCriterion.ICSEA.help)
 /** The line under the sliders: how many suburbs match every switched-on filter. The unknown counts sit beside each slider. */
 fun filterSummaryText(result: FilterResult): String = when {
     result.passingIds == null -> "Switch on a filter to highlight matching suburbs."
-    result.selection.ranges.size == 1 -> "${result.matching} of ${result.total} suburbs match."
-    else -> "${result.matching} of ${result.total} suburbs match all ${result.selection.ranges.size} filters."
+    result.selection.ranges.size == 1 -> "${result.matching} of ${result.total} suburbs match." + NO_MATCH_HINT.takeIf { result.matching == 0 }.orEmpty()
+    else -> "${result.matching} of ${result.total} suburbs match all ${result.selection.ranges.size} filters." +
+        NO_MATCH_HINT.takeIf { result.matching == 0 }.orEmpty()
 }
+
+/** Added when nothing passes: the whole map is washed out then, which can look like the filters have stopped working. */
+const val NO_MATCH_HINT: String = " Loosen a range, or switch a filter off."
 
 /** "1 of 3 suburbs have no ICSEA and never match." (a count that does not change as a slider moves). */
 fun filterUnknownText(data: FilterData, criterion: FilterCriterion): String =
@@ -101,7 +97,6 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
         attributes["role"] = "status"
         +filterSummaryText(initial)
     }
-    scoreSection(data)
     FilterCriterion.entries.forEach { criterion ->
         data.source(criterion)?.takeIf { data.hasData(criterion) }?.let { source ->
             p("hint") {
@@ -120,75 +115,4 @@ private fun FlowContent.rangeInput(id: String, criterion: FilterCriterion, min: 
         attributes["step"] = criterion.step.toLong().toString()
         attributes["value"] = value.toLong().toString()
     }
-}
-
-/** Names the page uses to find the pieces of the score section (ADR 0047). */
-object ScoreIds {
-    const val SUMMARY: String = "score-summary"
-    const val RANKING: String = "score-ranking"
-
-    fun weight(criterion: FilterCriterion): String = "score-${criterion.key}-weight"
-    fun weightOut(criterion: FilterCriterion): String = "score-${criterion.key}-weight-value"
-    fun preference(criterion: FilterCriterion): String = "score-${criterion.key}-preference"
-}
-
-const val SCORE_RANKING_SIZE: Int = 10
-const val SCORE_PREFER_HIGHER_TEXT: String = "higher is better"
-const val SCORE_PREFER_LOWER_TEXT: String = "lower is better"
-const val SCORE_HELP: String =
-    "Give each criterion a weight from 0 (ignored) to 5, and say which end is better. Each suburb is scored 0 to 100 against the other suburbs " +
-        "and shaded blue on the map. A suburb with no value for a criterion is scored on the others and marked partial. Filters above still apply."
-
-fun scoreSummaryText(result: ScoreResult): String = when {
-    !result.setup.isActive -> "Give a criterion a weight above 0 to score suburbs."
-    result.ranking.isEmpty() -> "No suburb has a value for the weighted criteria."
-    else -> "${result.ranking.size} suburbs scored" + if (result.unscored > 0) ", ${result.unscored} with no values to score." else "."
-}
-
-/** The best suburbs first: "1. Hamilton, 82 (partial)". */
-fun scoreRankingLines(result: ScoreResult, limit: Int = SCORE_RANKING_SIZE): List<String> =
-    result.ranking.take(limit).mapIndexed { i, s -> "${i + 1}. ${s.name}, ${s.score}" + if (s.partial) " (partial)" else "" }
-
-/** The score section: a weight slider and a better-end choice for each criterion that has data, then the summary and the top suburbs. */
-fun FlowContent.scoreSection(data: FilterData) {
-    val criteria = FilterCriterion.entries.filter(data::hasData)
-    if (criteria.isEmpty()) return
-    h2 { +"Score suburbs" }
-    p("hint") { +SCORE_HELP }
-    criteria.forEach { criterion ->
-        div("score-criterion") {
-            label {
-                htmlFor = ScoreIds.weight(criterion)
-                +"${criterion.label.substringBefore(" (")}: weight "
-                span { id = ScoreIds.weightOut(criterion); +"0" }
-            }
-            input(InputType.range) {
-                id = ScoreIds.weight(criterion)
-                attributes["min"] = "0"
-                attributes["max"] = ScoreWeight.MAX_WEIGHT.toString()
-                attributes["step"] = "1"
-                attributes["value"] = "0"
-            }
-            select {
-                id = ScoreIds.preference(criterion)
-                attributes["aria-label"] = "Which end of ${criterion.label.substringBefore(" (")} is better"
-                option {
-                    value = Preference.HIGHER.name
-                    selected = criterion.defaultPreference == Preference.HIGHER
-                    +SCORE_PREFER_HIGHER_TEXT
-                }
-                option {
-                    value = Preference.LOWER.name
-                    selected = criterion.defaultPreference == Preference.LOWER
-                    +SCORE_PREFER_LOWER_TEXT
-                }
-            }
-        }
-    }
-    p("filter-summary") {
-        id = ScoreIds.SUMMARY
-        attributes["role"] = "status"
-        +scoreSummaryText(data.score(ScoreSetup()))
-    }
-    ul { id = ScoreIds.RANKING }
 }

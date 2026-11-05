@@ -1,6 +1,6 @@
 # 0047. Weighted-score mode for suburbs
 
-Status: Accepted
+Status: Superseded by 0048
 
 ## Context
 ADR 0035 planned a second filter mode beside "all must pass": a weighted score, so that a suburb strong on one thing can make up for a weak one.

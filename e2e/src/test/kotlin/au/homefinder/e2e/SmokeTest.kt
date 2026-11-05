@@ -186,25 +186,9 @@ class SmokeTest {
     }
 
     @Test
-    fun `the score section ranks suburbs by the weights`() {
-        openWithKey()
-        page.locator("#filters-toggle").click()
-        assertThat(page.locator("#score-summary")).containsText("Give a criterion a weight above 0")
-        page.locator("#score-icsea-weight").fill("3")
-        assertThat(page.locator("#score-icsea-weight-value")).hasText("3")
-        assertThat(page.locator("#score-summary")).containsText("2 suburbs scored, 1 with no values to score.")
-        assertThat(page.locator("#score-ranking li").first()).hasText("1. HAMILTON, 100")
-        page.locator("#score-icsea-preference").selectOption("LOWER")
-        assertThat(page.locator("#score-ranking li").first()).hasText("1. MAYFIELD, 100")
-        page.locator("#score-icsea-weight").fill("0")
-        assertThat(page.locator("#score-ranking li")).hasCount(0)
-    }
-
-    @Test
     fun `the filter panel counts matching suburbs as the ICSEA slider moves`() {
         openWithKey()
-        page.locator("#filters-toggle").click()
-        assertThat(page.locator("#filters-toggle")).hasAttribute("aria-expanded", "true")
+        assertThat(page.locator("#tab-filters")).hasAttribute("aria-selected", "true")
         assertThat(page.locator("#filter-summary")).containsText("Switch on a filter")
         assertThat(page.locator("#filter-icsea-unknown")).containsText("1 of 3 suburbs have no ICSEA")
         assertThat(page.locator("#filters")).containsText("not a measure of school quality")
@@ -220,7 +204,7 @@ class SmokeTest {
     @Test
     fun `filters on the share rented and the beach distance combine, and the sliders show their own units`() {
         openWithKey()
-        page.locator("#filters-toggle").click()
+        assertThat(page.locator("#filters")).isVisible()
         assertThat(page.locator("#filter-rented-min-value")).hasText("20%")
         assertThat(page.locator("#filter-beach-max-value")).hasText("12 km")
         assertThat(page.locator("#filter-rented-unknown")).containsText("1 of 3 suburbs have no Census figure")
@@ -307,5 +291,30 @@ class SmokeTest {
         page.locator("#card input[name=stars]").fill("3")
         page.locator("#card form.rating-form button[type=submit]").click()
         assertThat(page.locator("#card .rating-message")).containsText("Could not save")
+    }
+
+    @Test
+    fun `the right-hand panel opens on Filters, shows the card on a tap and goes back when it is cleared`() {
+        openWithKey()
+        assertThat(page.locator("#tab-filters")).hasAttribute("aria-selected", "true")
+        assertThat(page.locator("#filters")).isVisible()
+        assertThat(page.locator("#card")).isHidden()
+        page.locator("#filter-icsea-min").fill("1000")
+        assertThat(page.locator("#tab-filters")).hasText("Filters (1 of 3)")
+        tapSuburb()
+        assertThat(page.locator("#tab-suburb")).hasAttribute("aria-selected", "true")
+        assertThat(page.locator("#filters")).isHidden()
+        page.locator("#tab-filters").click()
+        assertThat(page.locator("#filters")).isVisible()
+        assertThat(page.locator("#filter-summary")).containsText("1 of 3 suburbs match")
+        page.locator("#tab-suburb").click()
+        assertThat(page.locator("#card h2")).hasText("HAMILTON")
+        page.keyboard().press("Escape")
+        assertThat(page.locator("#tab-filters")).hasAttribute("aria-selected", "true")
+        // Tapping the open tab folds the panel down to its tabs, and again unfolds it.
+        page.locator("#tab-filters").click()
+        assertThat(page.locator("#filters")).isHidden()
+        page.locator("#tab-filters").click()
+        assertThat(page.locator("#filters")).isVisible()
     }
 }

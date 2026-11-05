@@ -6,13 +6,6 @@ import au.homefinder.app.filter.FilterCriterion
 import au.homefinder.app.filter.FilterData
 import au.homefinder.app.filter.FilterRange
 import au.homefinder.app.filter.FilterSelection
-import au.homefinder.app.filter.Preference
-import au.homefinder.app.filter.ScoreSetup
-import au.homefinder.app.filter.ScoreWeight
-import au.homefinder.app.ui.ScoreIds
-import au.homefinder.app.ui.scoreRankingLines
-import au.homefinder.app.ui.scoreSummaryText
-import org.w3c.dom.HTMLSelectElement
 import au.homefinder.app.ui.FILTER_LOADING_TEXT
 import au.homefinder.app.ui.FILTER_UNAVAILABLE_TEXT
 import au.homefinder.app.ui.FilterIds
@@ -31,6 +24,11 @@ import au.homefinder.app.selection.LotCardState
 import au.homefinder.app.selection.MapUiState
 import au.homefinder.app.selection.SuburbCardRows
 import au.homefinder.app.selection.MapViewModel
+import au.homefinder.app.selection.SIDE_EMPTY_TEXT
+import au.homefinder.app.selection.SidePanelState
+import au.homefinder.app.selection.SideTab
+import au.homefinder.app.selection.filtersTabLabel
+import au.homefinder.app.filter.FilterResult
 import au.homefinder.app.selection.RatingOutcome
 import au.homefinder.app.selection.SearchViewModel
 import au.homefinder.app.selection.SuburbCardState
@@ -53,6 +51,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.onEach
 import kotlinx.html.div
+import kotlinx.html.p
 import kotlinx.html.dom.append
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLFormElement
@@ -119,7 +118,8 @@ private fun start(apiKey: String) {
     }
 
     wireSearch(scope, SearchApi(config, http), viewModel, map, ::showNotice)
-    wireFilters(scope, FilterApi(config, http), map)
+    val side = wireSidePanel()
+    wireFilters(scope, FilterApi(config, http), map) { result -> side.setFiltersLabel(filtersTabLabel(result)) }
 
     // The star scores under suburb names: loaded at the start and again whenever one is saved or removed.
     suspend fun refreshRatings() {
@@ -133,7 +133,10 @@ private fun start(apiKey: String) {
 
     viewModel.state.onEach { state ->
         map.showSelection(state.selectedSuburbId, state.selectedLotId)
-        if (state.selectedSuburbId != latest.selectedSuburbId || state.selectedLotId != latest.selectedLotId) layouts.customising = false
+        if (state.selectedSuburbId != latest.selectedSuburbId || state.selectedLotId != latest.selectedLotId) {
+            layouts.customising = false
+            if (state.selectedSuburbId != null || state.selectedLotId != null) side.cardOpened() else side.cardClosed()
+        }
         latest = state
         redraw()
         if (state.notice != shownNotice) {
@@ -176,12 +179,43 @@ private fun start(apiKey: String) {
 
 private var searchIsOpen = false
 
+/** The right-hand panel's tabs (ADR 0048), driven by [SidePanelState]. */
+private class SidePanel(private val narrow: Boolean) {
+    private val root = element("side")
+    private val panes = mapOf(SideTab.SUBURB to element("card"), SideTab.FILTERS to element("filters"))
+    private val tabs = mapOf(SideTab.SUBURB to element("tab-suburb"), SideTab.FILTERS to element("tab-filters"))
+    private var state = SidePanelState.initial(startFolded = narrow)
+
+    init {
+        tabs.forEach { (tab, button) -> button.addEventListener("click", { update(state.tapped(tab)) }) }
+        update(state)
+    }
+
+    private fun update(next: SidePanelState) {
+        state = next
+        root.setAttribute("data-collapsed", next.collapsed.toString())
+        SideTab.entries.forEach { tab ->
+            val selected = tab == next.tab
+            tabs.getValue(tab).setAttribute("aria-selected", selected.toString())
+            tabs.getValue(tab).setAttribute("aria-expanded", (selected && !next.collapsed).toString())
+            panes.getValue(tab).hidden = !selected || next.collapsed
+        }
+    }
+
+    fun cardOpened() = update(state.cardOpened())
+    fun cardClosed() = update(state.cardClosed(startFolded = narrow))
+    fun setFiltersLabel(text: String) { tabs.getValue(SideTab.FILTERS).textContent = text }
+}
+
+private const val NARROW_WINDOW_PX = 600
+
+private fun wireSidePanel(): SidePanel = SidePanel(narrow = window.innerWidth < NARROW_WINDOW_PX)
+
 /**
  * The filter panel (ADR 0035): the values load once, the inputs are drawn once, and moving a slider only recomputes which
  * suburbs pass and restyles the map, with no request.
  */
-private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap) {
-    val toggle = element("filters-toggle")
+private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap, onResult: (FilterResult?) -> Unit) {
     val panel = element("filters")
     var data: FilterData? = null
 
@@ -196,33 +230,11 @@ private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap) 
         }.toMap(),
     )
 
-    fun scoreSetup(): ScoreSetup = ScoreSetup(
-        FilterCriterion.entries.mapNotNull { criterion ->
-            val weight = input(ScoreIds.weight(criterion))?.value?.toIntOrNull() ?: return@mapNotNull null
-            val preference = (document.getElementById(ScoreIds.preference(criterion)) as? HTMLSelectElement)?.value
-                ?.let { name -> Preference.entries.firstOrNull { it.name == name } } ?: return@mapNotNull null
-            criterion to ScoreWeight(weight.coerceIn(0, ScoreWeight.MAX_WEIGHT), preference)
-        }.toMap(),
-    )
-
-    fun refreshScores(loaded: FilterData) {
-        val scored = loaded.score(scoreSetup())
-        view.showScores(scored.scores)
-        document.getElementById(ScoreIds.SUMMARY)?.textContent = scoreSummaryText(scored)
-        FilterCriterion.entries.forEach { criterion ->
-            input(ScoreIds.weight(criterion))?.let { document.getElementById(ScoreIds.weightOut(criterion))?.textContent = it.value }
-        }
-        document.getElementById(ScoreIds.RANKING)?.let { list ->
-            list.innerHTML = ""
-            scoreRankingLines(scored).forEach { line -> list.appendChild(document.createElement("li").also { it.textContent = line }) }
-        }
-    }
-
     fun refresh() {
         val loaded = data ?: return
-        refreshScores(loaded)
         val result = loaded.apply(selection())
         view.showFilter(result.passingIds)
+        onResult(result)
         document.getElementById(FilterIds.SUMMARY)?.textContent = filterSummaryText(result)
         FilterCriterion.entries.forEach { criterion ->
             input(FilterIds.min(criterion))?.let { document.getElementById(FilterIds.minOut(criterion))?.textContent = criterion.format(it.value.toDouble()) }
@@ -230,10 +242,6 @@ private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap) 
         }
     }
 
-    toggle.addEventListener("click", {
-        panel.hidden = !panel.hidden
-        toggle.setAttribute("aria-expanded", (!panel.hidden).toString())
-    })
     panel.addEventListener("input", { event ->
         // A criterion's sliders never cross: dragging one past the other pulls the other along.
         val targetId = (event.target as? HTMLElement)?.id
@@ -375,11 +383,11 @@ private class CardLayouts {
 /** Shows the lot card when a lot is selected, else the suburb card; at most one is ever visible. */
 private fun renderCard(container: HTMLElement, suburb: SuburbCardState, lot: LotCardState, layouts: CardLayouts) {
     val scrolled = container.scrollTop
-    container.hidden = suburb is SuburbCardState.Hidden && lot is LotCardState.Hidden
     container.innerHTML = ""
     when {
         lot !is LotCardState.Hidden -> container.append { div { lotCard(lot, layouts.lot, layouts.customising) } }
         suburb !is SuburbCardState.Hidden -> container.append { div { suburbCard(suburb, layouts.suburb, layouts.customising) } }
+        else -> container.append { p("side-empty") { +SIDE_EMPTY_TEXT } }
     }
     container.scrollTop = scrolled
 }

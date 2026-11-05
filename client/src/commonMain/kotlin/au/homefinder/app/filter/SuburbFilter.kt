@@ -102,9 +102,6 @@ class FilterData(
 
     fun name(suburbId: String): String = names[suburbId]?.takeIf { it.isNotBlank() } ?: suburbId
 
-    /** Scores every suburb by the weighted criteria (ADR 0047). */
-    fun score(setup: ScoreSetup): ScoreResult = ScoreCalculator.score(setup, values, suburbIds, ::name)
-
     fun unknown(criterion: FilterCriterion): Int = suburbIds.count { values[criterion]?.get(it) == null }
 
     fun apply(selection: FilterSelection): FilterResult {
