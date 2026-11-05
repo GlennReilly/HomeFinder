@@ -105,7 +105,9 @@ object SuburbCardRows {
         val sales = report.salesCount.takeUnless { it.isUnknown }?.value ?: return base
         val value = base.value ?: return base
         val count = Formats.grouped(sales.toLong()) + if (sales == 1) " sale" else " sales"
-        return base.copy(value = "$value ($count)", note = listOfNotNull(base.note, report.salesCount.note).joinToString(" "))
+        // The change's note has no closing full stop, the sales note ends with one: join them as two sentences.
+        val note = listOfNotNull(base.note?.trim()?.trimEnd('.')?.takeIf { it.isNotEmpty() }, report.salesCount.note?.trim()?.takeIf { it.isNotEmpty() })
+        return base.copy(value = "$value ($count)", note = note.joinToString(". ").ifEmpty { null })
     }
 
     /**

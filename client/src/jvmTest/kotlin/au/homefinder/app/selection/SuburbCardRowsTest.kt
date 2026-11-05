@@ -70,7 +70,8 @@ class SuburbCardRowsTest {
         )
         val row = SuburbCardRows.priceChange(withNotes)
         assertEquals("+4.2% (31 sales)", row.value)
-        assertEquals("House median price, from 40 and 38 house sales 24 house and 7 unit sales in the 12 months to the latest sale on file.", row.note)
+        assertEquals("House median price, from 40 and 38 house sales. 24 house and 7 unit sales in the 12 months to the latest sale on file.", row.note)
+        assertEquals("From 40 sales. 24 house and 7 unit sales.", SuburbCardRows.priceChange(withNotes.copy(priceChange12MonthsPercent = Attribute(4.2, Confidence.MEDIUM, "Sales", day, "From 40 sales."), salesCount = Attribute(31, Confidence.MEDIUM, "Sales", day, "24 house and 7 unit sales."))).note, "one full stop between the notes, not two")
         assertEquals(Confidence.MEDIUM, row.confidence, "the row keeps the price change's own confidence")
         assertEquals("+4.2% (1 sale)", SuburbCardRows.priceChange(withNotes.copy(salesCount = known(1))).value)
     }
