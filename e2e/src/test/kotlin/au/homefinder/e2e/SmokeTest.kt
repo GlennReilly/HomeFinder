@@ -210,6 +210,8 @@ class SmokeTest {
         assertThat(page.locator("#search-results [role=option]")).hasCount(1)
         page.locator("#search-results [role=option]").click()
         assertThat(page.locator("#card h2")).hasText("12 MAIN STREET, HAMILTON NSW 2303")
+        // While a lot is shown the first tab is called Address (not Suburb).
+        assertThat(page.locator("#tab-suburb")).hasText("Address")
         assertThat(page.locator("#card")).containsText("Block size")
         assertThat(page.locator("#card")).containsText("Moderate, 12.0% on average (steepest 21.3%)")
         assertThat(page.locator("#card")).containsText("35.0 m")
@@ -222,6 +224,7 @@ class SmokeTest {
         page.locator("#search-results [role=option]").click()
         assertThat(page.locator("#notice")).hasText("No lot found for this address")
         assertThat(page.locator("#card")).isHidden()
+        assertThat(page.locator("#tab-suburb")).hasText("Suburb")
     }
 
     @Test
@@ -353,6 +356,7 @@ class SmokeTest {
         assertThat(page.locator("#tab-filters")).hasText("Filters (1 of 3)")
         tapSuburb()
         assertThat(page.locator("#tab-suburb")).hasAttribute("aria-selected", "true")
+        assertThat(page.locator("#tab-suburb")).hasText("Suburb")
         assertThat(page.locator("#filters")).isHidden()
         page.locator("#tab-filters").click()
         assertThat(page.locator("#filters")).isVisible()

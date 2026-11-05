@@ -29,6 +29,7 @@ import au.homefinder.app.selection.SIDE_EMPTY_TEXT
 import au.homefinder.app.selection.SidePanelState
 import au.homefinder.app.selection.SideTab
 import au.homefinder.app.selection.filtersTabLabel
+import au.homefinder.app.selection.firstTabLabel
 import au.homefinder.app.filter.FilterResult
 import au.homefinder.app.selection.RatingOutcome
 import au.homefinder.app.selection.SearchViewModel
@@ -141,6 +142,7 @@ private fun start(apiKey: String) {
             if (state.selectedSuburbId != null || state.selectedLotId != null) side.cardOpened() else side.cardClosed()
         }
         latest = state
+        side.setFirstTabLabel(firstTabLabel(lotShown = state.lotCard !is LotCardState.Hidden))
         redraw()
         if (state.notice != shownNotice) {
             val text = state.notice
@@ -209,6 +211,7 @@ private class SidePanel(private val narrow: Boolean) {
 
     fun cardOpened() = update(state.cardOpened())
     fun cardClosed() = update(state.cardClosed(startFolded = narrow))
+    fun setFirstTabLabel(text: String) { tabs.getValue(SideTab.SUBURB).textContent = text }
     fun setFiltersLabel(text: String) { tabs.getValue(SideTab.FILTERS).textContent = text }
 }
 

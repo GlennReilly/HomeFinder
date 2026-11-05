@@ -26,7 +26,11 @@ data class SidePanelState(val tab: SideTab = SideTab.FILTERS, val collapsed: Boo
 }
 
 const val SUBURB_TAB_TEXT: String = "Suburb"
+const val ADDRESS_TAB_TEXT: String = "Address"
 const val FILTERS_TAB_TEXT: String = "Filters"
+
+/** The first tab names what its card shows: "Address" while a lot is selected, "Suburb" otherwise (nothing selected, a suburb, loading or failed). */
+fun firstTabLabel(lotShown: Boolean): String = if (lotShown) ADDRESS_TAB_TEXT else SUBURB_TAB_TEXT
 
 /** What the Suburb tab says while no suburb or lot is selected. */
 const val SIDE_EMPTY_TEXT: String = "Tap a suburb on the map to see its card, or zoom in and tap a lot."

@@ -38,4 +38,10 @@ class SidePanelTest {
         assertEquals("Filters", filtersTabLabel(null))
         assertEquals("Filters (2 of 173)", filtersTabLabel(some))
     }
+
+    @Test
+    fun `the first tab says Address while a lot is shown and Suburb otherwise`() {
+        assertEquals("Address", firstTabLabel(lotShown = true))
+        assertEquals("Suburb", firstTabLabel(lotShown = false))
+    }
 }
