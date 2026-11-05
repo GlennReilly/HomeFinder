@@ -18,7 +18,7 @@
 | [0014](0014-suburb-vector-tiles.md) | Suburb vector tiles served by the API | Accepted |
 | [0015](0015-suburb-layers-on-the-clients.md) | Suburb outlines and names on the clients | Superseded by 0019 |
 | [0016](0016-suburb-lookup-and-report-endpoints.md) | Suburb lookup and report endpoints | Accepted |
-| [0017](0017-suburb-selection-and-card.md) | Suburb selection and the Suburb Card | Accepted |
+| [0017](0017-suburb-selection-and-card.md) | Suburb selection and the Suburb Card | Partly superseded by 0057 |
 | [0018](0018-sales-statistics-pipeline.md) | Sales statistics pipeline (NSW Valuer General) | Accepted |
 | [0019](0019-pivot-to-web.md) | Pivot the target platform to web | Accepted |
 | [0020](0020-serve-the-web-app-from-the-api.md) | Serve the web app from the API, local by default | Accepted |
@@ -58,4 +58,5 @@
 | [0054](0054-hand-not-suitable-for-flat-areas.md) | Height above drainage is not offered in flat suburbs | Accepted |
 | [0055](0055-capped-crime-sliders.md) | Capped crime sliders with a "No limit" position | Accepted |
 | [0056](0056-school-catchments.md) | The Lot Card shows the school catchments the lot lies in | Accepted |
+| [0057](0057-select-suburb-without-dimming-the-rest.md) | Selecting a suburb changes only that suburb | Accepted |
 | [0058](0058-hide-unknown-card-rows.md) | Rows without data are left off the cards | Accepted |

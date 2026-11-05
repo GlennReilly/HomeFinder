@@ -4,11 +4,10 @@ import au.homefinder.shared.api.TileContract
 
 /**
  * How suburbs are drawn: a thin purple outline that fades from zoom 12 to 15, a name that goes away once lots are
- * selectable, and a tint on the selection with the rest dimmed (spec; the same look as ADR 0015 on the old clients).
+ * selectable, and a tint and a thick outline on the selected suburb only; no other suburb is dimmed (ADR 0057).
  */
 object SuburbStyle {
     const val SOURCE_ID: String = "suburbs"
-    const val DIM_LAYER: String = "suburb-dim"
     const val SELECTED_FILL_LAYER: String = "suburb-selected-fill"
     const val FILTER_MATCH_LAYER: String = "suburb-filter-match"
     const val FILTER_DIM_LAYER: String = "suburb-filter-dim"
@@ -20,8 +19,8 @@ object SuburbStyle {
     private const val OUTLINE_FADED = "rgba(109,91,166,0.35)"
     private const val LABEL = "#3b2f63"
     private const val LABEL_HALO = "rgba(255,255,255,0.9)"
-    private const val SELECTED_FILL = "rgba(109,91,166,0.18)"
-    private const val DIM = "rgba(0,0,0,0.12)"
+    /** Strong enough to read on green land and on blue water, in light and dark mode; the outline carries the rest. */
+    private const val SELECTED_FILL = "rgba(109,91,166,0.30)"
     private const val FILTER_MATCH = "rgba(46,160,67,0.30)"
     private const val FILTER_DIM = "rgba(255,255,255,0.62)"
     private const val OUTLINE_WIDTH = 1.2
@@ -39,9 +38,6 @@ object SuburbStyle {
     private val MATCH_NOTHING: dynamic = jsArray("==", jsArray("get", SUBURB_ID), "")
 
     fun selectedFilter(suburbId: String?): dynamic = jsArray("==", jsArray("get", SUBURB_ID), suburbId ?: "")
-
-    fun dimFilter(suburbId: String?): dynamic =
-        if (suburbId == null) MATCH_NOTHING else jsArray("!=", jsArray("get", SUBURB_ID), suburbId)
 
     private fun passes(ids: Set<String>): dynamic = jsArray("in", jsArray("get", SUBURB_ID), jsArray("literal", ids.toTypedArray()))
 
@@ -74,7 +70,6 @@ object SuburbStyle {
 
     /** Layers bottom to top; the name layer is last so labels sit over the outlines. */
     fun layers(): List<dynamic> = listOf(
-        polygonLayer(DIM_LAYER, "fill", jsObject("fill-color" to DIM), dimFilter(null)),
         polygonLayer(SELECTED_FILL_LAYER, "fill", jsObject("fill-color" to SELECTED_FILL), selectedFilter(null)),
         polygonLayer(FILTER_DIM_LAYER, "fill", jsObject("fill-color" to FILTER_DIM), filterDimFilter(null)),
         polygonLayer(FILTER_MATCH_LAYER, "fill", jsObject("fill-color" to FILTER_MATCH), filterMatchFilter(null)),
