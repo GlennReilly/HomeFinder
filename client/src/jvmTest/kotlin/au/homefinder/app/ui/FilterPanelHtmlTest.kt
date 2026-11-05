@@ -35,7 +35,7 @@ class FilterPanelHtmlTest {
     fun `it says ICSEA is not school quality and gives the source and date`() {
         val out = html(data(1032))
         assertTrue("not a measure of school quality" in out)
-        assertTrue("Source: NSW schools · as of 2026-10-02" in out, out)
+        assertTrue("NSW schools · as of 2026-10-02" in out, out)
     }
 
     @Test
@@ -82,10 +82,10 @@ class FilterPanelHtmlTest {
         assertTrue("""<span id="filter-rented-limit-prefix">At most </span><span id="filter-rented-limit-value">45%</span>""" in out, out)
         assertTrue("""<span id="filter-beach-limit-prefix">At most </span><span id="filter-beach-limit-value">12 km</span>""" in out)
         assertTrue("""<span id="filter-seifa-limit-prefix">At least </span><span id="filter-seifa-limit-value">3</span>""" in out)
-        assertTrue("Homes rented: Source: ABS Census · as of 2021-08-10" in out)
-        assertTrue("Violent crime: Source: BOCSAR · as of 2026-06-30" in out)
-        assertTrue("Break-ins, car and home theft: Source: BOCSAR · as of 2026-06-30" in out)
-        assertTrue("Distance to the beach: Source: OpenStreetMap · as of 2026-10-29" in out)
+        assertTrue("Homes rented: ABS Census · as of 2021-08-10" in out)
+        assertTrue("Violent crime: BOCSAR · as of 2026-06-30" in out)
+        assertTrue("Break-ins, car and home theft: BOCSAR · as of 2026-06-30" in out)
+        assertTrue("Distance to the beach: OpenStreetMap · as of 2026-10-29" in out)
         assertTrue("a suburb with no park mapped has no value" in out)
         assertTrue("1 of 2 suburbs have no mapped park and never match." in out)
     }

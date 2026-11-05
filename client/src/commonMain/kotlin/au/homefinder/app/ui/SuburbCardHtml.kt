@@ -21,6 +21,7 @@ import kotlinx.html.input
 import kotlinx.html.label
 import kotlinx.html.a
 import kotlinx.html.button
+import kotlinx.html.DL
 import kotlinx.html.dd
 import kotlinx.html.div
 import kotlinx.html.DETAILS
@@ -79,9 +80,23 @@ fun confidenceLabel(confidence: Confidence): String? = when (confidence) {
     Confidence.NONE -> null
 }
 
-/** The line under a row: where the value comes from, when, and how far to trust it. */
+/** What sits inside a row's closed "Source" section: where the value comes from, when, and how far to trust it. */
 fun provenanceLine(row: CardRow): String =
-    listOfNotNull("Source: ${row.source}", row.asOf?.let { "as of $it" }, confidenceLabel(row.confidence)).joinToString(" · ")
+    listOfNotNull(row.source, row.asOf?.let { "as of $it" }, confidenceLabel(row.confidence)).joinToString(" · ")
+
+/** Heading of the collapsed section that holds a row's source, so the card stays short until you ask. */
+const val SOURCE_SUMMARY_TEXT: String = "Source"
+
+/** A row's provenance as a `details` that is closed by default. Call through the list: `dd` is only defined there. */
+fun DL.provenanceDetails(row: CardRow) {
+    val list = this
+    list.dd("provenance") {
+        details("source-details") {
+            summary { +SOURCE_SUMMARY_TEXT }
+            p { +provenanceLine(row) }
+        }
+    }
+}
 
 /**
  * The Suburb Card as plain HTML (ADR 0019). Unknown values read "Unknown" in italics, never blank; every row names its
@@ -284,7 +299,7 @@ private fun kotlinx.html.DL.cardRow(
         list.dt { +row.label }
         val value = row.value
         list.dd(if (value == null) "value unknown" else "value") { +(value ?: SuburbCardRows.UNKNOWN) }
-        list.dd("provenance") { +provenanceLine(row) }
+        list.provenanceDetails(row)
         row.note?.let { list.dd("note") { +it } }
         extra?.invoke(this)
         if (customising) rowControls(item, first = index == 0, last = index == count - 1)
