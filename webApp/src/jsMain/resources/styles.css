@@ -73,12 +73,13 @@ progress { width: 100%; margin: 16px 0; }
 /* Search box: beside the map's zoom buttons; the suggestions drop down over the map. */
 #search { position: fixed; top: 10px; left: 54px; width: min(380px, calc(100vw - 64px)); z-index: 3; }
 @media (min-width: 600px) { #search { width: min(380px, calc(100vw - 54px - 360px - 24px)); } }
-/* The scale bar (a MapLibre control) sits just right of the search box, level with it; on a narrow window, under the search box's left edge. */
+/* The scale bar (a MapLibre control) sits at the bottom of the map, just left of the right-hand panel and above the map credit, so neither
+   covers it. On a narrow window the panel is a bottom sheet, so it sits at the right just above the sheet's folded tab strip (an open
+   sheet can cover it). */
 .maplibregl-ctrl-scale {
-  position: fixed; top: 10px; left: calc(54px + min(380px, 100vw - 54px - 360px - 24px) + 10px); margin: 0; z-index: 2;
-  box-sizing: border-box; height: 38px; display: flex; align-items: center; justify-content: center;
+  position: fixed; top: auto; left: auto; right: calc(var(--panel-width) + 10px); bottom: 44px; margin: 0; z-index: 2;
 }
-@media (max-width: 599.98px) { .maplibregl-ctrl-scale { top: 58px; left: 54px; height: auto; } }
+@media (max-width: 599.98px) { .maplibregl-ctrl-scale { right: 10px; bottom: 62px; } }
 #search-input { width: 100%; box-sizing: border-box; font: inherit; padding: 9px 12px; border: 1px solid rgba(128, 128, 128, .6); border-radius: 8px; background: var(--surface); color: var(--ink); box-shadow: 0 1px 6px rgba(0, 0, 0, .25); }
 #search-results { margin-top: 4px; background: var(--surface); border-radius: 8px; box-shadow: 0 2px 12px rgba(0, 0, 0, .3); overflow: hidden; }
 #search-results:empty { display: none; }
