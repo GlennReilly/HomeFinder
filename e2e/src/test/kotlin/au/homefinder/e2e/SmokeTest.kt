@@ -326,4 +326,57 @@ class SmokeTest {
         page.locator("#tab-filters").click()
         assertThat(page.locator("#filters")).isVisible()
     }
+
+    private fun cardScrollTop(): Int = (page.evaluate("document.getElementById('card').scrollTop") as Number).toInt()
+
+    @Test
+    fun `the card's header and Customise bar stay in view while the rows scroll`() {
+        openWithKey()
+        tapSuburb()
+        page.evaluate("document.getElementById('card').scrollTop = 100000")
+        assertTrue(cardScrollTop() > 0, "the card should be long enough to scroll")
+        val offset = page.evaluate(
+            "document.querySelector('#card .card-sticky').getBoundingClientRect().top - document.getElementById('card').getBoundingClientRect().top",
+        ) as Number
+        assertTrue(offset.toDouble() in -1.0..1.0, "the pinned block should sit at the top of the card, not $offset px away")
+        assertThat(page.locator("#card .card-sticky h2")).isInViewport()
+        assertThat(page.locator("#card .card-sticky button[data-action=customise]")).isInViewport()
+        assertThat(page.locator("#card .card-sticky button.close")).isInViewport()
+    }
+
+    @Test
+    fun `reset all switches every filter off and puts the sliders back`() {
+        openWithKey()
+        assertThat(page.locator("#filter-reset")).isDisabled()
+        val start = page.locator("#filter-icsea-limit").inputValue()
+        page.locator("#filter-icsea-limit").fill("1000")
+        assertThat(page.locator("#filter-icsea-on")).isChecked()
+        assertThat(page.locator("#tab-filters")).containsText("of 3)")
+        assertThat(page.locator("#filter-reset")).isEnabled()
+        page.locator("#filter-reset").click()
+        assertThat(page.locator("#filter-icsea-on")).not().isChecked()
+        assertThat(page.locator("#filter-icsea-limit")).hasValue(start)
+        assertThat(page.locator("#filter-summary")).containsText("Switch on a filter")
+        assertThat(page.locator("#tab-filters")).hasText("Filters")
+        assertThat(page.locator("#filter-reset")).isDisabled()
+    }
+
+    @Test
+    fun `choosing another suburb keeps the card scrolled to the same place`() {
+        openWithKey()
+        tapSuburb()
+        page.evaluate("document.getElementById('card').scrollTop = 400")
+        val before = cardScrollTop()
+        assertTrue(before > 100, "the card should be long enough to scroll ($before)")
+        page.locator("#search-input").fill("may")
+        assertThat(page.locator("#search-results [role=option]")).hasCount(1)
+        page.locator("#search-input").press("Enter")
+        assertThat(page.locator("#card h2")).hasText("MAYFIELD")
+        assertThat(page.locator("#card dl.rows .row").first()).isVisible()
+        assertEquals(before, cardScrollTop(), "the same rows should still be in view for the new suburb")
+        // Closing the card and opening one from nothing starts at the top.
+        page.keyboard().press("Escape")
+        tapSuburb()
+        assertEquals(0, cardScrollTop())
+    }
 }

@@ -3,7 +3,9 @@ package au.homefinder.app.ui
 import au.homefinder.app.filter.FilterCriterion
 import au.homefinder.app.filter.FilterData
 import au.homefinder.app.filter.FilterResult
+import kotlinx.html.ButtonType
 import kotlinx.html.FlowContent
+import kotlinx.html.button
 import kotlinx.html.InputType
 import kotlinx.html.div
 import kotlinx.html.h2
@@ -16,6 +18,7 @@ import kotlinx.html.span
 /** Names the page uses to find the pieces of the filter panel; each criterion has its own set, built from its key. */
 object FilterIds {
     const val SUMMARY: String = "filter-summary"
+    const val RESET: String = "filter-reset"
 
     fun on(criterion: FilterCriterion): String = "filter-${criterion.key}-on"
     fun limit(criterion: FilterCriterion): String = "filter-${criterion.key}-limit"
@@ -27,6 +30,7 @@ object FilterIds {
         FilterCriterion.entries.firstOrNull { elementId?.startsWith("filter-${it.key}-") == true }
 }
 
+const val FILTER_RESET_TEXT: String = "Reset all"
 const val FILTER_LOADING_TEXT: String = "Loading filters…"
 const val FILTER_UNAVAILABLE_TEXT: String = "The filters could not be loaded."
 const val FILTER_NO_DATA_TEXT: String = "No data has been loaded yet, so there is nothing to filter on."
@@ -53,10 +57,19 @@ fun filterUnknownText(data: FilterData, criterion: FilterCriterion): String =
  * and the summary (by id), so dragging never loses focus. A criterion whose data is not loaded says so instead of showing sliders.
  */
 fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
-    h2 { +"Filter suburbs" }
     if (!data.hasAnyData) {
+        h2 { +"Filter suburbs" }
         p("filter-status") { +(if (data.total == 0) FILTER_NO_SCHOOLS_TEXT else FILTER_NO_DATA_TEXT) }
         return
+    }
+    // Reset all switches every filter off and puts each slider back to its starting end; off (disabled) while nothing is on.
+    div("filter-head") {
+        h2 { +"Filter suburbs" }
+        button(type = ButtonType.button, classes = "reset-all") {
+            id = FilterIds.RESET
+            if (!initial.selection.isActive) attributes["disabled"] = "disabled"
+            +FILTER_RESET_TEXT
+        }
     }
     FilterCriterion.entries.forEach { criterion ->
         val bounds = data.bounds(criterion)

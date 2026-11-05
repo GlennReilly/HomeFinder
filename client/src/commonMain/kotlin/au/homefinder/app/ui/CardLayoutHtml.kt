@@ -21,6 +21,9 @@ object LayoutActions {
     const val ROW_ATTRIBUTE: String = "data-row"
 }
 
+/** The class of the block at the top of a card (header and Customise bar) that stays in view while the rows scroll. */
+const val STICKY_TOP_CLASS: String = "card-sticky"
+
 const val CUSTOMISE_HINT: String = "Hide rows or move them up and down. Your choice is kept in this browser."
 const val ALL_HIDDEN_HINT: String = "Every row is hidden. Choose Customise to show some."
 

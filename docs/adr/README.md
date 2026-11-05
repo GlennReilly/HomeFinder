@@ -54,3 +54,4 @@
 | [0050](0050-other-seifa-indexes.md) | The other three SEIFA indexes on the Suburb Card | Accepted |
 | [0051](0051-bocsar-crime-rates.md) | Recorded crime per 1,000 residents from BOCSAR | Accepted |
 | [0052](0052-single-slider-filters.md) | One slider with a fixed direction for each filter | Accepted |
+| [0053](0053-pinned-card-header-reset-all-kept-scroll.md) | Pinned card header, Reset all, and a card that keeps its scroll position | Accepted |
