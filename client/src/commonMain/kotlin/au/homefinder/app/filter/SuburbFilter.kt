@@ -6,6 +6,12 @@ import kotlinx.datetime.LocalDate
 import kotlin.math.ceil
 import kotlin.math.floor
 
+/** Crime rates have a long tail (a few nightlife and retail suburbs run at several times the median), so their sliders span the lowest 90% of suburbs. */
+const val CRIME_CAP_PERCENTILE: Double = 0.90
+
+/** What the label says when the slider is on its last position and applies no limit (ADR 0055). */
+const val NO_LIMIT_TEXT: String = "No limit"
+
 /** Which side of its limit a suburb must be on to pass a criterion (ADR 0052). */
 enum class Direction(val word: String) {
     AT_LEAST("At least"),
@@ -31,6 +37,11 @@ enum class FilterCriterion(
     val help: String?,
     /** What to tell the user when this criterion's data has not been loaded. */
     val notLoadedText: String,
+    /**
+     * For an "at most" criterion with a long tail of outliers: the share of suburbs (0 to 1, nearest rank) the slider spans, so a few extreme
+     * suburbs do not squeeze the rest into one corner. The slider then has one more position past it, "No limit" (ADR 0055). Null: no cap.
+     */
+    val capPercentile: Double? = null,
 ) {
     ICSEA(
         "icsea", "School ICSEA (average of public schools in the suburb)", "", Direction.AT_LEAST, 10.0, "ICSEA",
@@ -61,11 +72,13 @@ enum class FilterCriterion(
         "violent", "Violent crime (incidents per 1,000 residents in 24 months)", " per 1,000", Direction.AT_MOST, 1.0, "violent crime rate",
         "Assaults, robberies and sexual offences recorded by the NSW Bureau of Crime Statistics and Research. Crime is counted where it happens, so a suburb with a shopping or business district looks worse than its residents warrant. Suburbs under 500 residents have no rate.",
         "Crime data (and the SEIFA population it needs) has not been loaded yet, so there is nothing to filter on.",
+        capPercentile = CRIME_CAP_PERCENTILE,
     ),
     PROPERTY(
         "property", "Break-ins, car and home theft (incidents per 1,000 residents in 24 months)", " per 1,000", Direction.AT_MOST, 1.0, "property crime rate",
         "Break-ins, vehicle theft, stealing from cars and homes and malicious damage, recorded by the NSW Bureau of Crime Statistics and Research. Counted where it happens, and reflects reporting and policing. Suburbs under 500 residents have no rate.",
         "Crime data (and the SEIFA population it needs) has not been loaded yet, so there is nothing to filter on.",
+        capPercentile = CRIME_CAP_PERCENTILE,
     );
 
     fun format(value: Double): String = Formats.decimal(value, 0) + unit
@@ -116,12 +129,42 @@ class FilterData(
 ) {
     val total: Int get() = suburbIds.size
 
-    /** The range a criterion's slider spans: its lowest and highest value, rounded out to whole steps; null when no suburb has one. */
+    /**
+     * The range a criterion's slider spans: its lowest and highest value, rounded out to whole steps; null when no suburb has one. A capped
+     * criterion with outliers spans its lowest value to its cap, plus one step: the last position is "No limit" (ADR 0055).
+     */
     fun bounds(criterion: FilterCriterion): FilterRange? {
         val known = values[criterion].orEmpty().values.filterNotNull()
         if (known.isEmpty()) return null
-        return FilterRange(floor(known.min() / criterion.step) * criterion.step, ceil(known.max() / criterion.step) * criterion.step)
+        val low = floor(known.min() / criterion.step) * criterion.step
+        val cap = cap(criterion)
+        return if (cap != null) FilterRange(low, cap + criterion.step) else FilterRange(low, ceil(known.max() / criterion.step) * criterion.step)
     }
+
+    /**
+     * The highest limit a capped "at most" slider offers before "No limit": the value at [FilterCriterion.capPercentile] (nearest rank), rounded up
+     * to a step. Null when the criterion is not capped, has no values, or no suburb lies above the cap (then the slider needs no extra position).
+     */
+    fun cap(criterion: FilterCriterion): Double? {
+        val share = criterion.capPercentile ?: return null
+        if (criterion.direction != Direction.AT_MOST) return null
+        val known = values[criterion].orEmpty().values.filterNotNull().sorted()
+        if (known.isEmpty()) return null
+        val rank = ceil(share * known.size).toInt().coerceIn(1, known.size)
+        val cap = ceil(known[rank - 1] / criterion.step) * criterion.step
+        return cap.takeIf { it < ceil(known.last() / criterion.step) * criterion.step }
+    }
+
+    /** The slider position that means "No limit" (one step past the cap), or null when the criterion has none. */
+    fun noLimitPosition(criterion: FilterCriterion): Double? = cap(criterion)?.plus(criterion.step)
+
+    private fun isNoLimit(criterion: FilterCriterion, limit: Double): Boolean = noLimitPosition(criterion)?.let { limit >= it } == true
+
+    /** The words before the number on a slider's label: "At most ", or nothing at "No limit". */
+    fun limitPrefix(criterion: FilterCriterion, limit: Double): String = if (isNoLimit(criterion, limit)) "" else "${criterion.direction.word} "
+
+    /** The number on a slider's label: "40 per 1,000", or "No limit" at the last position of a capped slider. */
+    fun limitText(criterion: FilterCriterion, limit: Double): String = if (isNoLimit(criterion, limit)) NO_LIMIT_TEXT else criterion.format(limit)
 
     fun hasData(criterion: FilterCriterion): Boolean = bounds(criterion) != null
     val hasAnyData: Boolean get() = FilterCriterion.entries.any(::hasData)
@@ -136,7 +179,9 @@ class FilterData(
         val unknown = FilterCriterion.entries.associateWith(::unknown)
         if (!selection.isActive) return FilterResult(selection, null, total, unknown)
         val passing = suburbIds.filterTo(HashSet()) { id ->
-            selection.limits.all { (criterion, limit) -> values[criterion]?.get(id)?.let { criterion.direction.passes(it, limit) } == true }
+            selection.limits.all { (criterion, limit) ->
+                values[criterion]?.get(id)?.let { isNoLimit(criterion, limit) || criterion.direction.passes(it, limit) } == true
+            }
         }
         return FilterResult(selection, passing, total, unknown)
     }

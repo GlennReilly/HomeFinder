@@ -23,6 +23,7 @@ object FilterIds {
     fun on(criterion: FilterCriterion): String = "filter-${criterion.key}-on"
     fun limit(criterion: FilterCriterion): String = "filter-${criterion.key}-limit"
     fun limitOut(criterion: FilterCriterion): String = "filter-${criterion.key}-limit-value"
+    fun limitPrefix(criterion: FilterCriterion): String = "filter-${criterion.key}-limit-prefix"
     fun unknown(criterion: FilterCriterion): String = "filter-${criterion.key}-unknown"
 
     /** The criterion an element id belongs to (any of the ids above), or null. */
@@ -85,8 +86,8 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
             div("range") {
                 label {
                     htmlFor = FilterIds.limit(criterion)
-                    +"${criterion.direction.word} "
-                    span { id = FilterIds.limitOut(criterion); +criterion.format(criterion.startLimit(bounds)) }
+                    span { id = FilterIds.limitPrefix(criterion); +data.limitPrefix(criterion, criterion.startLimit(bounds)) }
+                    span { id = FilterIds.limitOut(criterion); +data.limitText(criterion, criterion.startLimit(bounds)) }
                 }
                 rangeInput(FilterIds.limit(criterion), criterion, bounds.min, bounds.max, criterion.startLimit(bounds))
             }

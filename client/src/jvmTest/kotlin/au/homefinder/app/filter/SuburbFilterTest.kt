@@ -179,4 +179,51 @@ class SuburbFilterTest {
         assertEquals(1, result.unknown.getValue(FilterCriterion.VIOLENT))
         assertEquals("BOCSAR", d.source(FilterCriterion.PROPERTY)?.source)
     }
+
+    /** Nineteen suburbs from 1 to 19 per 1,000, one outlier at 100, and one with no rate. */
+    private val withOutlier = FilterData.from(
+        SuburbFiltersResponse(
+            (1..19).map { SuburbFilterValue("s$it", violentPer1000 = it.toDouble()) } + SuburbFilterValue("outlier", violentPer1000 = 100.0) + SuburbFilterValue("none"),
+            "Schools", day, crime = FilterProvenance("BOCSAR", day),
+        ),
+    )
+
+    @Test
+    fun `a capped slider spans the lowest 90 percent of suburbs plus one No limit position`() {
+        assertEquals(18.0, withOutlier.cap(FilterCriterion.VIOLENT), "the 18th of 20 values, rounded up to a step")
+        assertEquals(19.0, withOutlier.noLimitPosition(FilterCriterion.VIOLENT))
+        assertEquals(FilterRange(1.0, 19.0), withOutlier.bounds(FilterCriterion.VIOLENT))
+        assertEquals(19.0, FilterCriterion.VIOLENT.startLimit(withOutlier.bounds(FilterCriterion.VIOLENT)!!), "it starts on No limit")
+    }
+
+    @Test
+    fun `the last position says No limit and applies none, though a suburb with no rate still never matches`() {
+        assertEquals("No limit", withOutlier.limitText(FilterCriterion.VIOLENT, 19.0))
+        assertEquals("", withOutlier.limitPrefix(FilterCriterion.VIOLENT, 19.0))
+        assertEquals("18 per 1,000", withOutlier.limitText(FilterCriterion.VIOLENT, 18.0))
+        assertEquals("At most ", withOutlier.limitPrefix(FilterCriterion.VIOLENT, 18.0))
+        val none = withOutlier.apply(FilterSelection(mapOf(FilterCriterion.VIOLENT to 19.0))).passingIds!!
+        assertEquals(20, none.size, "the outlier passes with no limit")
+        assertTrue("none" !in none)
+    }
+
+    @Test
+    fun `at the cap itself the limit is an ordinary one and the outlier is out`() {
+        val atCap = withOutlier.apply(FilterSelection(mapOf(FilterCriterion.VIOLENT to 18.0))).passingIds!!
+        assertEquals((1..18).map { "s$it" }.toSet(), atCap, "18 passes, 19 and the outlier do not")
+    }
+
+    @Test
+    fun `without suburbs above the cap there is no extra position, and other criteria are never capped`() {
+        // Three values: the 90th percentile is the highest, so nothing lies above the cap.
+        assertNull(all.cap(FilterCriterion.RENTED))
+        val small = FilterData.from(
+            SuburbFiltersResponse(listOf(SuburbFilterValue("a", violentPer1000 = 4.2), SuburbFilterValue("b", violentPer1000 = 31.0)), "S", day, crime = FilterProvenance("B", day)),
+        )
+        assertNull(small.cap(FilterCriterion.VIOLENT))
+        assertNull(small.noLimitPosition(FilterCriterion.VIOLENT))
+        assertEquals(FilterRange(4.0, 31.0), small.bounds(FilterCriterion.VIOLENT))
+        assertEquals("31 per 1,000", small.limitText(FilterCriterion.VIOLENT, 31.0))
+        assertNull(withOutlier.cap(FilterCriterion.ICSEA), "no values")
+    }
 }
