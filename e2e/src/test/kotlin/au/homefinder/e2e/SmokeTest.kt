@@ -427,16 +427,38 @@ class SmokeTest {
             assertTrue(bar.x + bar.width <= panel.x || bar.y + bar.height <= panel.y || bar.x >= panel.x + panel.width || bar.y >= panel.y + panel.height, "the scale bar is under the panel")
         }
         clearOfPanel()
+        // On a wide window it sits at the bottom, left of the panel's left edge and clear of the map credit.
+        fun bottomLeftOfPanel() {
+            val bar = checkNotNull(scale.boundingBox())
+            val panel = checkNotNull(page.locator("#side").boundingBox())
+            val credit = checkNotNull(page.locator(".maplibregl-ctrl-attrib").boundingBox())
+            val height = checkNotNull(page.viewportSize()).height
+            assertTrue(bar.y > height / 2, "the scale bar is not at the bottom: ${bar.y}")
+            assertTrue(bar.x + bar.width <= panel.x, "the scale bar is not left of the panel: right edge ${bar.x + bar.width}, panel ${panel.x}")
+            assertTrue(bar.x + bar.width <= credit.x || bar.x >= credit.x + credit.width || bar.y + bar.height <= credit.y || bar.y >= credit.y + credit.height, "the scale bar overlaps the map credit")
+        }
+        bottomLeftOfPanel()
+        // Folded to its tab strip the panel leaves the bar where it is, and unfolded again too.
         page.locator("#tab-filters").click()
         assertThat(scale).isVisible()
         clearOfPanel()
+        bottomLeftOfPanel()
+        page.locator("#tab-filters").click()
+        bottomLeftOfPanel()
         tapSuburb()
         assertThat(scale).isVisible()
         clearOfPanel()
-        // On a narrow window the panel is a bottom sheet; the bar is at the top, clear of it.
+        // On a narrow window the panel is a bottom sheet (an open one can cover the bar).
         page.setViewportSize(400, 700)
         assertThat(scale).isVisible()
-        clearOfPanel()
+        // Folded to its tab strip, the sheet leaves the bar visible just above it, clear of the map credit.
+        page.locator("#tab-suburb").click()
+        val bar = checkNotNull(scale.boundingBox())
+        val sheet = checkNotNull(page.locator("#side").boundingBox())
+        val credit = checkNotNull(page.locator(".maplibregl-ctrl-attrib").boundingBox())
+        assertTrue(bar.y + bar.height <= sheet.y, "the scale bar is under the folded sheet: bar bottom ${bar.y + bar.height}, sheet top ${sheet.y}")
+        assertTrue(bar.x >= 0 && bar.x + bar.width <= checkNotNull(page.viewportSize()).width, "the scale bar is off screen")
+        assertTrue(bar.x + bar.width <= credit.x || bar.x >= credit.x + credit.width || bar.y + bar.height <= credit.y || bar.y >= credit.y + credit.height, "the scale bar overlaps the map credit")
     }
 
     @Test
