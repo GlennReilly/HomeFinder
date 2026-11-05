@@ -125,6 +125,8 @@ kept in this browser only (nothing goes to the server). The Homely block stays u
 The Suburb Card's beach, parks and shopping rows come from the OpenStreetMap roll-up once `pipeline/scripts/load-osm.sh` has run ([ADR 0033](docs/adr/0033-suburb-osm-rollup.md)). The Suburb Card's Schools row lists the NSW public schools inside the suburb with their ICSEA once `pipeline/scripts/load-schools.sh` has run ([ADR 0034](docs/adr/0034-suburb-schools-and-icsea.md); data: NSW Department of Education, CC BY; ICSEA from ACARA). The Lot Card's Height above sea level and Slope rows come from Geoscience Australia's 5 m LiDAR DEM once `pipeline/scripts/download-dem.sh` and `load-dem.sh` have run ([ADR 0036](docs/adr/0036-lot-height-and-slope-from-dem.md); CC BY 4.0, surveys 2001 to 2015; height is not flood risk). The Suburb Card ends with a link to the suburb's Homely page (no Homely data is fetched or shown; [ADR 0027](docs/adr/0027-link-out-to-homely-no-extraction.md)).
 
 
+A metric scale bar (top left, under the zoom buttons) is always on the map and follows the zoom; the side panel and the bottom sheet never cover it.
+
 Tap a suburb to select it: it is highlighted and a card opens (a bottom sheet on narrow windows, a side panel on wide
 ones). Escape or Close clears it. From zoom 16 a tap selects a lot instead (outlines appear at the same zoom) and opens the basic lot card. Taps need the API and its key. See
 [ADR 0017](docs/adr/0017-suburb-selection-and-card.md).

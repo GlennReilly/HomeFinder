@@ -26,6 +26,9 @@ external object MapLibre {
 
     class NavigationControl(options: dynamic = definedExternally)
 
+    /** The distance bar (options: maxWidth in pixels, unit "metric"). */
+    class ScaleControl(options: dynamic = definedExternally)
+
     fun setWorkerUrl(url: String)
 }
 
