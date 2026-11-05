@@ -21,9 +21,9 @@ si = "".join(f"<si><t>{s}</t></si>" for s in strings)
 def s(ref, i): return f'<c r="{ref}" t="s"><v>{i}</v></c>'
 def n(ref, v): return f'<c r="{ref}"><v>{v}</v></c>'
 header = '<row r="1">' + s("A1", 0) + s("B1", 1) + s("C1", 2) + s("D1", 3) + s("E1", 2) + s("F1", 3) + s("K1", 4) + "</row>"
-def row(r, code, name, score, decile, pop):
-    return f'<row r="{r}">' + n(f"A{r}", code) + s(f"B{r}", name) + n(f"E{r}", score) + n(f"F{r}", decile) + n(f"K{r}", pop) + "</row>"
-rows = [row(2, 10001, 5, 1035.7, 8, 4614),    # Hamilton (NSW)
+def row(r, code, name, score, decile, pop, others=""):
+    return f'<row r="{r}">' + n(f"A{r}", code) + s(f"B{r}", name) + n(f"E{r}", score) + n(f"F{r}", decile) + others + n(f"K{r}", pop) + "</row>"
+rows = [row(2, 10001, 5, 1035.7, 8, 4614, n("D2", 6) + n("J2", 9)),    # Hamilton (NSW): IRSD decile 6, no IER, IEO decile 9
         row(3, 10002, 6, 1010.2, 6, 900),     # Belmont (Lake Macquarie - NSW)
         row(4, 10003, 7, 987.5, 4, 3000),     # Belmont (Newcastle - NSW)
         row(5, 21129, 8, 944.3, 3, 10346)]    # Hamilton (Vic.): another state, left out
@@ -37,8 +37,8 @@ report="$("$HERE/../scripts/load-seifa.sh" "$FILE")"
 echo "$report"
 grep -q "1 of 2 suburbs have a SEIFA decile" <<< "$report" || fail "only Hamilton should match at first: $report"
 grep -q "Not matched.*BELMONT" <<< "$report" || fail "the shared name should be reported unmatched: $report"
-row="$(q "SELECT sal_code || '|' || irsad_score || '|' || irsad_decile || '|' || population FROM suburb_seifa c JOIN suburb s USING (suburb_id) WHERE s.name = 'HAMILTON'")"
-[[ "$row" == "SAL10001|1035.7|8|4614" ]] || fail "Hamilton's row was wrong (the Victorian Hamilton must not count): $row"
+row="$(q "SELECT sal_code || '|' || irsad_score || '|' || irsad_decile || '|' || population || '|' || coalesce(irsd_decile::text, 'null') || '|' || coalesce(ier_decile::text, 'null') || '|' || coalesce(ieo_decile::text, 'null') FROM suburb_seifa c JOIN suburb s USING (suburb_id) WHERE s.name = 'HAMILTON'")"
+[[ "$row" == "SAL10001|1035.7|8|4614|6|null|9" ]] || fail "Hamilton's row was wrong (the Victorian Hamilton must not count): $row"
 [[ -z "$(q "SELECT 1 FROM suburb_seifa c JOIN suburb s USING (suburb_id) WHERE s.name = 'BELMONT'")" ]] || fail "a shared name must not be guessed"
 
 # A council area that settles it: Belmont lies in LAKE MACQUARIE, so the "(Lake Macquarie - NSW)" suburb is its match.

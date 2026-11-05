@@ -75,6 +75,9 @@ object SuburbReportFactory {
         rentedShare = rentedShare(census),
         dwellingMix = dwellingMix(census),
         socioEconomic = socioEconomic(seifa),
+        disadvantage = seifaDecile(seifa, seifa?.irsdDecile, "Disadvantage only: how many households have low income, low qualifications, unemployment or overcrowding (decile 10 is the least disadvantaged)."),
+        economicResources = seifaDecile(seifa, seifa?.ierDecile, "Income, housing costs and assets of the suburb's households (decile 10 has the most economic resources)."),
+        educationOccupation = seifaDecile(seifa, seifa?.ieoDecile, "Qualifications and skilled work of the suburb's residents (decile 10 is the highest)."),
         violentCrime = crimeRate(crime, crime?.violent),
         propertyCrime = crimeRate(crime, crime?.property),
     )
@@ -123,15 +126,26 @@ object SuburbReportFactory {
         return Attribute(rate, confidence, CRIME_SOURCE, crime.asOf, "${crime.windowText}. $basis $CRIME_CAVEAT")
     }
 
+    /** One of the other three SEIFA indexes as a decile; unknown when SEIFA is not loaded, or when the ABS gave this suburb no score for the index. */
+    private fun seifaDecile(seifa: SuburbSeifa?, decile: Int?, meaning: String): Attribute<Int> {
+        if (seifa == null) return Attribute.unknown(SEIFA_SOURCE, note = SEIFA_NOT_LOADED_NOTE)
+        if (decile == null) return Attribute.unknown(SEIFA_SOURCE, CENSUS_DATE, SEIFA_NO_SCORE_NOTE)
+        return Attribute(
+            decile, seifaConfidence(seifa.population), SEIFA_SOURCE, CENSUS_DATE,
+            "$meaning Describes the suburb's ${seifa.population} residents as a group and ranks suburbs across Australia. $CENSUS_ATTRIBUTION",
+        )
+    }
+
+    private fun seifaConfidence(population: Int): Confidence = when {
+        population < SEIFA_LOW_BELOW -> Confidence.LOW
+        population < SEIFA_HIGH_FROM -> Confidence.MEDIUM
+        else -> Confidence.HIGH
+    }
+
     private fun socioEconomic(seifa: SuburbSeifa?): Attribute<SocioEconomic> {
         if (seifa == null) return Attribute.unknown(SEIFA_SOURCE, note = SEIFA_NOT_LOADED_NOTE)
-        val confidence = when {
-            seifa.population < SEIFA_LOW_BELOW -> Confidence.LOW
-            seifa.population < SEIFA_HIGH_FROM -> Confidence.MEDIUM
-            else -> Confidence.HIGH
-        }
         return Attribute(
-            SocioEconomic(seifa.irsadDecile, seifa.irsadScore, seifa.population), confidence, SEIFA_SOURCE, CENSUS_DATE,
+            SocioEconomic(seifa.irsadDecile, seifa.irsadScore, seifa.population), seifaConfidence(seifa.population), SEIFA_SOURCE, CENSUS_DATE,
             "Describes the suburb's ${seifa.population} residents as a group, not any one household, and ranks suburbs across Australia " +
                 "(decile 1 is the most disadvantaged tenth, 10 the most advantaged). Score ${Math.round(seifa.irsadScore)} on a scale averaging 1,000. $CENSUS_ATTRIBUTION",
         )

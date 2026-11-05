@@ -43,7 +43,7 @@ class SeifaTest {
     private val summary = buildString {
         append("""<row r="1">${cell("A1", 0, true)}${cell("B1", 1, true)}${cell("C1", 2, true)}${cell("D1", 3, true)}${cell("E1", 2, true)}${cell("F1", 3, true)}${cell("K1", 4, true)}</row>""")
         // Hamilton: IRSAD 1,012.5 decile 7, population 5,000.
-        append("""<row r="2">${num("A2", "10001")}${cell("B2", 5, true)}${num("C2", "990")}${num("D2", "6")}${num("E2", "1012.5")}${num("F2", "7")}${num("K2", "5000")}</row>""")
+        append("""<row r="2">${num("A2", "10001")}${cell("B2", 5, true)}${num("C2", "990")}${num("D2", "6")}${num("E2", "1012.5")}${num("F2", "7")}${num("I2", "1030")}${num("J2", "8")}${num("K2", "5000")}</row>""")
         // No scores (an excluded area).
         append("""<row r="3">${num("A3", "10002")}${cell("B3", 6, true)}${num("K3", "4")}</row>""")
         append("""<row r="4">${num("A4", "10003")}${cell("B4", 7, true)}${num("E4", "1100")}${num("F4", "10")}${num("K4", "2100")}</row>""")
@@ -60,7 +60,10 @@ class SeifaTest {
     fun `reads the IRSAD score, decile and population from the summary table and skips areas with no score`() {
         val result = assertIs<SeifaResult.Read>(Seifa.read(workbook(strings, laterTable, summary)))
         assertEquals(
-            listOf(SeifaSuburb("SAL10001", "Hamilton (NSW)", 1012.5, 7, 5000), SeifaSuburb("SAL10003", "Belmont (Newcastle - NSW)", 1100.0, 10, 2100)),
+            listOf(
+                SeifaSuburb("SAL10001", "Hamilton (NSW)", 1012.5, 7, 5000, irsdDecile = 6, ierDecile = null, ieoDecile = 8),
+                SeifaSuburb("SAL10003", "Belmont (Newcastle - NSW)", 1100.0, 10, 2100),
+            ),
             result.suburbs,
         )
         assertEquals(1, result.withoutScore)
@@ -82,8 +85,8 @@ class SeifaTest {
     @Test
     fun `the CSV quotes every name`() {
         assertEquals(
-            listOf(SeifaCsv.HEADER, "SAL10001,\"Say \"\"hi\"\", Hamilton\",1012.5,7,5000"),
-            SeifaCsv.format(listOf(SeifaSuburb("SAL10001", "Say \"hi\", Hamilton", 1012.5, 7, 5000))),
+            listOf(SeifaCsv.HEADER, "SAL10001,\"Say \"\"hi\"\", Hamilton\",1012.5,7,5000,6,,8"),
+            SeifaCsv.format(listOf(SeifaSuburb("SAL10001", "Say \"hi\", Hamilton", 1012.5, 7, 5000, irsdDecile = 6, ieoDecile = 8))),
         )
     }
 }

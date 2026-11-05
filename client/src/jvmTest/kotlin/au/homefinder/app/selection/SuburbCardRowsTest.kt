@@ -45,7 +45,7 @@ class SuburbCardRowsTest {
     fun `the rows have no area and put the typical block size under the median house price`() {
         assertEquals(
             listOf("Median house price", "Typical block size", "Median unit price", "Price change, 12 months", "Sales behind the prices",
-                "Socio-economic advantage", "Homes rented", "Houses and units", "Violent crime", "Break-ins, car and home theft", "Distance to the beach", "Schools", "Parks", "Shopping", "Transport"),
+                "Socio-economic advantage", "Disadvantage (SEIFA)", "Economic resources (SEIFA)", "Education and occupation (SEIFA)", "Homes rented", "Houses and units", "Violent crime", "Break-ins, car and home theft", "Distance to the beach", "Schools", "Parks", "Shopping", "Transport"),
             SuburbCardRows.of(allUnknown).map { it.label },
         )
     }
@@ -59,7 +59,7 @@ class SuburbCardRowsTest {
             assertEquals(Confidence.NONE, it.confidence, it.label)
             assertEquals("Not computed yet", it.note, it.label)
         }
-        assertEquals(listOf("A", "E", "B", "C", "D", "ABS SEIFA 2021", "ABS 2021 Census", "ABS 2021 Census", "NSW BOCSAR", "NSW BOCSAR", "H", "I", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
+        assertEquals(listOf("A", "E", "B", "C", "D", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS 2021 Census", "ABS 2021 Census", "NSW BOCSAR", "NSW BOCSAR", "H", "I", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
     }
 
     @Test
@@ -71,6 +71,10 @@ class SuburbCardRowsTest {
         assertEquals("1,187", rows["Sales behind the prices"])
         assertEquals("560 m² median (320 to 810 m²)", rows["Typical block size"])
         assertEquals("45% of homes are rented", rows["Homes rented"])
+        val other = SuburbCardRows.of(allKnown.copy(disadvantage = known(6), economicResources = known(3), educationOccupation = known(9))).associate { it.label to it.value }
+        assertEquals("Decile 6 of 10 (10 is the least disadvantaged)", other["Disadvantage (SEIFA)"])
+        assertEquals("Decile 3 of 10 (10 has the most resources)", other["Economic resources (SEIFA)"])
+        assertEquals("Decile 9 of 10 (10 is the highest)", other["Education and occupation (SEIFA)"])
         val withRate = SuburbCardRows.of(allKnown.copy(violentCrime = known(CrimeRate(31, 24, 4.2, 7380)), propertyCrime = known(CrimeRate(1, 24))))
         assertEquals("4.2 per 1,000 residents (31 incidents in 24 months)", withRate.first { it.label == "Violent crime" }.value)
         assertEquals("1 incident in 24 months, no population to turn it into a rate", withRate.first { it.label == "Break-ins, car and home theft" }.value)

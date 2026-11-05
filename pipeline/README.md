@@ -118,7 +118,7 @@ tests/test_seifa.sh               # integration test on a tiny workbook (needs D
 
 The Kotlin tool in the `census` module reads Table 1 of "Suburbs and Localities, Indexes, SEIFA 2021.xlsx" (NSW suburbs only: the first digit of the suburb code is
 the state); the script loads the Index of Relative Socio-economic Advantage and Disadvantage decile and score and matches ABS suburbs to ours exactly as the Census
-load does. Data: Australian Bureau of Statistics, SEIFA 2021, Creative Commons Attribution 4.0; credited "Based on Australian Bureau of Statistics data". See
+load does. It also loads the deciles of the other three indexes (disadvantage, economic resources, education and occupation; migration V21, [ADR 0050](../docs/adr/0050-other-seifa-indexes.md)); re-run `load-seifa.sh` to fill them. Data: Australian Bureau of Statistics, SEIFA 2021, Creative Commons Attribution 4.0; credited "Based on Australian Bureau of Statistics data". See
 [ADR 0049](../docs/adr/0049-seifa-socio-economic-advantage.md).
 
 ## Schools (ICSEA)

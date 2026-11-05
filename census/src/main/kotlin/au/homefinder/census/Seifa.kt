@@ -5,8 +5,21 @@ import java.nio.file.Path
 import java.util.zip.ZipFile
 import javax.xml.stream.XMLStreamException
 
-/** One suburb's Index of Relative Socio-economic Advantage and Disadvantage (IRSAD) and its population, from SEIFA 2021 (ADR 0049). */
-data class SeifaSuburb(val salCode: String, val name: String, val irsadScore: Double, val irsadDecile: Int, val population: Int)
+/**
+ * One suburb's Index of Relative Socio-economic Advantage and Disadvantage (IRSAD) with its score, and the deciles of the disadvantage (IRSD), economic
+ * resources (IER) and education and occupation (IEO) indexes, and its population, from SEIFA 2021 (ADR 0049, 0050).
+ */
+data class SeifaSuburb(
+    val salCode: String,
+    val name: String,
+    val irsadScore: Double,
+    val irsadDecile: Int,
+    val population: Int,
+    /** The deciles of the other three indexes; null where the ABS gives the suburb no score for that index. */
+    val irsdDecile: Int? = null,
+    val ierDecile: Int? = null,
+    val ieoDecile: Int? = null,
+)
 
 /** What [Seifa.read] found: the suburbs with an IRSAD score, and how many rows had none (areas the ABS gives no index). */
 sealed interface SeifaResult {
@@ -24,6 +37,9 @@ object Seifa {
     private const val NAME_COLUMN = 1
     private const val IRSAD_SCORE_COLUMN = 4
     private const val IRSAD_DECILE_COLUMN = 5
+    private const val IRSD_DECILE_COLUMN = 3
+    private const val IER_DECILE_COLUMN = 7
+    private const val IEO_DECILE_COLUMN = 9
     private const val POPULATION_COLUMN = 10
     private const val SCORE_HEADER_COLUMN = 2
     private const val CODE_HEADER = "2021 Suburbs and Localities (SAL) Code"
@@ -89,19 +105,27 @@ object Seifa {
         if (!code.startsWith(NSW_CODE_PREFIX)) return Row.Other
         val name = row[NAME_COLUMN]?.trim().orEmpty()
         val score = row[IRSAD_SCORE_COLUMN]?.toDoubleOrNull()
-        val decile = row[IRSAD_DECILE_COLUMN]?.toDoubleOrNull()?.toInt()
+        val decile = decile(row, IRSAD_DECILE_COLUMN)
         val population = row[POPULATION_COLUMN]?.toDoubleOrNull()?.toInt() ?: 0
-        if (name.isEmpty() || score == null || decile == null || decile !in MIN_DECILE..MAX_DECILE) return Row.NoScore
-        return Row.Suburb(SeifaSuburb(SAL_PREFIX + code, name, score, decile, population.coerceAtLeast(0)))
+        if (name.isEmpty() || score == null || decile == null) return Row.NoScore
+        return Row.Suburb(
+            SeifaSuburb(
+                SAL_PREFIX + code, name, score, decile, population.coerceAtLeast(0),
+                irsdDecile = decile(row, IRSD_DECILE_COLUMN), ierDecile = decile(row, IER_DECILE_COLUMN), ieoDecile = decile(row, IEO_DECILE_COLUMN),
+            ),
+        )
     }
+
+    /** A decile from 1 to 10, or null when the cell is empty or not one (the ABS leaves the score of an excluded area blank). */
+    private fun decile(row: Map<Int, String>, column: Int): Int? = row[column]?.toDoubleOrNull()?.toInt()?.takeIf { it in MIN_DECILE..MAX_DECILE }
 }
 
 /** The tool's output: a suburb's name with its IRSAD score, decile and population, read by `pipeline/sql/seifa.sql`. */
 object SeifaCsv {
-    const val HEADER: String = "sal_code,sal_name,irsad_score,irsad_decile,population"
+    const val HEADER: String = "sal_code,sal_name,irsad_score,irsad_decile,population,irsd_decile,ier_decile,ieo_decile"
 
     fun format(suburbs: List<SeifaSuburb>): List<String> =
-        listOf(HEADER) + suburbs.map { listOf(it.salCode, quoted(it.name), it.irsadScore, it.irsadDecile, it.population).joinToString(",") }
+        listOf(HEADER) + suburbs.map { listOf(it.salCode, quoted(it.name), it.irsadScore, it.irsadDecile, it.population, it.irsdDecile ?: "", it.ierDecile ?: "", it.ieoDecile ?: "").joinToString(",") }
 
     private fun quoted(name: String): String = "\"" + name.replace("\"", "\"\"") + "\""
 }

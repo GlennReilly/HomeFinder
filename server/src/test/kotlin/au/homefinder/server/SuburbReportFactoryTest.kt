@@ -234,6 +234,22 @@ class SuburbReportFactoryTest {
     }
 
     @Test
+    fun `the other three SEIFA indexes are deciles with the same source, date and confidence, and unknown where the ABS gave no score`() {
+        val report = SuburbReportFactory.build(hamilton, seifa = SuburbSeifa(8, 1035.7, 4614, irsdDecile = 6, ierDecile = null, ieoDecile = 9))
+        assertEquals(6, report.disadvantage.value)
+        assertEquals(9, report.educationOccupation.value)
+        assertEquals(Confidence.HIGH, report.disadvantage.confidence)
+        assertEquals(LocalDate(2021, 8, 10), report.disadvantage.asOf)
+        assertTrue("4614 residents" in assertNotNull(report.disadvantage.note))
+        assertTrue(report.economicResources.isUnknown)
+        assertEquals(SuburbReportFactory.SEIFA_NO_SCORE_NOTE, report.economicResources.note)
+        val none = SuburbReportFactory.build(hamilton)
+        assertTrue(none.disadvantage.isUnknown && none.economicResources.isUnknown && none.educationOccupation.isUnknown)
+        assertEquals(SuburbReportFactory.SEIFA_NOT_LOADED_NOTE, none.disadvantage.note)
+        assertEquals(Confidence.LOW, SuburbReportFactory.build(hamilton, seifa = SuburbSeifa(1, 880.0, 33, irsdDecile = 1)).disadvantage.confidence)
+    }
+
+    @Test
     fun `without SEIFA data the socio-economic row is unknown with a reason`() {
         val none = SuburbReportFactory.build(hamilton).socioEconomic
         assertTrue(none.isUnknown)
