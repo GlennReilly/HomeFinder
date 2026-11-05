@@ -92,7 +92,7 @@ progress { width: 100%; margin: 16px 0; }
 .search-status.error { color: #b3261e; }
 
 /* The Homely score you type in. */
-.homely { padding: 0; border-top: 1px solid rgba(128, 128, 128, .35); }
+.homely { margin-top: 12px; padding: 0; border-top: 1px solid rgba(128, 128, 128, .35); }
 .homely dl.rows { margin: 0; }
 .homely .external { border-top: none; padding: 8px 0; }
 .rating-edit { padding: 0 0 12px; }
