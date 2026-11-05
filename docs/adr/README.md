@@ -41,7 +41,7 @@
 | [0037](0037-dem-request-in-degrees.md) | DEM request in degrees, resampled to metres | Accepted |
 | [0038](0038-sales-window-ends-on-latest-sale.md) | Sales windows end on the latest sale | Accepted |
 | [0039](0039-card-rows-hidden-and-reordered-in-the-browser.md) | Card rows are hidden and re-ordered in the browser | Accepted |
-| [0040](0040-height-above-drainage-hint.md) | Height above drainage as an indicative hint | Accepted |
+| [0040](0040-height-above-drainage-hint.md) | Height above drainage as an indicative hint | Partly superseded by 0054 |
 | [0041](0041-cards-show-only-rows-with-a-reliable-source.md) | Cards show only rows with a reliable source | Accepted |
 | [0042](0042-empty-dem-tiles-are-no-data.md) | Empty DEM tiles are no data | Accepted |
 | [0043](0043-homely-block-with-hidden-edit-form.md) | The Homely block holds the rating, its reviews link and a hidden edit form | Accepted |
@@ -55,3 +55,4 @@
 | [0051](0051-bocsar-crime-rates.md) | Recorded crime per 1,000 residents from BOCSAR | Accepted |
 | [0052](0052-single-slider-filters.md) | One slider with a fixed direction for each filter | Accepted |
 | [0053](0053-pinned-card-header-reset-all-kept-scroll.md) | Pinned card header, Reset all, and a card that keeps its scroll position | Accepted |
+| [0054](0054-hand-not-suitable-for-flat-areas.md) | Height above drainage is not offered in flat suburbs | Accepted |

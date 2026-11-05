@@ -54,6 +54,15 @@ object LotReportFactory {
         "How far the lot's ground stands above the first stream its water reaches, from the 5 m LiDAR DEM; a stream is where at least 5 ha drain through one pixel. " +
             "An indication of where water runs, not a flood result: it ignores drains, culverts and levees, and the LiDAR surveys end in 2015. " +
             "Checked against the council's 10% annual-chance flood corridor in ELERMORE VALE only (ADR 0040): under 1 m touched it for 43% of lots, over 5 m for under 1%"
+    /** More than this share of a suburb's lots under 1 m above drainage means the suburb is too flat for the hint (ADR 0054). */
+    const val FLAT_SUBURB_SHARE_ABOVE: Double = 0.5
+
+    /** Under this many lots with a result a suburb's share is not trusted, and the hint is shown as usual. */
+    const val FLAT_SUBURB_MIN_LOTS: Int = 20
+    private const val PERCENT = 100.0
+    const val FLAT_AREA_NOTE: String =
+        "Not offered here: most lots in this suburb read under 1 m above drainage, so the hint cannot distinguish between them, and the council's flood maps " +
+            "for flat land show overland flow, ponding and tidal water, which it does not measure (ADR 0054). Not a flood result"
     private const val PRICE_SOURCE = "NSW Valuer General"
     private const val LISTING_SOURCE = "Licensed listing text"
     private const val TRANSPORT_SOURCE = "Transport for NSW"
@@ -103,6 +112,12 @@ object LotReportFactory {
     private fun heightAboveDrainage(data: LotDrainageData?): Attribute<DrainageHint> {
         if (data == null) return Attribute.unknown(DEM_SOURCE, note = DRAINAGE_NOT_LOADED_NOTE)
         val drainage = data.drainage ?: return Attribute.unknown(DEM_SOURCE, data.computedOn, DRAINAGE_NO_RESULT_NOTE)
+        val flat = data.suburbLotsWithResult >= FLAT_SUBURB_MIN_LOTS && (data.suburbUnderOneMetreShare ?: 0.0) > FLAT_SUBURB_SHARE_ABOVE
+        if (flat) {
+            val hint = DrainageHint(drainage.heightAboveDrainageM, drainage.streamCatchmentHa, DrainageProximity.FLAT_AREA)
+            val percent = Math.round((data.suburbUnderOneMetreShare ?: 0.0) * PERCENT)
+            return Attribute(hint, Confidence.NONE, DEM_SOURCE, data.computedOn, "$percent% of this suburb's lots read under 1 m. $FLAT_AREA_NOTE")
+        }
         val hint = DrainageHint(
             drainage.heightAboveDrainageM, drainage.streamCatchmentHa, DrainageProximity.fromHeightM(drainage.heightAboveDrainageM),
         )

@@ -144,13 +144,18 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
             dataSource.connection.use { connection ->
                 connection.prepareStatement(DRAINAGE_SQL).use { statement ->
                     statement.setString(1, lotId)
+                    statement.setString(2, lotId)
                     statement.executeQuery().use { rows ->
                         if (!rows.next()) return@use null
                         val computed = rows.getDate("computed_on")?.toLocalDate() ?: return@use null
                         val height = rows.getDouble("height_above_drainage_m").takeIf { !rows.wasNull() }
                         val catchment = rows.getDouble("stream_catchment_ha").takeIf { !rows.wasNull() }
                         val drainage = if (height != null && catchment != null) LotDrainage(height, catchment) else null
-                        LotDrainageData(drainage, LocalDate(computed.year, computed.monthValue, computed.dayOfMonth))
+                        val share = rows.getDouble("suburb_under_one_m_share").takeIf { !rows.wasNull() }
+                        LotDrainageData(
+                            drainage, LocalDate(computed.year, computed.monthValue, computed.dayOfMonth),
+                            suburbUnderOneMetreShare = share, suburbLotsWithResult = rows.getInt("suburb_lots_with_result"),
+                        )
                     }
                 }
             }
@@ -223,8 +228,14 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
 
         /** One row whose load date is NULL when nothing has been loaded; the lot's own columns are NULL when it has no result. */
         val DRAINAGE_SQL = """
-            SELECT (SELECT max(computed_on) FROM lot_drainage) AS computed_on, d.height_above_drainage_m, d.stream_catchment_ha
+            SELECT (SELECT max(computed_on) FROM lot_drainage) AS computed_on, d.height_above_drainage_m, d.stream_catchment_ha,
+                   s.under_one_m_share AS suburb_under_one_m_share, COALESCE(s.lots_with_result, 0) AS suburb_lots_with_result
             FROM (SELECT 1) one LEFT JOIN lot_drainage d ON d.lot_id = ?
+            LEFT JOIN LATERAL (
+                SELECT avg((x.height_above_drainage_m < 1)::int)::float8 AS under_one_m_share, count(*)::int AS lots_with_result
+                FROM lot l JOIN lot_drainage x ON x.lot_id = l.lot_id
+                WHERE l.suburb_id = (SELECT suburb_id FROM lot WHERE lot_id = ?)
+            ) s ON true
         """.trimIndent()
 
         /** The candidates are the schools nearest the lot by the index (degrees), then put in true metre order from the lot's edge. */

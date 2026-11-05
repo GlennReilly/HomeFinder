@@ -205,6 +205,19 @@ class PostgisLotIntegrationTest {
     }
 
     @Test
+    fun `drainage also carries the share of the suburb's lots under 1 m and how many lots that rests on`() = withLots { directory, _ ->
+        execute(
+            "TRUNCATE lot_drainage",
+            "INSERT INTO lot_drainage (lot_id, height_above_drainage_m, stream_catchment_ha, computed_on) VALUES " +
+                "('1001', 0.4, 20.9, '2026-11-04'), ('1002', 3.0, 5.0, '2026-11-04'), ('1003', 0.6, 9.0, '2026-11-04')",
+        )
+        val data = assertNotNull(directory.drainage("1002"))
+        assertEquals(3, data.suburbLotsWithResult)
+        assertEquals(2.0 / 3.0, assertNotNull(data.suburbUnderOneMetreShare), 1e-9)
+        execute("TRUNCATE lot_drainage")
+    }
+
+    @Test
     fun `a database without the drainage table has no drainage rather than an error`() = withLots { directory, _ ->
         execute("ALTER TABLE lot_drainage RENAME TO lot_drainage_hidden")
         try {
