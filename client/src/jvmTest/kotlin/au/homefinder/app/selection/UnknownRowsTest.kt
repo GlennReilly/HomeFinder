@@ -25,15 +25,6 @@ class UnknownRowsTest {
     }
 
     @Test
-    fun `the split keeps the place of a row that is not drawn`() {
-        assertEquals(1, UnknownRows.splitAfter(arranged, "B", customising = false, showUnknown = false), "only A is drawn up to B")
-        assertEquals(2, UnknownRows.splitAfter(arranged, "B", customising = false, showUnknown = true))
-        assertEquals(2, UnknownRows.splitAfter(arranged, "C", customising = false, showUnknown = false))
-        assertEquals(0, UnknownRows.splitAfter(arranged, "missing", customising = false, showUnknown = false))
-        assertEquals(1, UnknownRows.splitAfter(CardLayout(hidden = setOf("B")).arrange(rows), "B", customising = false, showUnknown = true), "hidden by you counts as not drawn")
-    }
-
-    @Test
     fun `the note and the button read in the singular and the plural`() {
         assertEquals("1 row without data is hidden.", UnknownRows.note(1, showing = false))
         assertEquals("3 rows without data are hidden.", UnknownRows.note(3, showing = false))

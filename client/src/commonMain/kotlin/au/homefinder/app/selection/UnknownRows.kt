@@ -16,16 +16,6 @@ object UnknownRows {
     fun unknownCount(arranged: List<ArrangedRow>, customising: Boolean): Int =
         if (customising) 0 else arranged.count { !it.hidden && isUnknown(it.row) }
 
-    /**
-     * The index in [visible] at which the rows "up to and including" [label] end, where [label] is judged by its place in the full
-     * arrangement even if the row itself is not drawn (a hidden or unknown price change still marks where the Homely block goes).
-     */
-    fun splitAfter(arranged: List<ArrangedRow>, label: String, customising: Boolean, showUnknown: Boolean): Int {
-        val at = arranged.indexOfFirst { it.row.label == label }
-        if (at < 0) return 0
-        return visible(arranged.take(at + 1), customising, showUnknown).size
-    }
-
     fun note(count: Int, showing: Boolean): String {
         val rows = if (count == 1) "1 row without data" else "$count rows without data"
         return if (showing) "Showing $rows." else (if (count == 1) "$rows is hidden." else "$rows are hidden.")

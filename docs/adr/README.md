@@ -40,11 +40,11 @@
 | [0036](0036-lot-height-and-slope-from-dem.md) | Lot height and slope from the 5 m DEM | Accepted |
 | [0037](0037-dem-request-in-degrees.md) | DEM request in degrees, resampled to metres | Accepted |
 | [0038](0038-sales-window-ends-on-latest-sale.md) | Sales windows end on the latest sale | Accepted |
-| [0039](0039-card-rows-hidden-and-reordered-in-the-browser.md) | Card rows are hidden and re-ordered in the browser | Accepted |
+| [0039](0039-card-rows-hidden-and-reordered-in-the-browser.md) | Card rows are hidden and re-ordered in the browser | Partly superseded by 0060 |
 | [0040](0040-height-above-drainage-hint.md) | Height above drainage as an indicative hint | Partly superseded by 0054 |
 | [0041](0041-cards-show-only-rows-with-a-reliable-source.md) | Cards show only rows with a reliable source | Accepted |
 | [0042](0042-empty-dem-tiles-are-no-data.md) | Empty DEM tiles are no data | Accepted |
-| [0043](0043-homely-block-with-hidden-edit-form.md) | The Homely block holds the rating, its reviews link and a hidden edit form | Accepted |
+| [0043](0043-homely-block-with-hidden-edit-form.md) | The Homely block holds the rating, its reviews link and a hidden edit form | Partly superseded by 0060 |
 | [0044](0044-census-tenure-and-dwelling-structure.md) | Share rented and the mix of houses and units from the 2021 Census | Accepted |
 | [0045](0045-lot-card-schools-nearest-by-straight-line.md) | The Lot Card shows the nearest public primary and high school | Partly superseded by 0056 |
 | [0046](0046-filters-beach-parks-rented.md) | Filters on beach distance, park share and homes rented | Partly superseded by 0052 |
@@ -61,3 +61,4 @@
 | [0057](0057-select-suburb-without-dimming-the-rest.md) | Selecting a suburb changes only that suburb | Accepted |
 | [0058](0058-hide-unknown-card-rows.md) | Rows without data are left off the cards | Accepted |
 | [0059](0059-sales-count-in-price-change.md) | The sales count sits in the price change row | Accepted |
+| [0060](0060-homely-block-at-the-bottom.md) | The Homely block is the last section of the Suburb Card | Accepted |

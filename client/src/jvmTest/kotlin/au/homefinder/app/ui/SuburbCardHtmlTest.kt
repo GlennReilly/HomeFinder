@@ -99,7 +99,7 @@ class SuburbCardHtmlTest {
     }
 
     @Test
-    fun `under the price change come the Homely rating, then the link to its reviews, then its form, and the other rows follow`() {
+    fun `the other rows come first, then the Homely rating, the link to its reviews and its form at the bottom, then the disclaimer`() {
         val out = html(SuburbCardState.Loaded(withRating(2.1, 7)))
         assertTrue("2.1 ★ (7 reviews)" in out)
         val house = out.indexOf("Median house price</dt>")
@@ -109,8 +109,10 @@ class SuburbCardHtmlTest {
         val link = out.indexOf("homely.com.au/suburb-profile")
         val homely = out.indexOf("Homely rating</dt>")
         val form = out.indexOf("data-rating-form")
-        val sales = out.indexOf("Socio-economic advantage</dt>")
-        assertTrue(house in 0 until block && block < unit && unit < change && change < homely && homely < link && link < form && form < sales, "order: $house $block $unit $change $homely $link $form $sales")
+        val social = out.indexOf("Socio-economic advantage</dt>")
+        val disclaimer = out.indexOf(CARD_DISCLAIMER)
+        assertTrue(house in 0 until block && block < unit && unit < change && change < social, "rows keep their order: $house $block $unit $change $social")
+        assertTrue(social < homely && homely < link && link < form && form < disclaimer, "Homely block last: $social $homely $link $form $disclaimer")
         assertTrue("Source: Homely (entered by you) · as of 2026-10-30 · low confidence" in out)
         val formHtml = out.substringAfter("data-rating-form")
         assertTrue("value=\"2.1\"" in formHtml && "value=\"7\"" in formHtml)
@@ -130,13 +132,14 @@ class SuburbCardHtmlTest {
     }
 
     @Test
-    fun `without a rating the link and then the form sit under the price change`() {
+    fun `without a rating the link and then the form sit at the bottom, above the disclaimer`() {
         val out = html(SuburbCardState.Loaded(report))
         val change = out.indexOf("Price change, 12 months</dt>")
         val link = out.indexOf("homely.com.au/suburb-profile")
         val form = out.indexOf("data-rating-form")
-        val sales = out.indexOf("Socio-economic advantage</dt>")
-        assertTrue(change in 0 until link && link < form && form < sales, "order: $change $link $form $sales")
+        val social = out.indexOf("Socio-economic advantage</dt>")
+        val disclaimer = out.indexOf(CARD_DISCLAIMER)
+        assertTrue(change in 0 until social && social < link && link < form && form < disclaimer, "order: $change $social $link $form $disclaimer")
         assertFalse("Homely rating</dt>" in out)
     }
 
@@ -234,17 +237,19 @@ class SuburbCardHtmlTest {
     }
 
     @Test
-    fun `the Homely block stays under the price change row wherever it is moved, hidden or not`() {
+    fun `the Homely block stays at the bottom wherever rows are moved or hidden, and is not a movable row`() {
         val rows = SuburbCardRows.of(report)
         val moved = CardLayout().moveUp(SuburbCardRows.PRICE_CHANGE_LABEL, rows).moveUp(SuburbCardRows.PRICE_CHANGE_LABEL, rows)
         val out = custom(moved, false)
-        // The order is now house price, price change, block size, unit price: the Homely block follows the price change row.
         assertTrue(out.indexOf("Median house price") < out.indexOf("Price change, 12 months"))
-        assertTrue(out.indexOf("Price change, 12 months") < out.indexOf("homely.com.au") && out.indexOf("homely.com.au") < out.indexOf("Typical block size"))
+        assertTrue(out.indexOf("Typical block size") < out.indexOf("homely.com.au"), "the block follows every row")
         val hidden = custom(CardLayout().toggle(SuburbCardRows.PRICE_CHANGE_LABEL), false)
         assertFalse("Price change, 12 months" in hidden)
-        assertTrue(hidden.indexOf("Socio-economic advantage") > hidden.indexOf("homely.com.au"), "the block keeps the hidden row's place")
+        assertTrue(hidden.indexOf("Socio-economic advantage") < hidden.indexOf("homely.com.au"))
         assertTrue("Your Homely rating" in hidden)
+        val customising = custom(CardLayout(), true)
+        assertTrue(customising.indexOf("Transport") < customising.indexOf("homely.com.au"), "customising lists every row above the block")
+        assertFalse("Move Homely" in customising || "Hide Homely" in customising, "the block has no row controls")
     }
 
     @Test
@@ -292,11 +297,11 @@ class SuburbCardHtmlTest {
     }
 
     @Test
-    fun `the Homely block keeps its place under the price change when that row is unknown and left off`() {
+    fun `the Homely block comes after the note about hidden rows and before the disclaimer`() {
         val out = html(SuburbCardState.Loaded(report), showUnknown = false)
-        assertTrue(out.indexOf("""class="homely"""") in 0 until out.indexOf("unknown-note"), out)
-        val known = report.copy(medianHousePriceAud = Attribute(900_000L, Confidence.HIGH, "S", null), priceChange12MonthsPercent = Attribute.unknown("s"))
-        val shown = html(SuburbCardState.Loaded(known), showUnknown = false)
-        assertTrue(shown.indexOf("Median house price") in 0 until shown.indexOf("""class="homely""""), "the known row above the price change stays above the Homely block")
+        assertTrue(out.indexOf("unknown-note") in 0 until out.indexOf("""class="homely""""), out)
+        assertTrue(out.indexOf("""class="homely"""") < out.indexOf(CARD_DISCLAIMER), "the disclaimer stays last")
+        val revealed = html(SuburbCardState.Loaded(report), showUnknown = true)
+        assertTrue(revealed.indexOf("Transport") in 0 until revealed.indexOf("""class="homely""""), "revealed rows are above the block too")
     }
 }

@@ -280,7 +280,7 @@ class SmokeTest {
     }
 
     @Test
-    fun `a Homely score can be saved, shows under the price change and can be removed`() {
+    fun `a Homely score can be saved, shows in the Homely block at the bottom and can be removed`() {
         openWithKey()
         tapSuburb()
         assertThat(page.locator("#card details.rating-edit")).not().hasAttribute("open", "")
@@ -293,13 +293,15 @@ class SmokeTest {
         assertThat(row).containsText("2.1 ★ (7 reviews)")
         assertThat(row).containsText("Homely (entered by you)")
         assertEquals(2.1, app.rating?.stars)
-        // The rows read in the order the card promises: price change, the rating, the link to its reviews, then the edit link.
+        // The Homely block is the last section: after every data row, the rating, then the link to its reviews, then the edit link.
         val order = page.locator("#card dl.rows .row dt, #card a.external-link, #card details.rating-edit summary").allInnerTexts()
         val change = order.indexOfFirst { it.startsWith("Price change") }
         val score = order.indexOf("Homely rating")
         val link = order.indexOfFirst { it.startsWith("Reviews on Homely") }
         val edit = order.indexOf("Edit the Homely rating")
         assertTrue(change in 0 until score && score < link && link < edit, "order was $order")
+        val lastDataRow = order.indexOfLast { !it.startsWith("Homely rating") && !it.startsWith("Reviews on Homely") && !it.startsWith("Edit the Homely") }
+        assertTrue(lastDataRow < score, "the Homely block follows every data row: $order")
         assertThat(page.locator("#card details.rating-edit")).not().hasAttribute("open", "")
 
         openRatingForm()
@@ -468,9 +470,10 @@ class SmokeTest {
         assertThat(page.locator("#card .value.unknown")).hasCount(0)
         assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Transport"))).hasCount(0)
         assertThat(page.locator("#card .unknown-note")).containsText("rows without data are hidden.")
-        // The Homely block still sits under the price change.
+        // The Homely block is at the bottom, after the rows and the note.
         val order = page.locator("#card dl.rows .row dt, #card details.rating-edit summary").allInnerTexts()
         assertTrue(order.indexOf("Price change, 12 months") < order.indexOf("Edit the Homely rating"), "order was $order")
+        assertTrue(order.last() == "Edit the Homely rating", "the Homely block is last: $order")
         page.locator("#card button[data-action=show-unknown]").click()
         assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Transport"))).hasCount(1)
         assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Transport"))).containsText("Not computed yet")

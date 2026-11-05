@@ -121,10 +121,14 @@ fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayou
                 val full = layout.arrange(SuburbCardRows.of(card.report))
                 val arranged = UnknownRows.visible(full, customising, showUnknown)
                 if (arranged.isEmpty() && UnknownRows.unknownCount(full, customising) == 0) p("hint") { +ALL_HIDDEN_HINT }
-                // Under the price change, wherever you put it (the row's place counts even when it is hidden or unknown): the Homely block, which holds
-                // the score you entered (when there is one), the link to the suburb's reviews on Homely, and the form to edit the score.
-                val split = UnknownRows.splitAfter(full, SuburbCardRows.PRICE_CHANGE_LABEL, customising, showUnknown)
-                dl("rows") { arranged.take(split).forEachIndexed { i, item -> cardRow(item, i, arranged.size, customising) } }
+                dl("rows") {
+                    arranged.forEachIndexed { i, item ->
+                        cardRow(item, i, arranged.size, customising, if (item.row.label == SuburbCardRows.SCHOOLS_LABEL) schoolList(card.report) else null)
+                    }
+                }
+                unknownRowsNote(UnknownRows.unknownCount(full, customising), showUnknown)
+                // The last section, after every row and the note about hidden ones (ADR 0060): the score you entered (when there is one), the link to the
+                // suburb's reviews on Homely, and the form to edit the score. It is not a row, so Customise does not move it.
                 section("homely") {
                     SuburbCardRows.homely(card.report)?.let { homely -> dl("rows") { cardRow(ArrangedRow(homely, hidden = false), 0, 1, customising = false) } }
                     ExternalLinks.homelySuburbProfile(card.report.name, card.report.postcode)?.let { url ->
@@ -137,12 +141,6 @@ fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayou
                     }
                     ratingForm(card.report)
                 }
-                dl("rows") {
-                    arranged.drop(split).forEachIndexed { i, item ->
-                        cardRow(item, split + i, arranged.size, customising, if (item.row.label == SuburbCardRows.SCHOOLS_LABEL) schoolList(card.report) else null)
-                    }
-                }
-                unknownRowsNote(UnknownRows.unknownCount(full, customising), showUnknown)
                 p("disclaimer") { +CARD_DISCLAIMER }
             }
         }
