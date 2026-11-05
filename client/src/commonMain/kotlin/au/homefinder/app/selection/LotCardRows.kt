@@ -6,6 +6,7 @@ import au.homefinder.shared.model.LotReport
 import au.homefinder.shared.model.ParkAccess
 import au.homefinder.shared.model.Proximity
 import au.homefinder.shared.model.ProximityList
+import au.homefinder.shared.model.School
 import au.homefinder.shared.model.SchoolInfo
 import au.homefinder.shared.model.SlopeSummary
 import kotlin.math.roundToLong
@@ -69,7 +70,23 @@ object LotCardRows {
      * nearest high school (ADR 0045). ICSEA is only said where ACARA publishes one.
      */
     private fun schools(info: SchoolInfo): String {
-        if (info.nearest.isEmpty()) return "No public school found nearby"
+        val parts = ArrayList<String>()
+        if (info.zoned.isNotEmpty()) parts += "Zoned: " + info.zoned.joinToString(", ") { zone -> zoned(zone) }
+        if (info.nearest.isNotEmpty()) parts += (if (info.zonesChecked) NEAREST_NOT_ZONED_PREFIX else "") + nearest(info)
+        return parts.joinToString("; ").ifEmpty { "No public school found nearby" }
+    }
+
+    /** What the nearest schools are called where the lot has a zone for the other level or none at all (ADR 0056). */
+    const val NEAREST_NOT_ZONED_PREFIX: String = "Nearest, not zoned: "
+
+    /** "Hamilton Public School (primary, K-6), ICSEA 1,051": a school whose catchment the lot lies in, with the kind and years of the zone. */
+    private fun zoned(school: School): String {
+        val kind = school.levelLabel?.let { " ($it)" }.orEmpty()
+        val icsea = school.icsea?.let { ", ICSEA ${Formats.grouped(it.toLong())}" }.orEmpty()
+        return "${school.name}$kind$icsea"
+    }
+
+    private fun nearest(info: SchoolInfo): String {
         return info.nearest.joinToString("; ") { near ->
             val school = near.school
             val kind = school.levelLabel?.let { " ($it)" }.orEmpty()

@@ -46,7 +46,7 @@
 | [0042](0042-empty-dem-tiles-are-no-data.md) | Empty DEM tiles are no data | Accepted |
 | [0043](0043-homely-block-with-hidden-edit-form.md) | The Homely block holds the rating, its reviews link and a hidden edit form | Accepted |
 | [0044](0044-census-tenure-and-dwelling-structure.md) | Share rented and the mix of houses and units from the 2021 Census | Accepted |
-| [0045](0045-lot-card-schools-nearest-by-straight-line.md) | The Lot Card shows the nearest public primary and high school | Accepted |
+| [0045](0045-lot-card-schools-nearest-by-straight-line.md) | The Lot Card shows the nearest public primary and high school | Partly superseded by 0056 |
 | [0046](0046-filters-beach-parks-rented.md) | Filters on beach distance, park share and homes rented | Partly superseded by 0052 |
 | [0047](0047-weighted-score-mode.md) | Weighted-score mode for suburbs | Superseded by 0048 |
 | [0048](0048-right-hand-tabs.md) | Suburb and Filters tabs in the right-hand panel | Accepted |
@@ -57,3 +57,4 @@
 | [0053](0053-pinned-card-header-reset-all-kept-scroll.md) | Pinned card header, Reset all, and a card that keeps its scroll position | Accepted |
 | [0054](0054-hand-not-suitable-for-flat-areas.md) | Height above drainage is not offered in flat suburbs | Accepted |
 | [0055](0055-capped-crime-sliders.md) | Capped crime sliders with a "No limit" position | Accepted |
+| [0056](0056-school-catchments.md) | The Lot Card shows the school catchments the lot lies in | Accepted |

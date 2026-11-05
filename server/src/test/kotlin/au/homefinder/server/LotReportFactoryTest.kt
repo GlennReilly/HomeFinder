@@ -2,6 +2,7 @@ package au.homefinder.server
 
 import au.homefinder.shared.model.ApiJson
 import au.homefinder.shared.model.Confidence
+import au.homefinder.shared.model.SchoolLevel
 import au.homefinder.shared.model.SchoolSector
 import au.homefinder.shared.model.DrainageProximity
 import au.homefinder.shared.model.LotReport
@@ -216,6 +217,63 @@ class LotReportFactoryTest {
         assertTrue(none.isUnknown)
         assertEquals(LotReportFactory.LOT_SCHOOLS_NONE_NOTE, none.note)
         assertEquals(loaded, none.asOf)
+    }
+
+    private fun zone(code: Int, level: String, type: String, name: String, years: String?, school: SchoolRecord? = null, year: Int? = 2026) =
+        CatchmentZone(code, level, type, name, years, year, school)
+
+    @Test
+    fun `the zoned schools come first, and a nearest school is kept only for a level with no zone, labelled as not zoned`() {
+        val nearby = LotSchoolData(
+            listOf(school(1, "Near Primary", "Primary School", 600.0), school(2, "Near High", "Secondary School", 900.0)),
+            loaded,
+        )
+        val both = LotCatchmentData(
+            listOf(
+                zone(20, "HIGH", "HIGH_COED", "Newcastle HS", "7-12", SchoolRecord(20, "Newcastle High School", "Secondary School", 1030, 800, "https://nh.schools.nsw.gov.au")),
+                zone(10, "PRIMARY", "PRIMARY", "Hamilton PS", "K-6", SchoolRecord(10, "Hamilton Public School", "Primary School", 1051, 412, null)),
+            ),
+        )
+        val report = LotReportFactory.build(lot, schools = nearby, catchments = both)
+        val info = assertNotNull(report.schools.value)
+        assertEquals(listOf("Hamilton Public School", "Newcastle High School"), info.zoned.map { it.name }, "primary first, then high")
+        assertEquals(listOf("primary, K-6", "high, 7-12"), info.zoned.map { it.levelLabel })
+        assertEquals(listOf(SchoolLevel.PRIMARY, SchoolLevel.HIGH), info.zoned.map { it.level })
+        assertEquals(1051, info.zoned.first().icsea)
+        assertTrue(info.zonesChecked)
+        assertTrue(info.nearest.isEmpty(), "both levels have a zone, so no nearest school is added")
+        assertEquals(LotReportFactory.CATCHMENTS_SOURCE, report.schools.source)
+        val note = report.schools.note.orEmpty()
+        assertTrue("does not guarantee a place" in note && "Department of Education" in note && "2026 enrolments" in note, note)
+
+        // Only a primary zone: the nearest high school stays, as not zoned.
+        val primaryOnly = LotCatchmentData(listOf(zone(10, "PRIMARY", "PRIMARY", "Hamilton PS", "K-6")))
+        val partial = assertNotNull(LotReportFactory.build(lot, schools = nearby, catchments = primaryOnly).schools.value)
+        assertEquals(listOf("Hamilton PS"), partial.zoned.map { it.name }, "the Department's short name is used where the school is not in the schools data")
+        assertEquals(listOf("Near High"), partial.nearest.map { it.school.name })
+    }
+
+    @Test
+    fun `a lot in no zone falls back to the nearest schools, and nothing at all is unknown with a reason`() {
+        val nearby = LotSchoolData(listOf(school(1, "Near Primary", "Primary School", 600.0)), loaded)
+        val none = LotCatchmentData(emptyList())
+        val report = LotReportFactory.build(lot, schools = nearby, catchments = none)
+        val info = assertNotNull(report.schools.value)
+        assertTrue(info.zoned.isEmpty() && info.zonesChecked)
+        assertEquals(listOf("Near Primary"), info.nearest.map { it.school.name })
+        val nothing = LotReportFactory.build(lot, catchments = none).schools
+        assertTrue(nothing.isUnknown)
+        assertEquals(LotReportFactory.LOT_ZONED_NONE_NOTE, nothing.note)
+        // Without catchments the row is as before (ADR 0045).
+        assertEquals(false, assertNotNull(LotReportFactory.build(lot, schools = nearby).schools.value).zonesChecked)
+    }
+
+    @Test
+    fun `zone kinds read in plain words`() {
+        assertEquals("infants", LotReportFactory.zoneKind("INFANTS"))
+        assertEquals("high, girls", LotReportFactory.zoneKind("HIGH_GIRLS"))
+        assertEquals("central school, high years", LotReportFactory.zoneKind("CENTRAL_HIGH"))
+        assertEquals("something new", LotReportFactory.zoneKind("SOMETHING_NEW"))
     }
 
     @Test

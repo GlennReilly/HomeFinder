@@ -145,14 +145,16 @@ The Kotlin tool in the `census` module (`:census:crime`) streams the file and su
 the council area in BOCSAR's "Name (Council area)" tag settling shared names. The rate per 1,000 residents is worked out in the server from `suburb_seifa.population`. Data: NSW Bureau of Crime
 Statistics and Research on Data.NSW, Creative Commons Attribution. See [ADR 0051](../docs/adr/0051-bocsar-crime-rates.md).
 
-## School catchments (download only so far)
+## School catchments
 
 ```bash
 scripts/download-catchments.sh [dir]   # the NSW Department of Education school catchment boundaries (a ZIP), unpacked into ../data/raw/catchments; prints each file and its layout (run it yourself)
+scripts/load-catchments.sh [dir]       # loads the current primary and secondary zones into school_catchment (migration V23); reports how many match the schools data
 tests/test_download_catchments.sh      # download script against a local stand-in (no Docker)
+tests/test_catchments.sh               # integration test on tiny shapefiles (needs Docker, python3 and a JDK 17)
 ```
 
-Only the download exists: the file's format and fields have not been seen, so there is no loader. The printed layout (shapefile fields, first records, projection, bounding box)
-is what a loader is written from. Data: NSW Department of Education on Data NSW, licence stated as Creative Commons Attribution 3.0 Australia (confirm on the page). The
-Department takes no responsibility if the zones are relied on, and living in a zone does not guarantee a place.
+The Kotlin tool in the `census` module (`:census:catchments`) reads the primary and secondary shapefiles with no GDAL (the file of future catchments is ignored) and the loader
+reprojects the shapes from GDA94 to GDA2020. The Lot Card then lists the zones a lot lies in (see [ADR 0056](../docs/adr/0056-school-catchments.md)). Data: NSW Department of Education on
+Data NSW, licence stated as Creative Commons Attribution 3.0 Australia (confirm on the page). The Department takes no responsibility if the zones are relied on, and living in a zone does not guarantee a place.
 

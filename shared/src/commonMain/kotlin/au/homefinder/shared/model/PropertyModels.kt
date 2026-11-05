@@ -134,6 +134,13 @@ data class SchoolInfo(
     val primaryCatchment: School? = null,
     val highCatchment: School? = null,
     val nearest: List<NearbySchool> = emptyList(),
+    /**
+     * The public school catchments (intake zones) the lot lies in, primary then high; each school's [School.levelLabel] says the kind of zone and
+     * the years it serves, for example "primary, K-6" (ADR 0056). Empty when the catchments are not loaded or the lot is in none.
+     */
+    val zoned: List<School> = emptyList(),
+    /** True when the catchments were checked for this lot, so [nearest] holds only the levels with no zone and is labelled as not zoned. */
+    val zonesChecked: Boolean = false,
 )
 
 @Serializable

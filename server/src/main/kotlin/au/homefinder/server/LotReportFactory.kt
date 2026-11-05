@@ -80,6 +80,7 @@ object LotReportFactory {
         terrain: LotTerrainData? = null,
         drainage: LotDrainageData? = null,
         schools: LotSchoolData? = null,
+        catchments: LotCatchmentData? = null,
     ): LotReport {
         val strata = isStrata(record.parcelKey)
         return LotReport(
@@ -99,7 +100,7 @@ object LotReportFactory {
             slope = slope(terrain),
             estimatedPriceAud = unknown(PRICE_SOURCE),
             beach = beach(proximity),
-            schools = schools(schools),
+            schools = schools(schools, catchments),
             parks = parks(proximity),
             shopping = shopping(proximity),
             transport = unknown(TRANSPORT_SOURCE),
@@ -156,22 +157,67 @@ object LotReportFactory {
 
     private const val FALLBACK_SCHOOLS = 2
 
-    private fun schools(data: LotSchoolData?): Attribute<SchoolInfo> {
-        if (data == null) return Attribute.unknown(SuburbReportFactory.SCHOOLS_SOURCE, note = SuburbReportFactory.SCHOOLS_NOT_LOADED_NOTE)
-        val chosen = chooseSchools(data.candidates)
-        if (chosen.isEmpty()) return Attribute.unknown(SuburbReportFactory.SCHOOLS_SOURCE, data.extractedOn, LOT_SCHOOLS_NONE_NOTE)
-        val nearest = chosen.map { near ->
-            val record = near.school
-            val metres = near.distanceM.roundToInt()
-            NearbySchool(
-                School(
-                    id = record.code.toString(), name = record.name, sector = SchoolSector.PUBLIC, level = SuburbReportFactory.schoolLevel(record.levelLabel),
-                    icsea = record.icsea, enrolments = record.enrolments, website = SuburbReportFactory.safeWebsite(record.website), levelLabel = record.levelLabel,
-                ),
-                distanceM = metres, walkingMinutes = walkingMinutes(metres),
-            )
+    const val CATCHMENTS_SOURCE: String = "NSW Department of Education school intake zones (CC BY 3.0 Australia) and public schools master dataset; ICSEA from ACARA"
+    const val LOT_ZONED_NOTE: String =
+        "Zoned schools are the NSW public school catchments (intake zones) this lot lies in. Catchments change, being in a zone does not guarantee a place, " +
+            "and out-of-area enrolment is common: check with the school. Where a level shows no zone, the nearest public school of that level is shown instead, " +
+            "by straight line, not a catchment. Private and Catholic schools are not in this data. ICSEA measures how socio-educationally advantaged a school's students are " +
+            "(national average 1000), not how good the school is. Based on NSW Department of Education data"
+    const val LOT_ZONED_NONE_NOTE: String = "No catchment covers this lot and no public school was found nearby in the data loaded"
+
+    /** The Department's zone type in plain words: "primary", "infants", "high, girls", "central school, primary years". */
+    fun zoneKind(catchType: String): String = when (catchType) {
+        "PRIMARY" -> "primary"
+        "INFANTS" -> "infants"
+        "CENTRAL_PRIMARY" -> "central school, primary years"
+        "HIGH_COED" -> "high"
+        "HIGH_BOYS" -> "high, boys"
+        "HIGH_GIRLS" -> "high, girls"
+        "CENTRAL_HIGH" -> "central school, high years"
+        else -> catchType.lowercase().replace('_', ' ')
+    }
+
+    private fun zonedSchool(zone: CatchmentZone): School {
+        val record = zone.school
+        val label = listOfNotNull(zoneKind(zone.catchType), zone.years?.takeIf { it.isNotBlank() }).joinToString(", ")
+        return School(
+            id = zone.schoolCode.toString(), name = record?.name ?: zone.name, sector = SchoolSector.PUBLIC,
+            level = if (zone.level == "HIGH") SchoolLevel.HIGH else SchoolLevel.PRIMARY,
+            icsea = record?.icsea, enrolments = record?.enrolments, website = SuburbReportFactory.safeWebsite(record?.website), levelLabel = label,
+        )
+    }
+
+    private fun nearestSchools(data: LotSchoolData?): List<NearbySchool> = chooseSchools(data?.candidates.orEmpty()).map { near ->
+        val record = near.school
+        val metres = near.distanceM.roundToInt()
+        NearbySchool(
+            School(
+                id = record.code.toString(), name = record.name, sector = SchoolSector.PUBLIC, level = SuburbReportFactory.schoolLevel(record.levelLabel),
+                icsea = record.icsea, enrolments = record.enrolments, website = SuburbReportFactory.safeWebsite(record.website), levelLabel = record.levelLabel,
+            ),
+            distanceM = metres, walkingMinutes = walkingMinutes(metres),
+        )
+    }
+
+    /**
+     * The Schools row. With no catchments loaded it is the nearest primary and high school (ADR 0045). With them (ADR 0056) it lists the zones the lot
+     * lies in, and keeps a nearest school only for a level (primary or high) the lot has no zone for, labelled as not zoned.
+     */
+    private fun schools(data: LotSchoolData?, catchments: LotCatchmentData?): Attribute<SchoolInfo> {
+        if (catchments == null) {
+            if (data == null) return Attribute.unknown(SuburbReportFactory.SCHOOLS_SOURCE, note = SuburbReportFactory.SCHOOLS_NOT_LOADED_NOTE)
+            val nearest = nearestSchools(data)
+            if (nearest.isEmpty()) return Attribute.unknown(SuburbReportFactory.SCHOOLS_SOURCE, data.extractedOn, LOT_SCHOOLS_NONE_NOTE)
+            return Attribute(SchoolInfo(nearest = nearest), Confidence.MEDIUM, SuburbReportFactory.SCHOOLS_SOURCE, data.extractedOn, LOT_SCHOOLS_NOTE)
         }
-        return Attribute(SchoolInfo(nearest = nearest), Confidence.MEDIUM, SuburbReportFactory.SCHOOLS_SOURCE, data.extractedOn, LOT_SCHOOLS_NOTE)
+        val zoned = catchments.zones.sortedWith(compareBy({ if (it.level == "PRIMARY") 0 else 1 }, { it.schoolCode })).map(::zonedSchool)
+        val coveredLevels = zoned.map { it.level }.toSet()
+        val nearest = nearestSchools(data).filter { it.school.level !in coveredLevels }
+        if (zoned.isEmpty() && nearest.isEmpty()) return Attribute.unknown(CATCHMENTS_SOURCE, data?.extractedOn, LOT_ZONED_NONE_NOTE)
+        val year = catchments.zones.firstNotNullOfOrNull { it.enrolmentYear }?.let { ". The zones are for $it enrolments" }.orEmpty()
+        return Attribute(
+            SchoolInfo(nearest = nearest, zoned = zoned, zonesChecked = true), Confidence.MEDIUM, CATCHMENTS_SOURCE, data?.extractedOn, LOT_ZONED_NOTE + year,
+        )
     }
 
     private fun <T> osmNotLoaded(): Attribute<T> = Attribute.unknown(OSM_SOURCE, note = OSM_NOT_LOADED_NOTE)

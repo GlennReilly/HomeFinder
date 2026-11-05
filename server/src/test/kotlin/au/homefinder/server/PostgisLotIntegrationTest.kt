@@ -228,6 +228,43 @@ class PostgisLotIntegrationTest {
     }
 
     @Test
+    fun `the catchments covering a lot are read with their schools, a lot in no zone has none, and no catchments means nothing is loaded`() = withLots { directory, _ ->
+        execute("TRUNCATE school_catchment", "TRUNCATE school")
+        assertNull(directory.catchments("1001"), "nothing loaded yet")
+        // Lot 1001 is at about 151.7501, -32.9202: inside the primary box and the high box, but the primary box has a hole elsewhere.
+        execute(
+            "INSERT INTO school (school_code, name, level_label, icsea, enrolment_fte, website, geom, extracted_on) VALUES " +
+                "(10, 'Hamilton Public School', 'Primary School', 1051, 412.4, 'https://hamilton.schools.nsw.gov.au', ST_SetSRID(ST_MakePoint(151.7520, -32.9202), 7844), '2026-10-30')",
+            "INSERT INTO school_catchment (school_code, level, catch_type, name, years, enrolment_year, geom) VALUES " +
+                "(10, 'PRIMARY', 'PRIMARY', 'Hamilton PS', 'K-6', 2026, ST_Multi(ST_MakeEnvelope(151.74, -32.93, 151.76, -32.91, 7844))), " +
+                "(20, 'HIGH', 'HIGH_COED', 'Newcastle HS', '7-12', 2026, ST_Multi(ST_MakeEnvelope(151.70, -32.95, 151.80, -32.90, 7844))), " +
+                "(30, 'PRIMARY', 'PRIMARY', 'Far PS', 'K-6', 2026, ST_Multi(ST_MakeEnvelope(152.50, -33.50, 152.60, -33.40, 7844)))",
+        )
+        val data = assertNotNull(directory.catchments("1001"))
+        assertEquals(listOf(20, 10), data.zones.map { it.schoolCode })
+        assertEquals(listOf("HIGH", "PRIMARY"), data.zones.map { it.level }, "ordered by level")
+        val primary = data.zones.first { it.level == "PRIMARY" }
+        assertEquals(SchoolRecord(10, "Hamilton Public School", "Primary School", 1051, 412, "https://hamilton.schools.nsw.gov.au"), primary.school)
+        assertEquals("K-6", primary.years)
+        assertEquals(2026, primary.enrolmentYear)
+        assertNull(data.zones.first { it.level == "HIGH" }.school, "no school row for code 20: the Department's name is used")
+        assertEquals(2, data.zones.size, "the far zone does not cover the lot")
+        assertEquals(emptyList(), assertNotNull(directory.catchments("no-such-lot")).zones, "catchments are loaded, but no lot, so no zone")
+        assertEquals(emptyList(), assertNotNull(directory.catchments("1001' OR '1'='1")).zones)
+        execute("TRUNCATE school_catchment", "TRUNCATE school")
+    }
+
+    @Test
+    fun `a database without the catchments table has no catchments rather than an error`() = withLots { directory, _ ->
+        execute("ALTER TABLE school_catchment RENAME TO school_catchment_hidden")
+        try {
+            assertNull(directory.catchments("1001"))
+        } finally {
+            execute("ALTER TABLE school_catchment_hidden RENAME TO school_catchment")
+        }
+    }
+
+    @Test
     fun `the nearest schools are read in metre order from the lot, and no school data means nothing is loaded`() = withLots { directory, _ ->
         execute("TRUNCATE school")
         assertNull(directory.schools("1001"), "nothing loaded yet")
