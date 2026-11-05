@@ -172,6 +172,41 @@ class PostgisSuburbDirectoryIntegrationTest {
     }
 
     @Test
+    fun `a suburb's crime counts are read with its SEIFA population, and the filter rates need a population of 500 or more`() = withDirectory { directory ->
+        execute("TRUNCATE suburb_crime, suburb_seifa")
+        assertNull(directory.crime("9001"), "nothing loaded yet")
+        execute(
+            "INSERT INTO suburb_crime (suburb_id, bocsar_name, violent_incidents, property_incidents, window_text, as_of) VALUES " +
+                "('9001', 'Hamilton', 31, 60, 'Jul 2024 to Jun 2026', '2026-06-30'), ('9002', 'Tiny', 2, 3, 'Jul 2024 to Jun 2026', '2026-06-30'), " +
+                "('9003', 'Nopop', 5, 7, 'Jul 2024 to Jun 2026', '2026-06-30')",
+            "INSERT INTO suburb_seifa (suburb_id, sal_code, irsad_score, irsad_decile, population) VALUES ('9001', 'SAL1', 1035.7, 8, 7380), ('9002', 'SAL2', 900, 2, 120)",
+        )
+        assertEquals(SuburbCrime(31, 60, "Jul 2024 to Jun 2026", LocalDate(2026, 6, 30), 7380), directory.crime("9001"))
+        assertEquals(120, directory.crime("9002")?.population)
+        assertNull(directory.crime("9003")?.population, "no SEIFA row means no population")
+        assertNull(directory.crime("9001' OR '1'='1"))
+        val data = assertNotNull(directory.filterValues())
+        assertTrue(data.crimeLoaded)
+        assertEquals(LocalDate(2026, 6, 30), data.crimeAsOf)
+        val byId = data.suburbs.associateBy { it.suburbId }
+        assertEquals(31 * 1000.0 / 7380, byId.getValue("9001").violentPer1000)
+        assertEquals(60 * 1000.0 / 7380, byId.getValue("9001").propertyPer1000)
+        assertNull(byId.getValue("9002").violentPer1000, "under 500 residents has no rate")
+        assertNull(byId.getValue("9003").violentPer1000, "no population has no rate")
+        execute("TRUNCATE suburb_crime, suburb_seifa")
+    }
+
+    @Test
+    fun `a database without the crime table has no crime rather than an error`() = withDirectory { directory ->
+        execute("ALTER TABLE suburb_crime RENAME TO suburb_crime_hidden")
+        try {
+            assertNull(directory.crime("9001"))
+        } finally {
+            execute("ALTER TABLE suburb_crime_hidden RENAME TO suburb_crime")
+        }
+    }
+
+    @Test
     fun `a suburb's OpenStreetMap roll-up is read with nulls kept and the date of the data`() = withDirectory { directory ->
         execute(
             "TRUNCATE osm_import, suburb_amenity",

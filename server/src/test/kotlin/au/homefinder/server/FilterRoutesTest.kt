@@ -73,6 +73,22 @@ class FilterRoutesTest {
     }
 
     @Test
+    fun `crime rates and their provenance come only when the crime data is loaded`() = api(
+        FakeDirectory(
+            SuburbFilterData(
+                listOf(SuburbFilterRow("9001", null, violentPer1000 = 4.2, propertyPer1000 = 12.5), SuburbFilterRow("9002", null)),
+                day, crimeLoaded = true, crimeAsOf = LocalDate(2026, 6, 30),
+            ),
+        ),
+    ) {
+        val body = ApiJson.decodeFromString<SuburbFiltersResponse>(get(ApiContract.SUBURB_FILTERS_PATH) { header(ApiContract.API_KEY_HEADER, key) }.bodyAsText())
+        assertEquals(4.2, body.suburbs.first().violentPer1000)
+        assertEquals(12.5, body.suburbs.first().propertyPer1000)
+        assertNull(body.suburbs.last().violentPer1000)
+        assertEquals(FilterProvenance(SuburbReportFactory.CRIME_SOURCE, LocalDate(2026, 6, 30)), body.crime)
+    }
+
+    @Test
     fun `a data set that is not loaded has no provenance`() = api(FakeDirectory(SuburbFilterData(listOf(SuburbFilterRow("9001", 1032)), day))) {
         val body = ApiJson.decodeFromString<SuburbFiltersResponse>(get(ApiContract.SUBURB_FILTERS_PATH) { header(ApiContract.API_KEY_HEADER, key) }.bodyAsText())
         assertNull(body.beach)

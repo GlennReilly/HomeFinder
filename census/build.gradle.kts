@@ -19,6 +19,14 @@ tasks.register<JavaExec>("seifa") {
     jvmArgs("-Xmx1g")
 }
 
+// Run by pipeline/scripts/load-crime.sh (ADR 0051): `./gradlew :census:crime --args="<SuburbData.csv> <output csv>"`.
+tasks.register<JavaExec>("crime") {
+    group = "application"
+    mainClass = "au.homefinder.census.CrimeMainKt"
+    classpath = sourceSets["main"].runtimeClasspath
+    jvmArgs("-Xmx512m")
+}
+
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.junit.jupiter)

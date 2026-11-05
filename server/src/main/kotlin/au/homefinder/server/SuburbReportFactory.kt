@@ -3,6 +3,7 @@ package au.homefinder.server
 import au.homefinder.shared.model.Attribute
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
+import au.homefinder.shared.model.CrimeRate
 import au.homefinder.shared.model.DwellingMix
 import au.homefinder.shared.model.SocioEconomic
 import au.homefinder.shared.model.HomelyRating
@@ -50,6 +51,7 @@ object SuburbReportFactory {
         schools: SuburbSchoolData? = null,
         census: SuburbCensus? = null,
         seifa: SuburbSeifa? = null,
+        crime: SuburbCrime? = null,
     ): SuburbReport = SuburbReport(
         suburbId = record.suburbId,
         name = record.name,
@@ -73,6 +75,8 @@ object SuburbReportFactory {
         rentedShare = rentedShare(census),
         dwellingMix = dwellingMix(census),
         socioEconomic = socioEconomic(seifa),
+        violentCrime = crimeRate(crime, crime?.violent),
+        propertyCrime = crimeRate(crime, crime?.property),
     )
 
     const val CENSUS_SOURCE: String = "ABS 2021 Census of Population and Housing (CC BY 4.0)"
@@ -93,6 +97,31 @@ object SuburbReportFactory {
     /** Under this many residents a suburb's decile rests on very little (the ABS flags such areas), and under [SEIFA_HIGH_FROM] it is moderately firm. */
     const val SEIFA_LOW_BELOW: Int = 200
     const val SEIFA_HIGH_FROM: Int = 1_000
+
+    const val CRIME_SOURCE: String = "NSW Bureau of Crime Statistics and Research (BOCSAR), recorded criminal incidents (CC BY)"
+    const val CRIME_NOT_LOADED_NOTE: String = "Crime data not loaded yet"
+    const val CRIME_MONTHS: Int = 24
+
+    /** Under this many residents the rate is shaky (also where the filter stops using it); under [CRIME_HIGH_FROM] it is moderately firm. */
+    const val CRIME_LOW_BELOW: Int = 500
+    const val CRIME_HIGH_FROM: Int = 2_000
+    private const val PER_THOUSAND = 1000.0
+    private const val CRIME_CAVEAT =
+        "Crime is counted where it happens, so a suburb with a big shopping centre or business district looks worse than its residents warrant, " +
+            "and recorded crime also reflects reporting and policing. Based on NSW Bureau of Crime Statistics and Research data"
+
+    private fun crimeRate(crime: SuburbCrime?, incidents: Int?): Attribute<CrimeRate> {
+        if (crime == null || incidents == null) return Attribute.unknown(CRIME_SOURCE, note = CRIME_NOT_LOADED_NOTE)
+        val population = crime.population?.takeIf { it > 0 }
+        val rate = CrimeRate(incidents, CRIME_MONTHS, population?.let { incidents * PER_THOUSAND / it }, population)
+        val confidence = when {
+            population == null || population < CRIME_LOW_BELOW -> Confidence.LOW
+            population < CRIME_HIGH_FROM -> Confidence.MEDIUM
+            else -> Confidence.HIGH
+        }
+        val basis = if (population == null) "No population figure for this suburb, so no rate per 1,000 residents." else "Rate per 1,000 of the suburb's $population residents (SEIFA 2021)."
+        return Attribute(rate, confidence, CRIME_SOURCE, crime.asOf, "${crime.windowText}. $basis $CRIME_CAVEAT")
+    }
 
     private fun socioEconomic(seifa: SuburbSeifa?): Attribute<SocioEconomic> {
         if (seifa == null) return Attribute.unknown(SEIFA_SOURCE, note = SEIFA_NOT_LOADED_NOTE)

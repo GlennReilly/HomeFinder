@@ -46,6 +46,16 @@ enum class FilterCriterion(
         "seifa", "Socio-economic advantage (SEIFA decile, 10 = most advantaged)", "", 1.0, "SEIFA decile",
         "From the ABS SEIFA 2021: it describes the residents of the suburb as a group, ranked across Australia from decile 1 (most disadvantaged) to 10 (most advantaged).",
         "SEIFA data has not been loaded yet, so there is nothing to filter on.",
+    ),
+    VIOLENT(
+        "violent", "Violent crime (incidents per 1,000 residents in 24 months)", "", 1.0, "violent crime rate",
+        "Assaults, robberies and sexual offences recorded by the NSW Bureau of Crime Statistics and Research. Crime is counted where it happens, so a suburb with a shopping or business district looks worse than its residents warrant. Suburbs under 500 residents have no rate.",
+        "Crime data (and the SEIFA population it needs) has not been loaded yet, so there is nothing to filter on.",
+    ),
+    PROPERTY(
+        "property", "Break-ins, car and home theft (incidents per 1,000 residents in 24 months)", "", 1.0, "property crime rate",
+        "Break-ins, vehicle theft, stealing from cars and homes and malicious damage, recorded by the NSW Bureau of Crime Statistics and Research. Counted where it happens, and reflects reporting and policing. Suburbs under 500 residents have no rate.",
+        "Crime data (and the SEIFA population it needs) has not been loaded yet, so there is nothing to filter on.",
     );
 
     fun format(value: Double): String = Formats.decimal(value, 0) + unit
@@ -129,6 +139,8 @@ class FilterData(
                 FilterCriterion.PARKS to response.suburbs.associate { it.suburbId to it.parkShare?.times(PERCENT) },
                 FilterCriterion.RENTED to response.suburbs.associate { it.suburbId to it.rentedShare?.times(PERCENT) },
                 FilterCriterion.SEIFA to response.suburbs.associate { it.suburbId to it.seifaDecile?.toDouble() },
+                FilterCriterion.VIOLENT to response.suburbs.associate { it.suburbId to it.violentPer1000 },
+                FilterCriterion.PROPERTY to response.suburbs.associate { it.suburbId to it.propertyPer1000 },
             )
             val sources = buildMap {
                 put(FilterCriterion.ICSEA, FilterSource(response.icseaSource, response.icseaAsOf))
@@ -136,6 +148,10 @@ class FilterData(
                 response.parks?.let { put(FilterCriterion.PARKS, FilterSource(it.source, it.asOf)) }
                 response.rented?.let { put(FilterCriterion.RENTED, FilterSource(it.source, it.asOf)) }
                 response.seifa?.let { put(FilterCriterion.SEIFA, FilterSource(it.source, it.asOf)) }
+                response.crime?.let {
+                    put(FilterCriterion.VIOLENT, FilterSource(it.source, it.asOf))
+                    put(FilterCriterion.PROPERTY, FilterSource(it.source, it.asOf))
+                }
             }
             return FilterData(values, sources, ids, response.suburbs.associate { it.suburbId to it.name })
         }

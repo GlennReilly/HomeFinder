@@ -144,8 +144,8 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
     /** Three suburbs: one above 1,000 (and near the beach, with parks, mostly rented), one below, one with no values at all. */
     private fun filters() = SuburbFiltersResponse(
         listOf(
-            SuburbFilterValue("9001", 1051, beachKm = 1.5, parkShare = 0.20, rentedShare = 0.45, seifaDecile = 8, name = "HAMILTON"),
-            SuburbFilterValue("9002", 960, beachKm = 12.0, parkShare = 0.05, rentedShare = 0.20, seifaDecile = 3, name = "MAYFIELD"),
+            SuburbFilterValue("9001", 1051, beachKm = 1.5, parkShare = 0.20, rentedShare = 0.45, seifaDecile = 8, violentPer1000 = 4.2, propertyPer1000 = 12.5, name = "HAMILTON"),
+            SuburbFilterValue("9002", 960, beachKm = 12.0, parkShare = 0.05, rentedShare = 0.20, seifaDecile = 3, violentPer1000 = 31.0, propertyPer1000 = 90.0, name = "MAYFIELD"),
             SuburbFilterValue("9003", null, name = "WICKHAM"),
         ),
         "Test schools", LocalDate(2026, 10, 2),
@@ -153,6 +153,7 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
         parks = FilterProvenance("Test OpenStreetMap", LocalDate(2026, 10, 29)),
         rented = FilterProvenance("Test Census", LocalDate(2021, 8, 10)),
         seifa = FilterProvenance("Test SEIFA", LocalDate(2021, 8, 10)),
+        crime = FilterProvenance("Test BOCSAR", LocalDate(2026, 6, 30)),
     )
 
     private fun ratings(): List<SuburbRatingPoint> =

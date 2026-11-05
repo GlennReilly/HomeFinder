@@ -3,6 +3,7 @@ package au.homefinder.app.selection
 import au.homefinder.shared.model.Attribute
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
+import au.homefinder.shared.model.CrimeRate
 import au.homefinder.shared.model.DwellingMix
 import au.homefinder.shared.model.SuburbBeachDistance
 import au.homefinder.shared.model.SuburbReport
@@ -82,6 +83,8 @@ object SuburbCardRows {
         row("Socio-economic advantage", report.socioEconomic) { "Decile ${it.decile} of 10 (10 is the most advantaged)" },
         row("Homes rented", report.rentedShare) { Formats.share(it) + " of homes are rented" },
         row("Houses and units", report.dwellingMix, ::dwellingMix),
+        row("Violent crime", report.violentCrime, ::crime),
+        row("Break-ins, car and home theft", report.propertyCrime, ::crime),
         row("Distance to the beach", report.beach, ::beach),
         row(SCHOOLS_LABEL, report.schools, ::schools),
         row("Parks", report.parkAreaShare) { Formats.share(it) + " of the suburb is park" },
@@ -116,6 +119,12 @@ object SuburbCardRows {
     /** "58% houses, 25% townhouses, 15% units": separate houses, then semis and townhouses, then flats and apartments (2021 Census, ADR 0044). */
     private fun dwellingMix(mix: DwellingMix) =
         "${Formats.share(mix.houseShare)} houses, ${Formats.share(mix.townhouseShare)} townhouses, ${Formats.share(mix.unitShare)} units"
+
+    /** "4.2 per 1,000 residents (31 incidents in 24 months)", or just the count where there is no population to divide by. */
+    private fun crime(rate: CrimeRate): String {
+        val counted = "${Formats.grouped(rate.incidents.toLong())} ${if (rate.incidents == 1) "incident" else "incidents"} in ${rate.months} months"
+        return rate.perThousand?.let { "${Formats.decimal(it, 1)} per 1,000 residents ($counted)" } ?: "$counted, no population to turn it into a rate"
+    }
 
     private fun beach(distance: SuburbBeachDistance) =
         "${Formats.kilometres(distance.fromCentreM)} from the centre, ${Formats.kilometres(distance.fromNearestEdgeM)} from the nearest edge"

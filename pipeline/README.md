@@ -132,11 +132,15 @@ tests/test_schools.sh         # fixture-based integration test (needs Docker)
 Source: NSW Department of Education, "NSW public schools master dataset" (Creative Commons Attribution); the ICSEA value is ACARA's.
 See [ADR 0034](../docs/adr/0034-suburb-schools-and-icsea.md).
 
-## BOCSAR crime (download only so far)
+## BOCSAR crime: recorded incidents per suburb
 
 ```bash
-scripts/download-bocsar.sh [dir]   # the BOCSAR recorded-crime-by-suburb zip (over 10 MB), unpacked into ../data/raw/bocsar; prints each file's first lines (run it yourself)
+scripts/download-bocsar.sh [dir]   # the BOCSAR recorded-crime-by-suburb zip (13 MB; 420 MB unpacked), into ../data/raw/bocsar; prints each file's first lines (run it yourself)
+scripts/load-crime.sh [file]       # streams SuburbData.csv and loads suburb_crime (migration V22): violent and property incidents over the latest 24 months; lists suburbs it could not match
 tests/test_download_bocsar.sh      # download script against a local stand-in (no Docker)
+tests/test_crime.sh                # integration test on a tiny file (needs Docker, python3 and a JDK 17)
 ```
 
-Only the download exists: the file's layout has not been seen yet, so there is no loader. Data: NSW Bureau of Crime Statistics and Research on Data.NSW, Creative Commons Attribution.
+The Kotlin tool in the `census` module (`:census:crime`) streams the file and sums the latest 24 months for two measures; the script loads the counts and matches BOCSAR suburbs to ours by name, with
+the council area in BOCSAR's "Name (Council area)" tag settling shared names. The rate per 1,000 residents is worked out in the server from `suburb_seifa.population`. Data: NSW Bureau of Crime
+Statistics and Research on Data.NSW, Creative Commons Attribution. See [ADR 0051](../docs/adr/0051-bocsar-crime-rates.md).
