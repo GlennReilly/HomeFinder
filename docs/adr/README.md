@@ -60,3 +60,4 @@
 | [0056](0056-school-catchments.md) | The Lot Card shows the school catchments the lot lies in | Accepted |
 | [0057](0057-select-suburb-without-dimming-the-rest.md) | Selecting a suburb changes only that suburb | Accepted |
 | [0058](0058-hide-unknown-card-rows.md) | Rows without data are left off the cards | Accepted |
+| [0059](0059-sales-count-in-price-change.md) | The sales count sits in the price change row | Accepted |

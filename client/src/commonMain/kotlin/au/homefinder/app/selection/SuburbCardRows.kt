@@ -78,8 +78,7 @@ object SuburbCardRows {
         row("Median house price", report.medianHousePriceAud, Formats::dollars),
         row("Typical block size", report.blockSize, ::blockSize),
         row("Median unit price", report.medianUnitPriceAud, Formats::dollars),
-        row(PRICE_CHANGE_LABEL, report.priceChange12MonthsPercent, Formats::signedPercent),
-        row("Sales behind the prices", report.salesCount) { Formats.grouped(it.toLong()) },
+        priceChange(report),
         row("Socio-economic advantage", report.socioEconomic) { "Decile ${it.decile} of 10 (10 is the most advantaged)" },
         row("Disadvantage (SEIFA)", report.disadvantage) { "Decile $it of 10 (10 is the least disadvantaged)" },
         row("Economic resources (SEIFA)", report.economicResources) { "Decile $it of 10 (10 has the most resources)" },
@@ -94,6 +93,22 @@ object SuburbCardRows {
         row("Shopping", report.shopping, ::shopping),
         row("Transport", report.transport, ::transport),
     )
+
+    /**
+     * "+4.2% (31 sales)": the change in the house median, with the number of sales behind the prices in brackets (ADR 0059; it was a row of its
+     * own). The note keeps the change's own reasoning and then the house/unit split of those sales. While the change is unknown the value stays
+     * empty and the note is the reason, which already carries the counts.
+     */
+    internal fun priceChange(report: SuburbReport): CardRow {
+        val change = report.priceChange12MonthsPercent
+        val base = row(PRICE_CHANGE_LABEL, change, Formats::signedPercent)
+        val sales = report.salesCount.takeUnless { it.isUnknown }?.value ?: return base
+        val value = base.value ?: return base
+        val count = Formats.grouped(sales.toLong()) + if (sales == 1) " sale" else " sales"
+        // The change's note has no closing full stop, the sales note ends with one: join them as two sentences.
+        val note = listOfNotNull(base.note?.trim()?.trimEnd('.')?.takeIf { it.isNotEmpty() }, report.salesCount.note?.trim()?.takeIf { it.isNotEmpty() })
+        return base.copy(value = "$value ($count)", note = note.joinToString(". ").ifEmpty { null })
+    }
 
     /**
      * The Homely score you entered, as a row, or null when there is none (the card then shows only the form). It reads
