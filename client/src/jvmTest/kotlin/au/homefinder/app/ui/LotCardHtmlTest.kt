@@ -86,4 +86,10 @@ class LotCardHtmlTest {
         assertEquals(10, Regex("""class="row-controls"""").findAll(out).count())
         assertTrue("""aria-label="Show Schools"""" in out && """data-action="customise-done"""" in out)
     }
+
+    @Test
+    fun `the lot card's header is pinned too`() {
+        val out = html(LotCardState.Loading("1001", null))
+        assertTrue(STICKY_TOP_CLASS in out && "Close lot card" in out.substringAfter(STICKY_TOP_CLASS))
+    }
 }

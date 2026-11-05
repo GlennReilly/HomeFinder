@@ -45,16 +45,19 @@ fun lotCardSubtitle(card: LotCardState): String? = when (card) {
 fun FlowContent.lotCard(card: LotCardState, layout: CardLayout = CardLayout(), customising: Boolean = false) {
     section("suburb-card lot-card") {
         attributes["aria-label"] = "Lot card"
-        div("card-header") {
-            div {
-                h2 { +lotCardTitle(card) }
-                lotCardSubtitle(card)?.let { p("subtitle") { +it } }
+        div(STICKY_TOP_CLASS) {
+            div("card-header") {
+                div {
+                    h2 { +lotCardTitle(card) }
+                    lotCardSubtitle(card)?.let { p("subtitle") { +it } }
+                }
+                button(type = ButtonType.button, classes = "close") {
+                    attributes[CardActions.ATTRIBUTE] = CardActions.CLOSE
+                    attributes["aria-label"] = "Close lot card"
+                    +CLOSE_BUTTON_TEXT
+                }
             }
-            button(type = ButtonType.button, classes = "close") {
-                attributes[CardActions.ATTRIBUTE] = CardActions.CLOSE
-                attributes["aria-label"] = "Close lot card"
-                +CLOSE_BUTTON_TEXT
-            }
+            if (card is LotCardState.Loaded) layoutBar(customising, layout.isDefault)
         }
         when (card) {
             LotCardState.Hidden -> Unit
@@ -71,7 +74,6 @@ fun FlowContent.lotCard(card: LotCardState, layout: CardLayout = CardLayout(), c
                     ul("addresses") { card.report.addresses.forEach { li { +it } } }
                 }
                 val arranged = layout.arrange(LotCardRows.of(card.report)).filter { customising || !it.hidden }
-                layoutBar(customising, layout.isDefault)
                 if (arranged.isEmpty()) p("hint") { +ALL_HIDDEN_HINT }
                 dl("rows") { arranged.forEachIndexed { i, item -> lotRow(item, i, arranged.size, customising) } }
                 p("disclaimer") { +CARD_DISCLAIMER }

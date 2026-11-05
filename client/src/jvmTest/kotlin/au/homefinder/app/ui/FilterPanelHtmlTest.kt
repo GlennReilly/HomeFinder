@@ -108,4 +108,14 @@ class FilterPanelHtmlTest {
         val d = FilterData.from(SuburbFiltersResponse(listOf(SuburbFilterValue("a", 1000)), "<b>x</b>", null))
         assertFalse("<b>x</b>" in html(d))
     }
+
+    @Test
+    fun `a Reset all button is drawn, off while no filter is on and on once one is`() {
+        val d = data(1000, 1100)
+        val idle = html(d)
+        assertTrue("""id="${FilterIds.RESET}"""" in idle && FILTER_RESET_TEXT in idle)
+        assertTrue(Regex("""<button[^>]*id="${FilterIds.RESET}"[^>]*disabled""").containsMatchIn(idle) || Regex("""<button[^>]*disabled[^>]*id="${FilterIds.RESET}"""").containsMatchIn(idle), idle)
+        val active = createHTML().div { filterPanel(d, d.apply(FilterSelection(mapOf(FilterCriterion.ICSEA to 1000.0)))) }
+        assertFalse(Regex("""<button[^>]*id="${FilterIds.RESET}"[^>]*disabled""").containsMatchIn(active) || Regex("""<button[^>]*disabled[^>]*id="${FilterIds.RESET}"""").containsMatchIn(active), active)
+    }
 }

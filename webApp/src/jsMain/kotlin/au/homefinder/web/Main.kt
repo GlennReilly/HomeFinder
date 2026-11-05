@@ -16,7 +16,9 @@ import au.homefinder.app.api.LookupResult
 import au.homefinder.app.api.RatingApi
 import au.homefinder.app.api.SearchApi
 import au.homefinder.app.api.SuburbApi
+import au.homefinder.app.selection.CardKind
 import au.homefinder.app.selection.CardLayout
+import au.homefinder.app.selection.CardScroll
 import au.homefinder.app.selection.CardRow
 import au.homefinder.app.selection.LotCardRows
 import au.homefinder.app.selection.LotCardState
@@ -52,6 +54,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.html.div
 import kotlinx.html.p
 import kotlinx.html.dom.append
+import org.w3c.dom.HTMLButtonElement
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLFormElement
 import org.w3c.dom.HTMLInputElement
@@ -128,7 +131,8 @@ private fun start(apiKey: String) {
 
     val layouts = CardLayouts()
     var latest = MapUiState()
-    fun redraw() = renderCard(card, latest.card, latest.lotCard, layouts)
+    val scrollMemory = CardScrollMemory()
+    fun redraw() = renderCard(card, latest.card, latest.lotCard, layouts, scrollMemory)
 
     viewModel.state.onEach { state ->
         map.showSelection(state.selectedSuburbId, state.selectedLotId)
@@ -233,12 +237,23 @@ private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap, 
         val result = loaded.apply(selection())
         view.showFilter(result.passingIds)
         onResult(result)
+        (document.getElementById(FilterIds.RESET) as? HTMLButtonElement)?.disabled = !result.selection.isActive
         document.getElementById(FilterIds.SUMMARY)?.textContent = filterSummaryText(result)
         FilterCriterion.entries.forEach { criterion ->
             input(FilterIds.limit(criterion))?.let { document.getElementById(FilterIds.limitOut(criterion))?.textContent = criterion.format(it.value.toDouble()) }
         }
     }
 
+    // Reset all: every filter off, every slider back to the value it was drawn with (its starting end).
+    panel.addEventListener("click", { event ->
+        if ((event.target as? HTMLElement)?.id == FilterIds.RESET) {
+            FilterCriterion.entries.forEach { criterion ->
+                input(FilterIds.on(criterion))?.checked = false
+                input(FilterIds.limit(criterion))?.let { it.value = it.defaultValue }
+            }
+            refresh()
+        }
+    })
     panel.addEventListener("input", { event ->
         val targetId = (event.target as? HTMLElement)?.id
         val criterion = FilterIds.criterionOf(targetId)
@@ -372,16 +387,27 @@ private class CardLayouts {
 }
 
 /** Shows the lot card when a lot is selected, else the suburb card; at most one is ever visible. */
-private fun renderCard(container: HTMLElement, suburb: SuburbCardState, lot: LotCardState, layouts: CardLayouts) {
-    val scrolled = container.scrollTop
-    container.innerHTML = ""
-    when {
-        lot !is LotCardState.Hidden -> container.append { div { lotCard(lot, layouts.lot, layouts.customising) } }
-        suburb !is SuburbCardState.Hidden -> container.append { div { suburbCard(suburb, layouts.suburb, layouts.customising) } }
-        else -> container.append { p("side-empty") { +SIDE_EMPTY_TEXT } }
+private fun renderCard(container: HTMLElement, suburb: SuburbCardState, lot: LotCardState, layouts: CardLayouts, scroll: CardScrollMemory) {
+    val kind = when {
+        lot !is LotCardState.Hidden -> CardKind.LOT
+        suburb !is SuburbCardState.Hidden -> CardKind.SUBURB
+        else -> CardKind.NONE
     }
-    container.scrollTop = scrolled
+    val loaded = lot is LotCardState.Loaded || (lot is LotCardState.Hidden && suburb is SuburbCardState.Loaded)
+    // The position is read before the card is replaced and put back after, so choosing another suburb keeps the same row in view (ADR 0053).
+    val plan = scroll.value.plan(kind, loaded, container.scrollTop.toInt())
+    scroll.value = plan.memory
+    container.innerHTML = ""
+    when (kind) {
+        CardKind.LOT -> container.append { div { lotCard(lot, layouts.lot, layouts.customising) } }
+        CardKind.SUBURB -> container.append { div { suburbCard(suburb, layouts.suburb, layouts.customising) } }
+        CardKind.NONE -> container.append { p("side-empty") { +SIDE_EMPTY_TEXT } }
+    }
+    container.scrollTop = plan.restoreTo.toDouble()
 }
+
+/** The card's scroll memory, kept between redraws. */
+private class CardScrollMemory(var value: CardScroll = CardScroll())
 
 /** Says how saving or removing a score went: success as a notice (the card has just been redrawn), a problem beside the form. */
 private fun announce(outcome: RatingOutcome, card: HTMLElement, showNotice: (String) -> Unit) {

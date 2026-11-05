@@ -62,8 +62,8 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
 
     private fun <T> unknown(source: String = "test") = Attribute.unknown<T>(source, note = "Not computed yet")
 
-    private fun suburbReport() = SuburbReport(
-        suburbId = "9001", name = "HAMILTON", postcode = "2303", areaKm2 = Attribute(1.46, Confidence.HIGH, "Test boundary"),
+    private fun suburbReport(id: String = "9001", name: String = "HAMILTON", postcode: String = "2303") = SuburbReport(
+        suburbId = id, name = name, postcode = postcode, areaKm2 = Attribute(1.46, Confidence.HIGH, "Test boundary"),
         medianHousePriceAud = unknown(), medianUnitPriceAud = unknown(), priceChange12MonthsPercent = unknown(), salesCount = unknown(),
         blockSize = unknown(), floodShare = unknown(), brickShare = unknown(), beach = unknown(),
         schools = Attribute(
@@ -91,6 +91,9 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
         val results = buildList {
             if (q.length >= 2 && "hamilton".startsWith(q)) {
                 add(SearchResult(SearchResultKind.SUBURB, "9001", "HAMILTON", "Suburb, NSW 2303", -32.92, 151.75, GeoBounds(151.74, -32.93, 151.76, -32.91)))
+            }
+            if (q.length >= 2 && "mayfield".startsWith(q)) {
+                add(SearchResult(SearchResultKind.SUBURB, "9002", "MAYFIELD", "Suburb, NSW 2304", -32.89, 151.74, GeoBounds(151.73, -32.90, 151.75, -32.88)))
             }
             if (q.startsWith("12 main")) add(SearchResult(SearchResultKind.ADDRESS, "G1", address, null, -32.92005, 151.7501, lotId = "1001"))
             if (q.startsWith("120 main")) add(SearchResult(SearchResultKind.ADDRESS, "G2", "120 MAIN STREET, HAMILTON NSW 2303", null, -32.921, 151.751))
@@ -134,6 +137,7 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
             }
             path == "/v1/suburbs/9001/rating" && method == "DELETE" -> { rating = null; reply(exchange, 204, "application/json", ByteArray(0)) }
             path == "/v1/suburbs/9001" -> json(exchange, 200, ApiJson.encodeToString(suburbReport()))
+            path == "/v1/suburbs/9002" -> json(exchange, 200, ApiJson.encodeToString(suburbReport("9002", "MAYFIELD", "2304")))
             path == "/v1/lots/at" -> json(exchange, 200, ApiJson.encodeToString(lot))
             path == "/v1/lots/1001" -> json(exchange, 200, ApiJson.encodeToString(lotReport()))
             path == "/v1/search" -> json(exchange, 200, ApiJson.encodeToString(search(query["q"].orEmpty())))

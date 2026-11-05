@@ -36,6 +36,10 @@ html, body { margin: 0; height: 100%; }
 }
 .side-empty { padding: 16px; color: var(--muted); }
 .suburb-card { padding: 16px; }
+/* The name, postcode, close button and Customise bar stay in view while the rows scroll (ADR 0053); the negative margin and padding
+   let the pinned block cover the card's own padding. */
+.card-sticky { position: sticky; top: 0; z-index: 1; background: var(--surface); margin: -16px -16px 8px; padding: 16px 16px 4px; border-bottom: 1px solid rgba(128, 128, 128, .35); }
+.card-sticky .layout-bar { margin: 8px 0 4px; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .card-header h2 { margin: 0; font-size: 1.4rem; }
 .subtitle { margin: 4px 0 0; color: var(--muted); }
@@ -104,7 +108,10 @@ progress { width: 100%; margin: 16px 0; }
 
 /* Filter panel (ADR 0035), the Filters tab of the right-hand panel. */
 #filters { padding: 4px 14px 12px; }
+.filter-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 #filters h2 { font-size: 1.1rem; margin: 10px 0; }
+button.reset-all { font-size: .85rem; padding: 4px 10px; cursor: pointer; }
+button.reset-all:disabled { opacity: .4; cursor: default; }
 #filters .range { display: grid; gap: 4px; margin: 8px 0 0 22px; }
 #filters .range input { width: 100%; }
 #filters .hint, #filters .filter-status { font-size: .8rem; color: var(--muted); }
