@@ -67,6 +67,9 @@ object SuburbCardRows {
     const val UNKNOWN: String = "Unknown"
 
     /** The row the Homely score and its entry form sit under (ADR 0030). */
+    const val MEDIAN_HOUSE_LABEL: String = "Median house price"
+    const val MEDIAN_UNIT_LABEL: String = "Median unit price"
+
     const val PRICE_CHANGE_LABEL: String = "Price change, 12 months"
 
     /**
@@ -75,9 +78,9 @@ object SuburbCardRows {
      * reliable source (ADR 0041), though their fields stay in the report.
      */
     fun of(report: SuburbReport): List<CardRow> = listOf(
-        row("Median house price", report.medianHousePriceAud, Formats::dollars),
+        row(MEDIAN_HOUSE_LABEL, report.medianHousePriceAud, Formats::dollars),
         row("Typical block size", report.blockSize, ::blockSize),
-        row("Median unit price", report.medianUnitPriceAud, Formats::dollars),
+        row(MEDIAN_UNIT_LABEL, report.medianUnitPriceAud, Formats::dollars),
         priceChange(report),
         row("Socio-economic advantage", report.socioEconomic) { "Decile ${it.decile} of 10 (10 is the most advantaged)" },
         row("Disadvantage (SEIFA)", report.disadvantage) { "Decile $it of 10 (10 is the least disadvantaged)" },

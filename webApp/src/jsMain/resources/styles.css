@@ -111,6 +111,8 @@ progress { width: 100%; margin: 16px 0; }
 .schools { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .schools li { display: grid; gap: 1px; }
 .schools .detail { font-size: .8rem; color: var(--muted); }
+.listing-links { margin: 6px 0 0; font-size: .85rem; color: var(--muted); }
+.row-links dd.links { font-size: .85rem; }
 .row .hint { margin: 8px 0 0; font-size: .85rem; }
 
 /* Filter panel (ADR 0035), the Filters tab of the right-hand panel. */

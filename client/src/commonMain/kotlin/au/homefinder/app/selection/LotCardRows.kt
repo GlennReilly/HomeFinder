@@ -16,6 +16,8 @@ import kotlin.math.roundToLong
  * Estimated price are not shown because nothing reliable can fill them (ADR 0041); their fields stay in the report.
  */
 object LotCardRows {
+    const val BLOCK_SIZE_LABEL: String = "Block size"
+
     /** What the Height above drainage row says where the suburb is too flat for the hint (ADR 0054). */
     const val NOT_SUITABLE_FLAT_TEXT: String = "Not suitable for flat areas"
 
@@ -24,7 +26,7 @@ object LotCardRows {
      * formatted with a plain fallback; each gets its own wording when its pipeline lands and a real value can reach the card.
      */
     fun of(report: LotReport): List<CardRow> = listOf(
-        SuburbCardRows.row("Block size", report.blockAreaM2, Formats::squareMetres),
+        SuburbCardRows.row(BLOCK_SIZE_LABEL, report.blockAreaM2, Formats::squareMetres),
         SuburbCardRows.row("Backyard aspect", report.backyardAspect) { it.toString() },
         SuburbCardRows.row("Slope", report.slope, ::slope),
         SuburbCardRows.row("Height above sea level", report.elevationM, ::height),

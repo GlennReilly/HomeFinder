@@ -77,7 +77,14 @@ fun FlowContent.lotCard(card: LotCardState, layout: CardLayout = CardLayout(), c
                 val full = layout.arrange(LotCardRows.of(card.report))
                 val arranged = UnknownRows.visible(full, customising, showUnknown)
                 if (arranged.isEmpty() && UnknownRows.unknownCount(full, customising) == 0) p("hint") { +ALL_HIDDEN_HINT }
-                dl("rows") { arranged.forEachIndexed { i, item -> lotRow(item, i, arranged.size, customising) } }
+                dl("rows") {
+                    // Every row is walked so the address links survive a block size row that has no value and is left off (ADR 0061).
+                    full.forEach { item ->
+                        val i = arranged.indexOfFirst { it.row.label == item.row.label }
+                        val links = ListingLinks.forLotRow(item.row.label, card.report)
+                        if (i >= 0) lotRow(item, i, arranged.size, customising, links) else if (links != null && !item.hidden) listingLinksRow(links)
+                    }
+                }
                 unknownRowsNote(UnknownRows.unknownCount(full, customising), showUnknown)
                 p("disclaimer") { +CARD_DISCLAIMER }
             }
@@ -85,7 +92,7 @@ fun FlowContent.lotCard(card: LotCardState, layout: CardLayout = CardLayout(), c
     }
 }
 
-private fun DL.lotRow(item: ArrangedRow, index: Int, count: Int, customising: Boolean) {
+private fun DL.lotRow(item: ArrangedRow, index: Int, count: Int, customising: Boolean, links: ListingBlock? = null) {
     val list = this
     val row = item.row
     div(if (item.hidden) "row row-hidden" else "row") {
@@ -94,6 +101,7 @@ private fun DL.lotRow(item: ArrangedRow, index: Int, count: Int, customising: Bo
         list.dd(if (value == null) "value unknown" else "value") { +(value ?: "Unknown") }
         list.dd("provenance") { +provenanceLine(row) }
         row.note?.let { list.dd("note") { +it } }
+        links?.let { listingLinksLine(it) }
         if (customising) rowControls(item, first = index == 0, last = index == count - 1)
     }
 }
