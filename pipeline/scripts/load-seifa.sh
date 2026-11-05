@@ -17,7 +17,7 @@ trap 'rm -rf "$WORK"' EXIT
 (cd "$PIPELINE_DIR/.." && ./gradlew --console=plain --quiet :census:seifa --no-configuration-cache --args="$FILE $WORK/seifa.csv")
 [[ -s "$WORK/seifa.csv" ]] || { echo "The SEIFA tool wrote no results" >&2; exit 1; }
 
-psql_db -q -c "DROP TABLE IF EXISTS stg.seifa_raw" -c "CREATE TABLE stg.seifa_raw (sal_code text, sal_name text, irsad_score double precision, irsad_decile smallint, population int)"
+psql_db -q -c "DROP TABLE IF EXISTS stg.seifa_raw" -c "CREATE TABLE stg.seifa_raw (sal_code text, sal_name text, irsad_score double precision, irsad_decile smallint, population int, irsd_decile smallint, ier_decile smallint, ieo_decile smallint)"
 psql_db -q -c "\copy stg.seifa_raw from stdin with (format csv, header)" < "$WORK/seifa.csv"
 psql_db -q < "$PIPELINE_DIR/sql/seifa.sql"
 psql_db -q -c "DROP TABLE IF EXISTS stg.seifa_raw"

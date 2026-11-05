@@ -112,7 +112,12 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
                 connection.prepareStatement(SEIFA_SQL).use { statement ->
                     statement.setString(1, suburbId)
                     statement.executeQuery().use { rows ->
-                        if (rows.next()) SuburbSeifa(rows.getInt("irsad_decile"), rows.getDouble("irsad_score"), rows.getInt("population")) else null
+                        if (!rows.next()) return@use null
+                        fun decile(column: String): Int? = rows.getInt(column).takeIf { !rows.wasNull() }
+                        SuburbSeifa(
+                            rows.getInt("irsad_decile"), rows.getDouble("irsad_score"), rows.getInt("population"),
+                            decile("irsd_decile"), decile("ier_decile"), decile("ieo_decile"),
+                        )
                     }
                 }
             }
@@ -261,7 +266,7 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
             SELECT tenure_stated, rented, houses, semis, flats, other_dwellings FROM suburb_census WHERE suburb_id = ?
         """.trimIndent()
 
-        val SEIFA_SQL = "SELECT irsad_decile, irsad_score, population FROM suburb_seifa WHERE suburb_id = ?"
+        val SEIFA_SQL = "SELECT irsad_decile, irsad_score, population, irsd_decile, ier_decile, ieo_decile FROM suburb_seifa WHERE suburb_id = ?"
 
         val SCHOOLS_LOADED_SQL = "SELECT count(*) AS n, max(extracted_on) AS latest FROM school"
 
