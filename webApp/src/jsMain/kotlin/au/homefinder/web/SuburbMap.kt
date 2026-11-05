@@ -38,7 +38,7 @@ object MapDefaults {
     const val SEARCH_BAR_PX: Int = 72
     const val FLY_MILLIS: Int = 1_200
 
-    /** The scale bar: metric, at most this wide. It sits top-left under the zoom buttons, where neither the side panel nor the bottom sheet covers it. */
+    /** The scale bar: metric, at most this wide. CSS places it just right of the search box (under its left edge on a narrow window), where neither the side panel nor the bottom sheet covers it. */
     const val SCALE_MAX_WIDTH_PX: Int = 120
     const val SCALE_UNIT: String = "metric"
     const val SCALE_POSITION: String = "top-left"

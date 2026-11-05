@@ -427,9 +427,18 @@ class SmokeTest {
             assertTrue(bar.x + bar.width <= panel.x || bar.y + bar.height <= panel.y || bar.x >= panel.x + panel.width || bar.y >= panel.y + panel.height, "the scale bar is under the panel")
         }
         clearOfPanel()
+        // On a wide window it sits just right of the search box, level with it.
+        fun besideSearch() {
+            val bar = checkNotNull(scale.boundingBox())
+            val search = checkNotNull(page.locator("#search-input").boundingBox())
+            assertTrue(bar.x >= search.x + search.width, "the scale bar is not right of the search box: bar ${bar.x}, search right ${search.x + search.width}")
+            assertTrue(bar.y < search.y + search.height && bar.y + bar.height > search.y, "the scale bar is not level with the search box")
+        }
+        besideSearch()
         page.locator("#tab-filters").click()
         assertThat(scale).isVisible()
         clearOfPanel()
+        besideSearch()
         tapSuburb()
         assertThat(scale).isVisible()
         clearOfPanel()
@@ -437,6 +446,12 @@ class SmokeTest {
         page.setViewportSize(400, 700)
         assertThat(scale).isVisible()
         clearOfPanel()
+        // ... and under the search box's left edge, clear of it and of the zoom buttons.
+        val bar = checkNotNull(scale.boundingBox())
+        val search = checkNotNull(page.locator("#search-input").boundingBox())
+        val zoom = checkNotNull(page.locator(".maplibregl-ctrl-zoom-in").boundingBox())
+        assertTrue(bar.y >= search.y + search.height, "the scale bar overlaps the search box on a narrow window")
+        assertTrue(bar.x >= zoom.x + zoom.width, "the scale bar overlaps the zoom buttons")
     }
 
     @Test
