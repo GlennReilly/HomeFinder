@@ -62,3 +62,4 @@
 | [0058](0058-hide-unknown-card-rows.md) | Rows without data are left off the cards | Accepted |
 | [0059](0059-sales-count-in-price-change.md) | The sales count sits in the price change row | Accepted |
 | [0060](0060-homely-block-at-the-bottom.md) | The Homely block is the last section of the Suburb Card | Accepted |
+| [0061](0061-listing-links.md) | Links to listings on realestate.com.au and Domain | Accepted |

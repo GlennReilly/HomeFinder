@@ -272,7 +272,7 @@ class SuburbCardHtmlTest {
     @Test
     fun `rows without data are left off, with a note that counts them and offers to show them`() {
         val out = html(SuburbCardState.Loaded(report), showUnknown = false)
-        assertEquals(0, labelsIn(out).size, "every row of this report is unknown")
+        assertEquals(listOf("Houses for sale", "Units for sale"), labelsIn(out), "every row of this report is unknown; only the for-sale links (ADR 0061) are left")
         assertEquals(0, Regex("""class="value unknown"""").findAll(out).count())
         assertTrue("17 rows without data are hidden." in out, out)
         assertTrue("""data-action="show-unknown"""" in out && ">Show them<" in out)
@@ -303,5 +303,50 @@ class SuburbCardHtmlTest {
         assertTrue(out.indexOf("""class="homely"""") < out.indexOf(CARD_DISCLAIMER), "the disclaimer stays last")
         val revealed = html(SuburbCardState.Loaded(report), showUnknown = true)
         assertTrue(revealed.indexOf("Transport") in 0 until revealed.indexOf("""class="homely""""), "revealed rows are above the block too")
+    }
+
+    private fun loadedWithPrices(houses: Long?, units: Long?) = report.copy(
+        medianHousePriceAud = houses?.let { Attribute(it, Confidence.HIGH, "Sales", null) } ?: unknown(),
+        medianUnitPriceAud = units?.let { Attribute(it, Confidence.HIGH, "Sales", null) } ?: unknown(),
+    )
+
+    @Test
+    fun `under the house and unit prices there are links to the portals that open in a new tab`() {
+        val out = html(SuburbCardState.Loaded(loadedWithPrices(900_000, 500_000)), showUnknown = false)
+        assertTrue("Houses for sale: " in out && "Units for sale: " in out)
+        assertTrue("""href="https://www.domain.com.au/sale/hamilton-nsw-2303/house/"""" in out)
+        assertTrue("""href="https://www.realestate.com.au/buy/property-unit+apartment-in-hamilton,+nsw+2303/list-1"""" in out)
+        assertEquals(4, Regex("""target="_blank"""").findAll(out.substringBefore("homely")).count() , "two links under each price")
+        assertTrue(Regex("""<a [^>]*rel="noopener noreferrer"[^>]*>realestate\.com\.au</a>""").containsMatchIn(out))
+        // The links sit inside the price's own row, under its value.
+        val house = out.indexOf("Median house price")
+        assertTrue(house < out.indexOf("Houses for sale: ") && out.indexOf("Houses for sale: ") < out.indexOf("Median unit price"))
+    }
+
+    @Test
+    fun `a price with no value is left off but its for-sale links stay`() {
+        val out = html(SuburbCardState.Loaded(loadedWithPrices(null, 500_000)), showUnknown = false)
+        assertFalse("Median house price" in out, "the unknown price row is left off")
+        assertTrue("<dt>Houses for sale</dt>" in out)
+        assertTrue("""href="https://www.domain.com.au/sale/hamilton-nsw-2303/house/"""" in out)
+        // Revealing the unknown rows puts the links back under the price row itself.
+        val shown = html(SuburbCardState.Loaded(loadedWithPrices(null, 500_000)), showUnknown = true)
+        assertTrue("Median house price" in shown && "<dt>Houses for sale</dt>" !in shown && "Houses for sale: " in shown)
+    }
+
+    @Test
+    fun `a suburb without a postcode has no for-sale links`() {
+        val out = html(SuburbCardState.Loaded(loadedWithPrices(900_000, 500_000).copy(postcode = null)), showUnknown = false)
+        assertFalse("for sale" in out)
+    }
+
+    @Test
+    fun `customising keeps each link under its row, and a row you hid takes its links with it`() {
+        val layout = CardLayout(hidden = setOf(SuburbCardRows.MEDIAN_UNIT_LABEL))
+        val out = createHTML().div { suburbCard(SuburbCardState.Loaded(loadedWithPrices(900_000, 500_000)), layout, customising = false, showUnknown = false) }
+        assertTrue("Houses for sale: " in out)
+        assertFalse("Units for sale" in out)
+        val editing = createHTML().div { suburbCard(SuburbCardState.Loaded(loadedWithPrices(900_000, 500_000)), layout, customising = true, showUnknown = false) }
+        assertTrue("Units for sale: " in editing && "Houses for sale: " in editing)
     }
 }

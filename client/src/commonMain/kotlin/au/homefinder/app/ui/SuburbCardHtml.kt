@@ -122,8 +122,20 @@ fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayou
                 val arranged = UnknownRows.visible(full, customising, showUnknown)
                 if (arranged.isEmpty() && UnknownRows.unknownCount(full, customising) == 0) p("hint") { +ALL_HIDDEN_HINT }
                 dl("rows") {
-                    arranged.forEachIndexed { i, item ->
-                        cardRow(item, i, arranged.size, customising, if (item.row.label == SuburbCardRows.SCHOOLS_LABEL) schoolList(card.report) else null)
+                    // Walk every row, so the for-sale links under a price row are not lost when that row has no value and is left off (ADR 0061).
+                    full.forEach { item ->
+                        val i = arranged.indexOfFirst { it.row.label == item.row.label }
+                        val links = ListingLinks.forSuburbRow(item.row.label, card.report)
+                        if (i >= 0) {
+                            val extra: (kotlinx.html.DIV.() -> Unit)? = when {
+                                item.row.label == SuburbCardRows.SCHOOLS_LABEL -> schoolList(card.report)
+                                links != null -> ({ listingLinksLine(links) })
+                                else -> null
+                            }
+                            cardRow(item, i, arranged.size, customising, extra)
+                        } else if (links != null && !item.hidden) {
+                            listingLinksRow(links)
+                        }
                     }
                 }
                 unknownRowsNote(UnknownRows.unknownCount(full, customising), showUnknown)

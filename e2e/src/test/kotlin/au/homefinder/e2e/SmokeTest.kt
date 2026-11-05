@@ -136,6 +136,13 @@ class SmokeTest {
         assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Price change"))).containsText("+4.2% (120 sales)")
         assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Sales behind the prices"))).hasCount(0)
         assertThat(page.locator("#card a.external-link[href*='homely.com.au']")).hasAttribute("href", "https://www.homely.com.au/suburb-profile/hamilton-nsw-2303")
+        // Under the house and unit prices: links to houses and units for sale in the suburb on both portals, each in a new tab (ADR 0061).
+        val house = page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Median house price"))
+        val unit = page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Median unit price"))
+        assertThat(house.locator("a[href='https://www.realestate.com.au/buy/property-house-in-hamilton,+nsw+2303/list-1']")).hasAttribute("target", "_blank")
+        assertThat(house.locator("a[href='https://www.domain.com.au/sale/hamilton-nsw-2303/house/']")).hasAttribute("target", "_blank")
+        assertThat(unit.locator("a[href='https://www.realestate.com.au/buy/property-unit+apartment-in-hamilton,+nsw+2303/list-1']")).hasAttribute("rel", "noopener noreferrer")
+        assertThat(unit.locator("a[href='https://www.domain.com.au/sale/hamilton-nsw-2303/apartment-unit-flat/']")).hasAttribute("target", "_blank")
         page.keyboard().press("Escape")
         assertThat(page.locator("#card")).isHidden()
     }
@@ -206,6 +213,10 @@ class SmokeTest {
         assertThat(page.locator("#card")).containsText("Block size")
         assertThat(page.locator("#card")).containsText("Moderate, 12.0% on average (steepest 21.3%)")
         assertThat(page.locator("#card")).containsText("35.0 m")
+        // Under the block size: the address's own page on each portal, in a new tab (ADR 0061).
+        val block = page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Block size"))
+        assertThat(block.locator("a[href='https://www.domain.com.au/property-profile/12-main-street-hamilton-nsw-2303']")).hasAttribute("target", "_blank")
+        assertThat(block.locator("a[href='https://www.realestate.com.au/property/12-main-st-hamilton-nsw-2303/']")).hasAttribute("target", "_blank")
 
         page.locator("#search-input").fill("120 main st")
         page.locator("#search-results [role=option]").click()

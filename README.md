@@ -116,6 +116,11 @@ that is. A criterion whose data has not been loaded says so instead of showing i
 
 A card row whose value is unknown is left off. A muted line under the rows says how many ("3 rows without data are hidden.") with a **Show them** button that reveals them with their source and reason, and **Hide them again**. The choice lasts until the page is reloaded. Customise still lists every row. See [ADR 0058](docs/adr/0058-hide-unknown-card-rows.md).
 
+### Listing links
+
+The Suburb Card puts "Houses for sale" and "Units for sale" links (realestate.com.au and domain.com.au) under the median house and unit prices, and the Lot Card puts "This address" links under the block size.
+They open in a new tab; they are built from the suburb name and postcode or the lot's address and never fetched ([ADR 0027](docs/adr/0027-link-out-to-homely-no-extraction.md), [ADR 0061](docs/adr/0061-listing-links.md)).
+
 ### Customising the cards
 
 The card's name, postcode, close button and Customise bar stay pinned at the top while you scroll, and choosing another suburb keeps the card scrolled to the same place, so you can compare rows ([ADR 0053](docs/adr/0053-pinned-card-header-reset-all-kept-scroll.md)). The Filters tab has a **Reset all** button.

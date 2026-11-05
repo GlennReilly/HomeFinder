@@ -106,4 +106,28 @@ class LotCardHtmlTest {
         assertTrue("Block size" in hidden, "a row with a value stays")
         assertTrue(">Show them<" in hidden || ">Show it<" in hidden)
     }
+
+    @Test
+    fun `under the block size there are links to the lot's address on both portals, opening in a new tab`() {
+        val out = html(LotCardState.Loaded(report(listOf("12 MAIN STREET, HAMILTON NSW 2303"))), showUnknown = false)
+        assertTrue("This address: " in out)
+        assertTrue("""href="https://www.domain.com.au/property-profile/12-main-street-hamilton-nsw-2303"""" in out)
+        assertTrue("""href="https://www.realestate.com.au/property/12-main-st-hamilton-nsw-2303/"""" in out)
+        assertEquals(2, Regex("""target="_blank" rel="noopener noreferrer"""").findAll(out).count().coerceAtLeast(Regex("""rel="noopener noreferrer"""").findAll(out).count()))
+        assertTrue(out.indexOf("Block size") < out.indexOf("This address: "))
+    }
+
+    @Test
+    fun `with several addresses the first is linked, and with none there are no links`() {
+        val several = html(LotCardState.Loaded(report(listOf("1/12 MAIN STREET, HAMILTON NSW 2303", "2/12 MAIN STREET, HAMILTON NSW 2303"))), showUnknown = false)
+        assertTrue("1-12-main-street-hamilton-nsw-2303" in several && "2-12-main-street" !in several)
+        assertFalse("This address" in html(LotCardState.Loaded(report(emptyList())), showUnknown = false))
+    }
+
+    @Test
+    fun `a block size with no value is left off but the address links stay`() {
+        val out = html(LotCardState.Loaded(report(listOf("12 MAIN STREET, HAMILTON NSW 2303"), area = u())), showUnknown = false)
+        assertFalse("<dt>Block size</dt>" in out)
+        assertTrue("<dt>This address</dt>" in out)
+    }
 }
