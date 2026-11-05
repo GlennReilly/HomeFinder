@@ -56,3 +56,4 @@
 | [0052](0052-single-slider-filters.md) | One slider with a fixed direction for each filter | Accepted |
 | [0053](0053-pinned-card-header-reset-all-kept-scroll.md) | Pinned card header, Reset all, and a card that keeps its scroll position | Accepted |
 | [0054](0054-hand-not-suitable-for-flat-areas.md) | Height above drainage is not offered in flat suburbs | Accepted |
+| [0055](0055-capped-crime-sliders.md) | Capped crime sliders with a "No limit" position | Accepted |

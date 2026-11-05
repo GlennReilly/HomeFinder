@@ -240,7 +240,11 @@ private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap, 
         (document.getElementById(FilterIds.RESET) as? HTMLButtonElement)?.disabled = !result.selection.isActive
         document.getElementById(FilterIds.SUMMARY)?.textContent = filterSummaryText(result)
         FilterCriterion.entries.forEach { criterion ->
-            input(FilterIds.limit(criterion))?.let { document.getElementById(FilterIds.limitOut(criterion))?.textContent = criterion.format(it.value.toDouble()) }
+            input(FilterIds.limit(criterion))?.let {
+                val limit = it.value.toDouble()
+                document.getElementById(FilterIds.limitPrefix(criterion))?.textContent = loaded.limitPrefix(criterion, limit)
+                document.getElementById(FilterIds.limitOut(criterion))?.textContent = loaded.limitText(criterion, limit)
+            }
         }
     }
 

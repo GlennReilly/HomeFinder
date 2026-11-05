@@ -28,7 +28,7 @@ class FilterPanelHtmlTest {
         assertTrue("""id="${FilterIds.limit(FilterCriterion.ICSEA)}"""" in out)
         assertFalse("filter-icsea-min" in out || "filter-icsea-max" in out, "no second slider")
         assertTrue("""min="960"""" in out && """max="1040"""" in out && """step="10"""" in out && """value="960"""" in out, out)
-        assertTrue("""At least <span id="filter-icsea-limit-value">960</span>""" in out, out)
+        assertTrue("""<span id="filter-icsea-limit-prefix">At least </span><span id="filter-icsea-limit-value">960</span>""" in out, out)
     }
 
     @Test
@@ -79,9 +79,9 @@ class FilterPanelHtmlTest {
         FilterCriterion.entries.forEach { c ->
             assertTrue("""id="${FilterIds.on(c)}"""" in out && """id="${FilterIds.limit(c)}"""" in out, c.name)
         }
-        assertTrue("""At most <span id="filter-rented-limit-value">45%</span>""" in out, out)
-        assertTrue("""At most <span id="filter-beach-limit-value">12 km</span>""" in out)
-        assertTrue("""At least <span id="filter-seifa-limit-value">3</span>""" in out)
+        assertTrue("""<span id="filter-rented-limit-prefix">At most </span><span id="filter-rented-limit-value">45%</span>""" in out, out)
+        assertTrue("""<span id="filter-beach-limit-prefix">At most </span><span id="filter-beach-limit-value">12 km</span>""" in out)
+        assertTrue("""<span id="filter-seifa-limit-prefix">At least </span><span id="filter-seifa-limit-value">3</span>""" in out)
         assertTrue("Homes rented: Source: ABS Census · as of 2021-08-10" in out)
         assertTrue("Violent crime: Source: BOCSAR · as of 2026-06-30" in out)
         assertTrue("Break-ins, car and home theft: Source: BOCSAR · as of 2026-06-30" in out)
@@ -117,5 +117,14 @@ class FilterPanelHtmlTest {
         assertTrue(Regex("""<button[^>]*id="${FilterIds.RESET}"[^>]*disabled""").containsMatchIn(idle) || Regex("""<button[^>]*disabled[^>]*id="${FilterIds.RESET}"""").containsMatchIn(idle), idle)
         val active = createHTML().div { filterPanel(d, d.apply(FilterSelection(mapOf(FilterCriterion.ICSEA to 1000.0)))) }
         assertFalse(Regex("""<button[^>]*id="${FilterIds.RESET}"[^>]*disabled""").containsMatchIn(active) || Regex("""<button[^>]*disabled[^>]*id="${FilterIds.RESET}"""").containsMatchIn(active), active)
+    }
+
+    @Test
+    fun `a capped crime slider starts on No limit, with no words before it, and spans the lowest 90 percent plus that position`() {
+        val values = (1..19).map { SuburbFilterValue("s$it", violentPer1000 = it.toDouble()) } + SuburbFilterValue("outlier", violentPer1000 = 100.0)
+        val d = FilterData.from(SuburbFiltersResponse(values, "S", LocalDate(2026, 10, 2), crime = FilterProvenance("BOCSAR", LocalDate(2026, 6, 30))))
+        val out = html(d)
+        assertTrue("""<span id="filter-violent-limit-prefix"></span><span id="filter-violent-limit-value">No limit</span>""" in out, out)
+        assertTrue(Regex("""id="filter-violent-limit"[^>]*max="19"[^>]*value="19"""").containsMatchIn(out) || Regex("""id="filter-violent-limit"[^>]*value="19"[^>]*max="19"""").containsMatchIn(out), out)
     }
 }
