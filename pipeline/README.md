@@ -144,3 +144,15 @@ tests/test_crime.sh                # integration test on a tiny file (needs Dock
 The Kotlin tool in the `census` module (`:census:crime`) streams the file and sums the latest 24 months for two measures; the script loads the counts and matches BOCSAR suburbs to ours by name, with
 the council area in BOCSAR's "Name (Council area)" tag settling shared names. The rate per 1,000 residents is worked out in the server from `suburb_seifa.population`. Data: NSW Bureau of Crime
 Statistics and Research on Data.NSW, Creative Commons Attribution. See [ADR 0051](../docs/adr/0051-bocsar-crime-rates.md).
+
+## School catchments (download only so far)
+
+```bash
+scripts/download-catchments.sh [dir]   # the NSW Department of Education school catchment boundaries (a ZIP), unpacked into ../data/raw/catchments; prints each file and its layout (run it yourself)
+tests/test_download_catchments.sh      # download script against a local stand-in (no Docker)
+```
+
+Only the download exists: the file's format and fields have not been seen, so there is no loader. The printed layout (shapefile fields, first records, projection, bounding box)
+is what a loader is written from. Data: NSW Department of Education on Data NSW, licence stated as Creative Commons Attribution 3.0 Australia (confirm on the page). The
+Department takes no responsibility if the zones are relied on, and living in a zone does not guarantee a place.
+
