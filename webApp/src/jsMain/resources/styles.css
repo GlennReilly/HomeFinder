@@ -48,6 +48,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--purple); ou
 progress { width: 100%; margin: 16px 0; }
 .rows { margin: 12px 0 0; }
 .row { border-top: 1px solid rgba(128, 128, 128, .35); padding: 8px 0; }
+/* The pinned header already draws a line above the first row, so the top row (whichever it is after re-ordering) needs none. */
+.rows > .row:first-child { border-top: 0; }
 .row dt { font-size: .8rem; color: var(--muted); }
 .row dd { margin: 2px 0 0; }
 .row .value { font-size: 1.05rem; }
