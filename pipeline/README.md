@@ -149,7 +149,7 @@ Statistics and Research on Data.NSW, Creative Commons Attribution. See [ADR 0051
 
 ```bash
 scripts/download-catchments.sh [dir]   # the NSW Department of Education school catchment boundaries (a ZIP), unpacked into ../data/raw/catchments; prints each file and its layout (run it yourself)
-scripts/load-catchments.sh [dir]       # loads the current primary and secondary zones into school_catchment (migration V23); reports how many match the schools data
+scripts/load-catchments.sh [dir]       # loads the current primary and secondary zones into school_catchment (migration V23) and works out each suburb's zone shares into suburb_catchment (V24, needs the lots); reports how many match the schools data
 tests/test_download_catchments.sh      # download script against a local stand-in (no Docker)
 tests/test_catchments.sh               # integration test on tiny shapefiles (needs Docker, python3 and a JDK 17)
 ```

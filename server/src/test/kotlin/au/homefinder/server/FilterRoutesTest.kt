@@ -89,6 +89,16 @@ class FilterRoutesTest {
     }
 
     @Test
+    fun `the zoned-school ICSEA and its provenance come only when the zones and schools are loaded`() = api(
+        FakeDirectory(SuburbFilterData(listOf(SuburbFilterRow("9001", null, zonedIcsea = 1042), SuburbFilterRow("9002", null)), day, zonedLoaded = true, zonedAsOf = day)),
+    ) {
+        val body = ApiJson.decodeFromString<SuburbFiltersResponse>(get(ApiContract.SUBURB_FILTERS_PATH) { header(ApiContract.API_KEY_HEADER, key) }.bodyAsText())
+        assertEquals(1042, body.suburbs.first().zonedIcsea)
+        assertNull(body.suburbs.last().zonedIcsea)
+        assertEquals(FilterProvenance(SuburbReportFactory.ZONED_FILTER_SOURCE, day), body.zoned)
+    }
+
+    @Test
     fun `a data set that is not loaded has no provenance`() = api(FakeDirectory(SuburbFilterData(listOf(SuburbFilterRow("9001", 1032)), day))) {
         val body = ApiJson.decodeFromString<SuburbFiltersResponse>(get(ApiContract.SUBURB_FILTERS_PATH) { header(ApiContract.API_KEY_HEADER, key) }.bodyAsText())
         assertNull(body.beach)

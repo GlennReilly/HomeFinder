@@ -79,6 +79,12 @@ enum class FilterCriterion(
         "Break-ins, vehicle theft, stealing from cars and homes and malicious damage, recorded by the NSW Bureau of Crime Statistics and Research. Counted where it happens, and reflects reporting and policing. Suburbs under 500 residents have no rate.",
         "Crime data (and the SEIFA population it needs) has not been loaded yet, so there is nothing to filter on.",
         capPercentile = CRIME_CAP_PERCENTILE,
+    ),
+    ZONED(
+        "zoned", "Zoned schools' ICSEA (average of the schools whose catchments cover the suburb)", "", Direction.AT_LEAST, 10.0, "zoned-school ICSEA",
+        "The ICSEA of the public primary and high schools whose catchments cover at least a quarter of the suburb's lots, averaged and weighted by how much of the suburb each covers. " +
+            "Catchments change, and ICSEA is not a measure of school quality.",
+        "School catchments (and the schools data they are matched to) have not been loaded yet, so there is nothing to filter on.",
     );
 
     fun format(value: Double): String = Formats.decimal(value, 0) + unit
@@ -199,6 +205,7 @@ class FilterData(
                 FilterCriterion.SEIFA to response.suburbs.associate { it.suburbId to it.seifaDecile?.toDouble() },
                 FilterCriterion.VIOLENT to response.suburbs.associate { it.suburbId to it.violentPer1000 },
                 FilterCriterion.PROPERTY to response.suburbs.associate { it.suburbId to it.propertyPer1000 },
+                FilterCriterion.ZONED to response.suburbs.associate { it.suburbId to it.zonedIcsea?.toDouble() },
             )
             val sources = buildMap {
                 put(FilterCriterion.ICSEA, FilterSource(response.icseaSource, response.icseaAsOf))
@@ -206,6 +213,7 @@ class FilterData(
                 response.parks?.let { put(FilterCriterion.PARKS, FilterSource(it.source, it.asOf)) }
                 response.rented?.let { put(FilterCriterion.RENTED, FilterSource(it.source, it.asOf)) }
                 response.seifa?.let { put(FilterCriterion.SEIFA, FilterSource(it.source, it.asOf)) }
+                response.zoned?.let { put(FilterCriterion.ZONED, FilterSource(it.source, it.asOf)) }
                 response.crime?.let {
                     put(FilterCriterion.VIOLENT, FilterSource(it.source, it.asOf))
                     put(FilterCriterion.PROPERTY, FilterSource(it.source, it.asOf))

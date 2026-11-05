@@ -185,6 +185,17 @@ class SmokeTest {
     }
 
     @Test
+    fun `the Zoned schools row names the zones and lists each with its share of the suburb and ICSEA`() {
+        openWithKey()
+        tapSuburb()
+        val row = page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Zoned schools"))
+        assertThat(row.first()).containsText("Hamilton South Public School (primary), Newcastle High School (high)")
+        assertThat(page.locator("#card ul.zones")).containsText("primary, K-6 · 82% of the suburb's lots · ICSEA 1,041")
+        assertThat(page.locator("#card ul.zones")).containsText("high, 7-12 · 76% of the suburb's lots · ICSEA 1,017")
+        assertThat(row.first()).containsText("Catchments change")
+    }
+
+    @Test
     fun `a wrong key shows a failed card instead of crashing`() {
         context.addInitScript("window.localStorage.setItem('homefinder.apiKey', 'not-the-key-0123456789')")
         page.navigate(app.origin + "/")
@@ -257,6 +268,8 @@ class SmokeTest {
         assertThat(page.locator("#filters")).containsText("Homes rented: Source: Test Census · as of 2021-08-10")
         assertThat(page.locator("#filter-seifa-limit-value")).hasText("3")
         assertThat(page.locator("#filters")).containsText("Socio-economic advantage: Source: Test SEIFA")
+        assertThat(page.locator("#filter-zoned-limit-value")).hasText("990")
+        assertThat(page.locator("#filters")).containsText("Zoned schools' ICSEA: Source: Test catchments")
         assertThat(page.locator("#filter-violent-limit-value")).hasText("31 per 1,000")
         assertThat(page.locator("#filter-violent-unknown")).containsText("1 of 3 suburbs have no violent crime rate")
         assertThat(page.locator("#filters")).containsText("Violent crime: Source: Test BOCSAR")

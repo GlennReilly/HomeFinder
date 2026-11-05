@@ -249,6 +249,48 @@ class SuburbReportFactoryTest {
         assertEquals(Confidence.LOW, SuburbReportFactory.build(hamilton, seifa = SuburbSeifa(1, 880.0, 33, irsdDecile = 1)).disadvantage.confidence)
     }
 
+    private fun share(code: Int, level: String, share: Double, name: String = "School $code", icsea: Int? = 1000, type: String = if (level == "HIGH") "HIGH_COED" else "PRIMARY") =
+        SuburbZoneShare(CatchmentZone(code, level, type, "$name (dept)", if (level == "HIGH") "7-12" else "K-6", 2026, SchoolRecord(code, name, "Primary School", icsea, 400, null)), share)
+
+    @Test
+    fun `zones covering a quarter of the suburb are listed per level, primary first and largest first, and a level with none that big lists its biggest`() {
+        val listed = SuburbReportFactory.listedZones(
+            listOf(
+                share(20, "HIGH", 0.90), share(11, "PRIMARY", 0.30), share(10, "PRIMARY", 0.62), share(12, "PRIMARY", 0.07),
+                share(30, "HIGH", 0.10), // below a quarter but the high level has a bigger one, so it is not listed
+            ),
+        )
+        assertEquals(listOf(10, 11, 20), listed.map { it.zone.schoolCode })
+        val split = SuburbReportFactory.listedZones(listOf(share(1, "PRIMARY", 0.20), share(2, "PRIMARY", 0.18), share(3, "HIGH", 0.24)))
+        assertEquals(listOf(1, 3), split.map { it.zone.schoolCode }, "no zone reaches a quarter, so each level lists its biggest")
+        assertEquals(listOf(5), SuburbReportFactory.listedZones(listOf(share(5, "PRIMARY", 0.25))).map { it.zone.schoolCode }, "exactly a quarter counts")
+    }
+
+    @Test
+    fun `the zoned schools carry the school, the kind of zone, the share, the enrolment year and the reliance note`() {
+        val report = SuburbReportFactory.build(hamilton, zones = SuburbZoneData(listOf(share(10, "PRIMARY", 0.82, "Hamilton Public School", 1041), share(20, "HIGH", 0.76, "Newcastle High School", null))))
+        val zoned = assertNotNull(report.zonedSchools.value)
+        assertEquals(2026, zoned.enrolmentYear)
+        assertEquals(listOf("Hamilton Public School", "Newcastle High School"), zoned.zones.map { it.school.name })
+        assertEquals(listOf(0.82, 0.76), zoned.zones.map { it.lotShare })
+        assertEquals("primary, K-6", zoned.zones.first().school.levelLabel)
+        assertEquals(1041, zoned.zones.first().school.icsea)
+        assertNull(zoned.zones.last().school.icsea)
+        assertEquals(Confidence.MEDIUM, report.zonedSchools.confidence)
+        val note = assertNotNull(report.zonedSchools.note)
+        assertTrue("guarantee a place" in note && "2026 enrolments" in note && "Based on NSW Department of Education data" in note, note)
+    }
+
+    @Test
+    fun `without catchments the zoned row is unknown with a reason, and a suburb no zone covers is unknown with another`() {
+        val none = SuburbReportFactory.build(hamilton).zonedSchools
+        assertTrue(none.isUnknown)
+        assertEquals(SuburbReportFactory.ZONED_NOT_LOADED_NOTE, none.note)
+        val uncovered = SuburbReportFactory.build(hamilton, zones = SuburbZoneData(emptyList())).zonedSchools
+        assertTrue(uncovered.isUnknown)
+        assertEquals(SuburbReportFactory.ZONED_NONE_NOTE, uncovered.note)
+    }
+
     @Test
     fun `without SEIFA data the socio-economic row is unknown with a reason`() {
         val none = SuburbReportFactory.build(hamilton).socioEconomic

@@ -26,6 +26,7 @@ data class SuburbFilterRow(
     val violentPer1000: Double? = null,
     val propertyPer1000: Double? = null,
     val name: String = "",
+    val zonedIcsea: Int? = null,
 )
 
 /**
@@ -42,4 +43,6 @@ data class SuburbFilterData(
     val seifaLoaded: Boolean = false,
     val crimeLoaded: Boolean = false,
     val crimeAsOf: LocalDate? = null,
+    val zonedLoaded: Boolean = false,
+    val zonedAsOf: LocalDate? = null,
 )

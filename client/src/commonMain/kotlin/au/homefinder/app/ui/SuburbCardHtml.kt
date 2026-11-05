@@ -129,6 +129,7 @@ fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayou
                         if (i >= 0) {
                             val extra: (kotlinx.html.DIV.() -> Unit)? = when {
                                 item.row.label == SuburbCardRows.SCHOOLS_LABEL -> schoolList(card.report)
+                                item.row.label == SuburbCardRows.ZONED_LABEL -> zoneList(card.report)
                                 links != null -> ({ listingLinksLine(links) })
                                 else -> null
                             }
@@ -214,6 +215,29 @@ private fun DETAILS.ratingFormBody(current: au.homefinder.shared.model.HomelyRat
             }
         }
         p(RatingForm.MESSAGE_CLASS) { attributes["role"] = "status" }
+    }
+}
+
+/** The zones under the Zoned schools row: each school (linked to its own website when it has one) with its kind and years, the share of the suburb it covers and its ICSEA. */
+private fun zoneList(report: SuburbReport): (kotlinx.html.DIV.() -> Unit)? {
+    val zones = report.zonedSchools.value?.zones?.takeIf { it.isNotEmpty() } ?: return null
+    return {
+        ul("zones") {
+            zones.forEach { zone ->
+                li {
+                    val address = ExternalLinks.webAddress(zone.school.website)
+                    if (address != null) {
+                        a(href = address, target = "_blank", classes = "external-link") {
+                            attributes["rel"] = "noopener noreferrer"
+                            +zone.school.name
+                        }
+                    } else {
+                        span("school-name") { +zone.school.name }
+                    }
+                    span("detail") { +SuburbCardRows.zoneDetail(zone) }
+                }
+            }
+        }
     }
 }
 
