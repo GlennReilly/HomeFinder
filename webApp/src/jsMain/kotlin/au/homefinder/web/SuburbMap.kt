@@ -18,6 +18,9 @@ object MapDefaults {
     const val ZOOM: Double = 10.0
     const val CONTAINER_ID: String = "map"
 
+    /** The window property that holds the map, for the browser tests to read its layers and filters. */
+    const val TEST_HOOK: String = "homefinderMap"
+
     /** Served next to the page by the build (see webApp/build.gradle.kts). */
     const val WORKER_URL: String = "/maplibre-gl-worker.mjs"
 
@@ -46,7 +49,10 @@ object MapDefaults {
  * API carry the key as a header (ADR 0019), so the key never appears in a URL.
  */
 class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude: Double, longitude: Double, zoom: Double) -> Unit) {
-    private val map = createMap(apiOrigin, apiKey)
+    private val map = createMap(apiOrigin, apiKey).also {
+        // A hook for the browser tests, which read the map's layers and filters; nothing in the app uses it.
+        window.asDynamic()[MapDefaults.TEST_HOOK] = it
+    }
 
     private fun createMap(apiOrigin: String, apiKey: String): MapLibre.Map {
         MapLibre.setWorkerUrl(MapDefaults.WORKER_URL)
@@ -100,7 +106,7 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
         }
     }
 
-    /** Highlights the selected suburb or lot and dims the rest; null clears each. */
+    /** Highlights the selected suburb (tint and outline, nothing else changes) or lot (the other lots are dimmed); null clears each. */
     fun showSelection(suburbId: String?, lotId: String?) {
         pendingSuburb = suburbId
         pendingLot = lotId
@@ -108,7 +114,6 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
         map.setFilter(LotStyle.DIM_LAYER, LotStyle.dimFilter(lotId))
         map.setFilter(LotStyle.SELECTED_FILL_LAYER, LotStyle.selectedFilter(lotId))
         map.setFilter(LotStyle.SELECTED_OUTLINE_LAYER, LotStyle.selectedFilter(lotId))
-        map.setFilter(SuburbStyle.DIM_LAYER, SuburbStyle.dimFilter(suburbId))
         map.setFilter(SuburbStyle.SELECTED_FILL_LAYER, SuburbStyle.selectedFilter(suburbId))
         map.setFilter(SuburbStyle.SELECTED_OUTLINE_LAYER, SuburbStyle.selectedFilter(suburbId))
     }

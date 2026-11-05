@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import java.io.File
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -98,6 +99,24 @@ class SmokeTest {
         page.reload()
         assertThat(page.locator("#map canvas")).isVisible()
         assertThat(page.locator("#key-prompt")).isHidden()
+    }
+
+    @Test
+    fun `selecting a suburb changes only that suburb and nothing else is dimmed`() {
+        openWithKey()
+        assertThat(page.locator("#map canvas")).isVisible()
+        tapSuburb()
+        // The map is on the window for the tests; the selected fill and outline name the tapped suburb, and there is no layer that dims the rest.
+        val layers = page.evaluate("window.homefinderMap.getStyle().layers.map(l => l.id)").toString()
+        assertTrue("suburb-selected-fill" in layers && "suburb-selected-outline" in layers, layers)
+        assertFalse("suburb-dim" in layers, "no layer dims the other suburbs: $layers")
+        val fill = page.evaluate("JSON.stringify(window.homefinderMap.getFilter('suburb-selected-fill'))").toString()
+        val outline = page.evaluate("JSON.stringify(window.homefinderMap.getFilter('suburb-selected-outline'))").toString()
+        assertEquals("""["==",["get","suburb_id"],"9001"]""", fill)
+        assertEquals(fill, outline)
+        page.keyboard().press("Escape")
+        assertThat(page.locator("#card")).isHidden()
+        assertEquals("""["==",["get","suburb_id"],""]""", page.evaluate("JSON.stringify(window.homefinderMap.getFilter('suburb-selected-fill'))").toString())
     }
 
     @Test
