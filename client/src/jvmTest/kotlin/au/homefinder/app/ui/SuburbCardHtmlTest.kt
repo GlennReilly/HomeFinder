@@ -38,6 +38,8 @@ class SuburbCardHtmlTest {
         assertEquals(18, Regex("""class="value unknown"""").findAll(out).count())
         assertTrue("Some source" in out)
         assertTrue("Not computed yet" in out)
+        assertTrue(Regex("""<details class="note-details">\s*<summary>Details</summary>\s*<p>\s*Not computed yet""").containsMatchIn(out), out)
+        assertTrue(out.indexOf("note-details") < out.indexOf("source-details"), "Details sit above Source")
         assertTrue(CARD_DISCLAIMER in out)
     }
 
