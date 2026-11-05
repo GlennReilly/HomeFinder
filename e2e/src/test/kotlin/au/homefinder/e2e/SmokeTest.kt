@@ -11,6 +11,7 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
+import java.util.regex.Pattern
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import java.io.File
@@ -378,5 +379,34 @@ class SmokeTest {
         page.keyboard().press("Escape")
         tapSuburb()
         assertEquals(0, cardScrollTop())
+    }
+
+    @Test
+    fun `a metric scale bar is always on the map, changes with the zoom and is not covered by the panel`() {
+        openWithKey()
+        val scale = page.locator(".maplibregl-ctrl-scale")
+        assertThat(scale).isVisible()
+        assertThat(scale).hasText(Pattern.compile("""\d+(\.\d+)?\s?(m|km)"""))
+        val before = scale.innerText()
+        page.locator(".maplibregl-ctrl-zoom-in").click()
+        page.locator(".maplibregl-ctrl-zoom-in").click()
+        assertThat(scale).not().hasText(before)
+        // Open, folded and with a card, on a wide window, it never sits under the right-hand panel.
+        fun clearOfPanel() {
+            val bar = checkNotNull(scale.boundingBox())
+            val panel = checkNotNull(page.locator("#side").boundingBox())
+            assertTrue(bar.x + bar.width <= panel.x || bar.y + bar.height <= panel.y || bar.x >= panel.x + panel.width || bar.y >= panel.y + panel.height, "the scale bar is under the panel")
+        }
+        clearOfPanel()
+        page.locator("#tab-filters").click()
+        assertThat(scale).isVisible()
+        clearOfPanel()
+        tapSuburb()
+        assertThat(scale).isVisible()
+        clearOfPanel()
+        // On a narrow window the panel is a bottom sheet; the bar is at the top, clear of it.
+        page.setViewportSize(400, 700)
+        assertThat(scale).isVisible()
+        clearOfPanel()
     }
 }

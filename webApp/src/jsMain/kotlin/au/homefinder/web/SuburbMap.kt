@@ -34,6 +34,11 @@ object MapDefaults {
     const val MARGIN_PX: Int = 24
     const val SEARCH_BAR_PX: Int = 72
     const val FLY_MILLIS: Int = 1_200
+
+    /** The scale bar: metric, at most this wide. It sits top-left under the zoom buttons, where neither the side panel nor the bottom sheet covers it. */
+    const val SCALE_MAX_WIDTH_PX: Int = 120
+    const val SCALE_UNIT: String = "metric"
+    const val SCALE_POSITION: String = "top-left"
 }
 
 /**
@@ -72,6 +77,7 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
         // maplibreCss is read so webpack keeps the stylesheet import.
         check(jsTypeOf(maplibreCss).isNotEmpty())
         map.addControl(MapLibre.NavigationControl(), "top-left")
+        map.addControl(MapLibre.ScaleControl(jsObject("maxWidth" to MapDefaults.SCALE_MAX_WIDTH_PX, "unit" to MapDefaults.SCALE_UNIT)), MapDefaults.SCALE_POSITION)
         // Sources and layers are added on "load": MapLibre 6 has no tile manager for a source added on "style.load".
         map.on("load") {
             map.addSource(SuburbStyle.SOURCE_ID, SuburbStyle.source(apiOrigin + TileContract.suburbsPath() + "/{z}/{x}/{y}" + TileContract.TILE_SUFFIX))
