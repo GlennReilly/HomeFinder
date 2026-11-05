@@ -6,6 +6,8 @@ import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.CrimeRate
 import au.homefinder.shared.model.DwellingMix
 import au.homefinder.shared.model.SocioEconomic
+import au.homefinder.shared.model.SuburbZone
+import au.homefinder.shared.model.SuburbZonedSchools
 import au.homefinder.shared.model.HomelyRating
 import au.homefinder.shared.model.School
 import au.homefinder.shared.model.SchoolLevel
@@ -52,6 +54,7 @@ object SuburbReportFactory {
         census: SuburbCensus? = null,
         seifa: SuburbSeifa? = null,
         crime: SuburbCrime? = null,
+        zones: SuburbZoneData? = null,
     ): SuburbReport = SuburbReport(
         suburbId = record.suburbId,
         name = record.name,
@@ -80,6 +83,7 @@ object SuburbReportFactory {
         educationOccupation = seifaDecile(seifa, seifa?.ieoDecile, "Qualifications and skilled work of the suburb's residents (decile 10 is the highest)."),
         violentCrime = crimeRate(crime, crime?.violent),
         propertyCrime = crimeRate(crime, crime?.property),
+        zonedSchools = zonedSchools(zones),
     )
 
     const val CENSUS_SOURCE: String = "ABS 2021 Census of Population and Housing (CC BY 4.0)"
@@ -112,6 +116,39 @@ object SuburbReportFactory {
     private const val CRIME_CAVEAT =
         "Crime is counted where it happens, so a suburb with a big shopping centre or business district looks worse than its residents warrant, " +
             "and recorded crime also reflects reporting and policing. Based on NSW Bureau of Crime Statistics and Research data"
+
+    const val ZONED_NOT_LOADED_NOTE: String = "School catchments not loaded yet"
+    const val ZONED_NONE_NOTE: String = "No school catchment covers at least 5% of this suburb's lots"
+    const val ZONED_FILTER_SOURCE: String =
+        "NSW Department of Education school catchments and public schools master dataset (CC BY 3.0 Australia); ICSEA from ACARA"
+
+    /** A zone covering at least this share of a suburb's lots is listed on the card and counted in the filter (ADR 0062). */
+    const val ZONE_LISTED_MIN_SHARE: Double = 0.25
+    private const val ZONED_NOTE =
+        "The share is how many of the suburb's lots lie inside the zone, so a suburb can be split between schools. Catchments change, being in a zone does not " +
+            "guarantee a place, and out-of-area enrolment is common: check with the school. Private and Catholic schools are not in this data. " +
+            "Based on NSW Department of Education data"
+
+    /**
+     * The zones to list: per level (primary, then high) every zone covering at least [ZONE_LISTED_MIN_SHARE] of the suburb, largest first; a level with none that
+     * big still lists its biggest zone, so a suburb split three ways is not left blank.
+     */
+    fun listedZones(shares: List<SuburbZoneShare>): List<SuburbZoneShare> =
+        listOf("PRIMARY", "HIGH").flatMap { level ->
+            val atLevel = shares.filter { it.zone.level == level }.sortedWith(compareByDescending<SuburbZoneShare> { it.lotShare }.thenBy { it.zone.schoolCode })
+            val big = atLevel.filter { it.lotShare >= ZONE_LISTED_MIN_SHARE }
+            big.ifEmpty { atLevel.take(1) }
+        }
+
+    private fun zonedSchools(data: SuburbZoneData?): Attribute<SuburbZonedSchools> {
+        if (data == null) return Attribute.unknown(LotReportFactory.CATCHMENTS_SOURCE, note = ZONED_NOT_LOADED_NOTE)
+        val listed = listedZones(data.shares)
+        if (listed.isEmpty()) return Attribute.unknown(LotReportFactory.CATCHMENTS_SOURCE, note = ZONED_NONE_NOTE)
+        val year = listed.firstNotNullOfOrNull { it.zone.enrolmentYear }
+        val zones = listed.map { SuburbZone(LotReportFactory.zonedSchool(it.zone), it.lotShare.coerceIn(0.0, 1.0)) }
+        val yearNote = year?.let { " The zones are for $it enrolments." }.orEmpty()
+        return Attribute(SuburbZonedSchools(zones, year), Confidence.MEDIUM, LotReportFactory.CATCHMENTS_SOURCE, null, ZONED_NOTE + yearNote)
+    }
 
     private fun crimeRate(crime: SuburbCrime?, incidents: Int?): Attribute<CrimeRate> {
         if (crime == null || incidents == null) return Attribute.unknown(CRIME_SOURCE, note = CRIME_NOT_LOADED_NOTE)

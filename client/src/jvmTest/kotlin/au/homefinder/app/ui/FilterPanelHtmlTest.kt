@@ -66,10 +66,10 @@ class FilterPanelHtmlTest {
 
     private val full = FilterData.from(
         SuburbFiltersResponse(
-            listOf(SuburbFilterValue("a", 1000, 1.5, 0.2, 0.45, 8, 4.2, 12.5), SuburbFilterValue("b", 1100, 12.0, null, 0.2, 3, 30.0, 40.0)),
+            listOf(SuburbFilterValue("a", 1000, 1.5, 0.2, 0.45, 8, 4.2, 12.5, zonedIcsea = 1040), SuburbFilterValue("b", 1100, 12.0, null, 0.2, 3, 30.0, 40.0, zonedIcsea = 1010)),
             "NSW schools", LocalDate(2026, 10, 2),
             beach = FilterProvenance("OpenStreetMap", LocalDate(2026, 10, 29)), parks = FilterProvenance("OpenStreetMap", LocalDate(2026, 10, 29)),
-            rented = FilterProvenance("ABS Census", LocalDate(2021, 8, 10)), seifa = FilterProvenance("ABS SEIFA", LocalDate(2021, 8, 10)), crime = FilterProvenance("BOCSAR", LocalDate(2026, 6, 30)),
+            rented = FilterProvenance("ABS Census", LocalDate(2021, 8, 10)), seifa = FilterProvenance("ABS SEIFA", LocalDate(2021, 8, 10)), crime = FilterProvenance("BOCSAR", LocalDate(2026, 6, 30)), zoned = FilterProvenance("NSW DoE catchments", LocalDate(2026, 11, 5)),
         ),
     )
 

@@ -200,6 +200,46 @@ class PostgisSuburbDirectoryIntegrationTest {
     }
 
     @Test
+    fun `a suburb's school zones are read with the schools, an empty table means nothing is loaded, and the filter weights the ICSEA by share`() = withDirectory { directory ->
+        execute("TRUNCATE suburb_catchment", "TRUNCATE school")
+        assertNull(directory.zones("9001"), "nothing loaded yet")
+        execute(
+            "INSERT INTO school (school_code, name, level_label, icsea, geom) VALUES " +
+                "(10, 'Hamilton Public School', 'Primary School', 1000, ST_SetSRID(ST_MakePoint(151.75, -32.92), 7844)), " +
+                "(20, 'Newcastle High School', 'Secondary School', 1100, ST_SetSRID(ST_MakePoint(151.75, -32.93), 7844)), " +
+                "(30, 'No ICSEA High', 'Secondary School', NULL, ST_SetSRID(ST_MakePoint(151.75, -32.94), 7844))",
+            "INSERT INTO suburb_catchment (suburb_id, school_code, level, catch_type, name, years, lots, lot_share, enrolment_year) VALUES " +
+                "('9001', 10, 'PRIMARY', 'PRIMARY', 'Hamilton PS', 'K-6', 80, 0.80, 2026), ('9001', 20, 'HIGH', 'HIGH_COED', 'Newcastle HS', '7-12', 40, 0.40, 2026), " +
+                "('9001', 30, 'HIGH', 'HIGH_COED', 'Other HS', '7-12', 50, 0.50, 2026), ('9001', 99, 'PRIMARY', 'PRIMARY', 'Small PS', 'K-6', 10, 0.10, 2026)",
+        )
+        val zones = assertNotNull(directory.zones("9001")).shares
+        assertEquals(listOf(10, 99, 30, 20), zones.map { it.zone.schoolCode }, "primary first, largest first (level sorts HIGH after PRIMARY), then high")
+        val hamilton = zones.first()
+        assertEquals(0.80, hamilton.lotShare, 1e-6)
+        assertEquals("Hamilton Public School", hamilton.zone.school?.name)
+        assertEquals(1000, hamilton.zone.school?.icsea)
+        assertNull(zones.first { it.zone.schoolCode == 99 }.zone.school, "a school code not in the schools data keeps the Department's short name")
+        assertEquals(emptyList(), assertNotNull(directory.zones("9002")).shares, "loaded, but no zone covers this suburb")
+        assertNull(directory.zones("9001' OR '1'='1")?.shares?.firstOrNull())
+        val data = assertNotNull(directory.filterValues())
+        assertTrue(data.zonedLoaded)
+        // Zones of at least a quarter with an ICSEA: 0.80 x 1000 and 0.40 x 1100 (school 30 has none, school 99 is under a quarter): (800 + 440) / 1.2 = 1033.3.
+        assertEquals(1033, data.suburbs.first { it.suburbId == "9001" }.zonedIcsea)
+        assertNull(data.suburbs.first { it.suburbId == "9002" }.zonedIcsea)
+        execute("TRUNCATE suburb_catchment", "TRUNCATE school")
+    }
+
+    @Test
+    fun `a database without the suburb catchment table has no zones rather than an error`() = withDirectory { directory ->
+        execute("ALTER TABLE suburb_catchment RENAME TO suburb_catchment_hidden")
+        try {
+            assertNull(directory.zones("9001"))
+        } finally {
+            execute("ALTER TABLE suburb_catchment_hidden RENAME TO suburb_catchment")
+        }
+    }
+
+    @Test
     fun `a database without the crime table has no crime rather than an error`() = withDirectory { directory ->
         execute("ALTER TABLE suburb_crime RENAME TO suburb_crime_hidden")
         try {

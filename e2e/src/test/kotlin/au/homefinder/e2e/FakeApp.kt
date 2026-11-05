@@ -25,6 +25,8 @@ import au.homefinder.shared.model.SuburbRatingPoint
 import au.homefinder.shared.model.SuburbRatingsResponse
 import au.homefinder.shared.model.SuburbReport
 import au.homefinder.shared.model.SuburbSchools
+import au.homefinder.shared.model.SuburbZone
+import au.homefinder.shared.model.SuburbZonedSchools
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import kotlinx.datetime.LocalDate
@@ -78,6 +80,16 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
                 emptyList(), 1051,
             ),
             Confidence.HIGH, "Test schools", LocalDate(2026, 10, 2), "ICSEA is not a quality score",
+        ),
+        zonedSchools = Attribute(
+            SuburbZonedSchools(
+                listOf(
+                    SuburbZone(School("1", "Hamilton South Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, 1041, null, null, "primary, K-6"), 0.82),
+                    SuburbZone(School("2", "Newcastle High School", SchoolSector.PUBLIC, SchoolLevel.HIGH, 1017, null, null, "high, 7-12"), 0.76),
+                ),
+                2026,
+            ),
+            Confidence.MEDIUM, "Test catchments", null, "Catchments change",
         ),
         parkAreaShare = Attribute(0.12, Confidence.MEDIUM, "Test OpenStreetMap", LocalDate(2026, 10, 29)),
         shopping = Attribute(SuburbShopping(1, 2), Confidence.MEDIUM, "Test OpenStreetMap", LocalDate(2026, 10, 29)), transport = unknown(),
@@ -155,8 +167,8 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
     /** Three suburbs: one above 1,000 (and near the beach, with parks, mostly rented), one below, one with no values at all. */
     private fun filters() = SuburbFiltersResponse(
         listOf(
-            SuburbFilterValue("9001", 1051, beachKm = 1.5, parkShare = 0.20, rentedShare = 0.45, seifaDecile = 8, violentPer1000 = 4.2, propertyPer1000 = 12.5, name = "HAMILTON"),
-            SuburbFilterValue("9002", 960, beachKm = 12.0, parkShare = 0.05, rentedShare = 0.20, seifaDecile = 3, violentPer1000 = 31.0, propertyPer1000 = 90.0, name = "MAYFIELD"),
+            SuburbFilterValue("9001", 1051, beachKm = 1.5, parkShare = 0.20, rentedShare = 0.45, seifaDecile = 8, violentPer1000 = 4.2, propertyPer1000 = 12.5, name = "HAMILTON", zonedIcsea = 1030),
+            SuburbFilterValue("9002", 960, beachKm = 12.0, parkShare = 0.05, rentedShare = 0.20, seifaDecile = 3, violentPer1000 = 31.0, propertyPer1000 = 90.0, name = "MAYFIELD", zonedIcsea = 990),
             SuburbFilterValue("9003", null, name = "WICKHAM"),
         ),
         "Test schools", LocalDate(2026, 10, 2),
@@ -165,6 +177,7 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
         rented = FilterProvenance("Test Census", LocalDate(2021, 8, 10)),
         seifa = FilterProvenance("Test SEIFA", LocalDate(2021, 8, 10)),
         crime = FilterProvenance("Test BOCSAR", LocalDate(2026, 6, 30)),
+        zoned = FilterProvenance("Test catchments", LocalDate(2026, 11, 5)),
     )
 
     private fun ratings(): List<SuburbRatingPoint> =

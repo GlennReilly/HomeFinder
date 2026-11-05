@@ -2,7 +2,8 @@
 # Loads the current NSW public school catchments (intake areas) into `school_catchment` (ADR 0056). The Kotlin tool in the `census` module (run
 # through Gradle, so a JDK 17 is needed) reads the Department of Education's primary and secondary shapefiles (the file of future catchments is
 # ignored) and writes a CSV of zones with their shapes; this script loads it and reprojects the shapes from GDA94 to GDA2020. Idempotent. The
-# schools themselves come from load-schools.sh; the two are matched by school code when a card is shown, so either may be loaded first.
+# schools themselves come from load-schools.sh; the two are matched by school code when a card is shown, so either may be loaded first. It also works out how much
+# of each suburb every zone covers (suburb_catchment, ADR 0062) from the lots, so load-lots.sh must have run.
 # Usage: load-catchments.sh [dir]   (default: data/raw/catchments, made by download-catchments.sh)
 source "$(dirname "$0")/common.sh"
 ensure_migrated
@@ -25,6 +26,8 @@ psql_db -q -c "DROP TABLE IF EXISTS stg.catchment_raw"
 
 echo "Catchments loaded:"
 psql_db -t -A -F ' | ' -c "SELECT count(*) FILTER (WHERE level = 'PRIMARY') || ' primary and ' || count(*) FILTER (WHERE level = 'HIGH') || ' high school catchments, enrolment year ' || coalesce(max(enrolment_year)::text, 'unknown') FROM school_catchment"
+psql_db -t -A -F ' | ' -c "SELECT count(*) || ' zones cover at least 5% of a suburb, across ' || count(DISTINCT suburb_id) || ' of ' || (SELECT count(*) FROM suburb) || ' suburbs' FROM suburb_catchment"
+[[ "$(psql_db -t -A -c "SELECT count(*) FROM lot")" -gt 0 ]] || echo "No lots loaded (load-lots.sh): the Suburb Card has no zoned schools until they are, then run this again"
 LOADED="$(psql_db -t -A -c "SELECT count(*) FROM school_catchment")"
 [[ "$LOADED" == "$TOTAL" ]] || echo "$((TOTAL - LOADED)) of $TOTAL catchments had no usable shape and were dropped"
 if [[ "$(psql_db -t -A -c "SELECT count(*) FROM school")" -gt 0 ]]; then

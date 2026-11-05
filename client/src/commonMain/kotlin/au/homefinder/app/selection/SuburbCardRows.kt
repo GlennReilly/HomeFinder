@@ -7,6 +7,8 @@ import au.homefinder.shared.model.CrimeRate
 import au.homefinder.shared.model.DwellingMix
 import au.homefinder.shared.model.SuburbBeachDistance
 import au.homefinder.shared.model.SuburbReport
+import au.homefinder.shared.model.SuburbZone
+import au.homefinder.shared.model.SuburbZonedSchools
 import au.homefinder.shared.model.School
 import au.homefinder.shared.model.SchoolLevel
 import au.homefinder.shared.model.SuburbSchools
@@ -92,6 +94,7 @@ object SuburbCardRows {
         row("Break-ins, car and home theft", report.propertyCrime, ::crime),
         row("Distance to the beach", report.beach, ::beach),
         row(SCHOOLS_LABEL, report.schools, ::schools),
+        row(ZONED_LABEL, report.zonedSchools, ::zonedSchools),
         row("Parks", report.parkAreaShare) { Formats.share(it) + " of the suburb is park" },
         row("Shopping", report.shopping, ::shopping),
         row("Transport", report.transport, ::transport),
@@ -151,6 +154,21 @@ object SuburbCardRows {
         "${Formats.kilometres(distance.fromCentreM)} from the centre, ${Formats.kilometres(distance.fromNearestEdgeM)} from the nearest edge"
 
     const val SCHOOLS_LABEL: String = "Schools"
+    const val ZONED_LABEL: String = "Zoned schools"
+
+    /** "Hamilton South Public School (primary), Newcastle High School (high)": the zones by name, the detail (share, years, ICSEA) is listed under the row. */
+    private fun zonedSchools(zoned: SuburbZonedSchools): String =
+        zoned.zones.joinToString(", ") { "${it.school.name} (${zoneLevel(it.school)})" }
+
+    /** The kind of zone in a word or two: "primary", "high, girls", "central school, primary years" (the first part of the label). */
+    private fun zoneLevel(school: School): String = school.levelLabel?.substringBefore(", ").orEmpty().ifBlank { if (school.level == SchoolLevel.HIGH) "high" else "primary" }
+
+    /** One zone's line under the Zoned schools row: its kind and years, the share of the suburb's lots it covers, and its ICSEA. */
+    fun zoneDetail(zone: SuburbZone): String = listOfNotNull(
+        zone.school.levelLabel,
+        "${Formats.share(zone.lotShare)} of the suburb's lots",
+        zone.school.icsea?.let { "ICSEA ${Formats.grouped(it.toLong())}" } ?: "ICSEA not published",
+    ).joinToString(" · ")
 
     private fun schools(schools: SuburbSchools): String {
         val count = schools.publicSchoolsInside.size

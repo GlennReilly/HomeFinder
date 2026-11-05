@@ -16,6 +16,8 @@ import au.homefinder.shared.model.SuburbReport
 import au.homefinder.shared.model.SuburbSchools
 import au.homefinder.shared.model.SuburbShopping
 import au.homefinder.shared.model.SuburbTransport
+import au.homefinder.shared.model.SuburbZone
+import au.homefinder.shared.model.SuburbZonedSchools
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -41,11 +43,24 @@ class SuburbCardRowsTest {
         known(SuburbShopping(2, 5)), known(SuburbTransport(2, 0, 0, 96, 8.0)),
     ).copy(rentedShare = known(0.452), dwellingMix = known(DwellingMix(0.58, 0.25, 0.15)))
 
+    private val hamiltonPs = School("10", "Hamilton Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, icsea = 1041, levelLabel = "primary, K-6")
+    private val girlsHigh = School("20", "Newcastle Girls High", SchoolSector.PUBLIC, SchoolLevel.HIGH, icsea = null, levelLabel = "high, girls, 7-12")
+
+    @Test
+    fun `the zoned schools row names each zone and its kind, and each zone's line gives its years, share and ICSEA`() {
+        val zoned = SuburbZonedSchools(listOf(SuburbZone(hamiltonPs, 0.82), SuburbZone(girlsHigh, 0.255)), 2026)
+        val row = SuburbCardRows.of(allKnown.copy(zonedSchools = known(zoned))).first { it.label == SuburbCardRows.ZONED_LABEL }
+        assertEquals("Hamilton Public School (primary), Newcastle Girls High (high)", row.value)
+        assertEquals("primary, K-6 · 82% of the suburb's lots · ICSEA 1,041", SuburbCardRows.zoneDetail(zoned.zones[0]))
+        assertEquals("high, girls, 7-12 · 26% of the suburb's lots · ICSEA not published", SuburbCardRows.zoneDetail(zoned.zones[1]))
+        assertTrue(SuburbCardRows.of(allUnknown).first { it.label == SuburbCardRows.ZONED_LABEL }.isUnknown)
+    }
+
     @Test
     fun `the rows have no area and put the typical block size under the median house price`() {
         assertEquals(
             listOf("Median house price", "Typical block size", "Median unit price", "Price change, 12 months",
-                "Socio-economic advantage", "Disadvantage (SEIFA)", "Economic resources (SEIFA)", "Education and occupation (SEIFA)", "Homes rented", "Houses and units", "Violent crime", "Break-ins, car and home theft", "Distance to the beach", "Schools", "Parks", "Shopping", "Transport"),
+                "Socio-economic advantage", "Disadvantage (SEIFA)", "Economic resources (SEIFA)", "Education and occupation (SEIFA)", "Homes rented", "Houses and units", "Violent crime", "Break-ins, car and home theft", "Distance to the beach", "Schools", "Zoned schools", "Parks", "Shopping", "Transport"),
             SuburbCardRows.of(allUnknown).map { it.label },
         )
     }
@@ -59,7 +74,7 @@ class SuburbCardRowsTest {
             assertEquals(Confidence.NONE, it.confidence, it.label)
             assertEquals("Not computed yet", it.note, it.label)
         }
-        assertEquals(listOf("A", "E", "B", "C", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS 2021 Census", "ABS 2021 Census", "NSW BOCSAR", "NSW BOCSAR", "H", "I", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
+        assertEquals(listOf("A", "E", "B", "C", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS 2021 Census", "ABS 2021 Census", "NSW BOCSAR", "NSW BOCSAR", "H", "I", "NSW Department of Education", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
     }
 
     @Test

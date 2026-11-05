@@ -177,7 +177,7 @@ object LotReportFactory {
         else -> catchType.lowercase().replace('_', ' ')
     }
 
-    private fun zonedSchool(zone: CatchmentZone): School {
+    internal fun zonedSchool(zone: CatchmentZone): School {
         val record = zone.school
         val label = listOfNotNull(zoneKind(zone.catchType), zone.years?.takeIf { it.isNotBlank() }).joinToString(", ")
         return School(

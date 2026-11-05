@@ -98,6 +98,8 @@ data class SuburbFilterValue(
     val propertyPer1000: Double? = null,
     /** The suburb's name, for the score ranking (ADR 0047). */
     val name: String = "",
+    /** The average ICSEA of the schools whose catchments cover the suburb, weighted by how much of it each covers (ADR 0062); null when none has one. */
+    val zonedIcsea: Int? = null,
 )
 
 /** Where one criterion's figures come from, as on the card. */
@@ -119,6 +121,7 @@ data class SuburbFiltersResponse(
     val rented: FilterProvenance? = null,
     val seifa: FilterProvenance? = null,
     val crime: FilterProvenance? = null,
+    val zoned: FilterProvenance? = null,
 )
 
 /** The same factors as a property, rolled up to suburb level. Every statistic carries its own provenance. */
@@ -158,7 +161,27 @@ data class SuburbReport(
     val violentCrime: Attribute<CrimeRate> = Attribute.unknown("NSW BOCSAR", note = "Not computed yet"),
     /** Recorded break-ins, vehicle theft, theft from cars and homes and malicious damage over 24 months, from BOCSAR (ADR 0051). */
     val propertyCrime: Attribute<CrimeRate> = Attribute.unknown("NSW BOCSAR", note = "Not computed yet"),
+    /** The public school catchments that cover most of the suburb's lots (ADR 0062). */
+    val zonedSchools: Attribute<SuburbZonedSchools> = Attribute.unknown("NSW Department of Education", note = "Not computed yet"),
 )
+
+/**
+ * The school catchments (intake zones) that cover the suburb's lots: [zones] primary first, then high, each by how much of the suburb it covers, largest first.
+ * A level with no zone covering a quarter of the suburb still lists its biggest one. [enrolmentYear] is the year the zones apply to.
+ */
+@Serializable
+data class SuburbZonedSchools(val zones: List<SuburbZone>, val enrolmentYear: Int? = null)
+
+/**
+ * One zone: the school (its [School.levelLabel] says the kind of zone and the years it serves, for example "primary, K-6") and [lotShare], from 0 to 1, the
+ * share of the suburb's lots whose representative point lies inside the zone. A suburb split between zones has several, each below 1.
+ */
+@Serializable
+data class SuburbZone(val school: School, val lotShare: Double) {
+    init {
+        require(lotShare in 0.0..1.0) { "A share must be from 0 to 1" }
+    }
+}
 
 /**
  * Recorded incidents of one kind of crime in a suburb over [months] months. [perThousand] is the rate per 1,000 residents, null when the suburb has no

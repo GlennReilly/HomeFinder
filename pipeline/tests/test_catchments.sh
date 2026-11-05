@@ -58,6 +58,14 @@ PY
 
 q "INSERT INTO school (school_code, name, level_label, icsea, geom) VALUES (1001, 'Hamilton Public School', 'Primary School', 1051, ST_SetSRID(ST_MakePoint(151.72, -32.92), 7844)), (2002, 'Newcastle High School', 'Secondary School', 1030, ST_SetSRID(ST_MakePoint(151.75, -32.93), 7844))" >/dev/null
 
+# Two suburbs of lots (ADR 0062). Suburb T: five lots, two in the Hamilton primary zone and the high zone, one in the primary zone's hole (high zone only), one east of
+# the primary zone (high zone only), one outside both. Suburb U: 21 lots with only one in the primary zone (4.8%, under the 5% kept).
+q "INSERT INTO suburb (suburb_id, name, postcode, geom) VALUES ('T1', 'TESTVILLE', '2000', ST_Multi(ST_MakeEnvelope(151.50, -33.10, 152.00, -32.70, 7844))), ('U1', 'UTOPIA', '2001', ST_Multi(ST_MakeEnvelope(150.0, -34.0, 150.5, -33.5, 7844)))" >/dev/null
+lot() { q "INSERT INTO lot (lot_id, suburb_id, geom) VALUES ('$1', '$2', ST_Multi(ST_Buffer(ST_SetSRID(ST_MakePoint($3, $4), 7844), 0.0002)))" >/dev/null; }
+lot t1 T1 151.72 -32.93; lot t2 T1 151.78 -32.88; lot t3 T1 151.75 -32.91; lot t4 T1 151.85 -32.84; lot t5 T1 151.95 -32.90
+lot u0 U1 151.71 -32.94
+for i in $(seq 1 20); do lot "u$i" U1 150.2 -33.6; done
+
 report="$("$HERE/../scripts/load-catchments.sh" "$DIR")"
 echo "$report"
 grep -q "2 primary and 1 high school catchments, enrolment year 2026" <<< "$report" || fail "the counts should be 2 primary and 1 high (the future file is ignored): $report"
@@ -77,6 +85,12 @@ inside="SELECT count(*) FROM school_catchment WHERE ST_Covers(geom, ST_SetSRID(S
 [[ "$(q "$(printf "$inside" 152.50 -33.00)")" == "0" ]] || fail "a far point should be in no zone"
 # GDA94 to GDA2020 moves a point by about 1.8 m (north-east): the stored corner is close to, not exactly, the published one.
 echo "ok: shapes, hole, reprojection and matching"
+# How much of each suburb a zone covers: Hamilton PS covers 2 of Testville's 5 lots and the high school 4 of 5; one lot in 21 is under the 5% kept.
+row="$(q "SELECT school_code || '|' || level || '|' || lots || '|' || round(lot_share::numeric, 2) || '|' || catch_type || '|' || years || '|' || enrolment_year FROM suburb_catchment WHERE suburb_id = 'T1' ORDER BY school_code")"
+[[ "$row" == $'1001|PRIMARY|2|0.40|PRIMARY|K-6|2026\n2002|HIGH|4|0.80|HIGH_COED|7-12|2026' ]] || fail "Testville's zone shares were wrong: $row"
+[[ "$(q "SELECT count(*) FROM suburb_catchment WHERE suburb_id = 'U1'")" == "0" ]] || fail "a zone covering 1 of 21 lots (4.8%) must not be kept"
+grep -q "suburbs" <<< "$report" || fail "the report should say how many suburbs have zones: $report"
+echo "ok: suburb zone shares"
 
 # Reloading gives the same rows.
 before="$(q "SELECT md5(string_agg(c::text, '|' ORDER BY c.school_code, c.level, c.name)) FROM (SELECT school_code, level, catch_type, name, years, added_on, enrolment_year, md5(ST_AsEWKB(geom)::text) FROM school_catchment) c")"
@@ -91,4 +105,5 @@ mkdir -p "$WORK/empty"
 if "$HERE/../scripts/load-catchments.sh" "$WORK/empty" >/dev/null 2>"$WORK/err"; then fail "a directory without the files should fail"; fi
 grep -q "download-catchments.sh" "$WORK/err" || fail "the failure should point to the download: $(cat "$WORK/err")"
 [[ "$(q "SELECT count(*) FROM school_catchment")" == "3" ]] || fail "a failed load must leave the rows as they were"
+[[ "$(q "SELECT count(*) FROM suburb_catchment")" == "2" ]] || fail "a failed load must leave the suburb zones as they were"
 echo "PASS: catchments"

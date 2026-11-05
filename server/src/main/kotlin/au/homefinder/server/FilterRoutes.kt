@@ -29,7 +29,7 @@ fun Route.filterRoutes(directory: SuburbDirectory?) {
         }
         call.respond(
             SuburbFiltersResponse(
-                suburbs = data?.suburbs.orEmpty().map { SuburbFilterValue(it.suburbId, it.averageIcsea, it.beachKm, it.parkShare, it.rentedShare, it.seifaDecile, it.violentPer1000, it.propertyPer1000, it.name) },
+                suburbs = data?.suburbs.orEmpty().map { SuburbFilterValue(it.suburbId, it.averageIcsea, it.beachKm, it.parkShare, it.rentedShare, it.seifaDecile, it.violentPer1000, it.propertyPer1000, it.name, it.zonedIcsea) },
                 icseaSource = SuburbReportFactory.SCHOOLS_SOURCE,
                 icseaAsOf = data?.icseaAsOf,
                 beach = data?.takeIf { it.osmLoaded }?.let { FilterProvenance(LotReportFactory.OSM_SOURCE, it.osmAsOf) },
@@ -37,6 +37,7 @@ fun Route.filterRoutes(directory: SuburbDirectory?) {
                 rented = data?.takeIf { it.censusLoaded }?.let { FilterProvenance(SuburbReportFactory.CENSUS_SOURCE, SuburbReportFactory.CENSUS_DATE) },
                 seifa = data?.takeIf { it.seifaLoaded }?.let { FilterProvenance(SuburbReportFactory.SEIFA_SOURCE, SuburbReportFactory.CENSUS_DATE) },
                 crime = data?.takeIf { it.crimeLoaded }?.let { FilterProvenance(SuburbReportFactory.CRIME_SOURCE, it.crimeAsOf) },
+                zoned = data?.takeIf { it.zonedLoaded }?.let { FilterProvenance(SuburbReportFactory.ZONED_FILTER_SOURCE, it.zonedAsOf) },
             ),
         )
     }

@@ -226,4 +226,21 @@ class SuburbFilterTest {
         assertEquals("31 per 1,000", small.limitText(FilterCriterion.VIOLENT, 31.0))
         assertNull(withOutlier.cap(FilterCriterion.ICSEA), "no values")
     }
+
+    @Test
+    fun `the zoned-school ICSEA filters at least, takes its source from the response, and a suburb with none never matches`() {
+        val data = FilterData.from(
+            SuburbFiltersResponse(
+                listOf(SuburbFilterValue("hi", zonedIcsea = 1080), SuburbFilterValue("mid", zonedIcsea = 1033), SuburbFilterValue("none")),
+                "Schools", day, zoned = FilterProvenance("NSW DoE catchments", day),
+            ),
+        )
+        assertEquals(FilterRange(1030.0, 1080.0), data.bounds(FilterCriterion.ZONED))
+        assertEquals(1, data.unknown(FilterCriterion.ZONED))
+        assertEquals("NSW DoE catchments", data.source(FilterCriterion.ZONED)?.source)
+        assertEquals(Direction.AT_LEAST, FilterCriterion.ZONED.direction)
+        val result = data.apply(FilterSelection(mapOf(FilterCriterion.ZONED to 1050.0)))
+        assertEquals(setOf("hi"), result.passingIds, "an average below the limit fails, and a suburb with no zoned ICSEA never passes")
+        assertTrue(FilterCriterion.ZONED !in FilterData.from(SuburbFiltersResponse(listOf(SuburbFilterValue("a", 1000)), "S", day)).let { d -> FilterCriterion.entries.filter(d::hasData) })
+    }
 }
