@@ -23,8 +23,8 @@ WITH cand AS (
 SELECT suburb_id, sal_code FROM cand
 WHERE (n = 1 AND same_name = 1) OR (lga IS NOT NULL AND upper(tag) LIKE upper(lga) || ' - %');
 
-INSERT INTO suburb_seifa (suburb_id, sal_code, irsad_score, irsad_decile, population)
-SELECT p.suburb_id, p.sal_code, r.irsad_score, r.irsad_decile, r.population
+INSERT INTO suburb_seifa (suburb_id, sal_code, irsad_score, irsad_decile, population, irsd_decile, ier_decile, ieo_decile)
+SELECT p.suburb_id, p.sal_code, r.irsad_score, r.irsad_decile, r.population, r.irsd_decile, r.ier_decile, r.ieo_decile
 FROM picked p JOIN stg.seifa_raw r ON r.sal_code = p.sal_code
 WHERE p.suburb_id IN (SELECT suburb_id FROM picked GROUP BY suburb_id HAVING count(*) = 1);
 

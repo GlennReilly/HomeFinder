@@ -143,6 +143,12 @@ data class SuburbReport(
     val dwellingMix: Attribute<DwellingMix> = Attribute.unknown("ABS 2021 Census", note = "Not computed yet"),
     /** How advantaged the suburb's residents are as a group, from the ABS SEIFA 2021 (ADR 0049). */
     val socioEconomic: Attribute<SocioEconomic> = Attribute.unknown("ABS SEIFA 2021", note = "Not computed yet"),
+    /** The SEIFA decile of disadvantage alone (IRSD): 1 the most disadvantaged tenth of areas, 10 the least (ADR 0050). */
+    val disadvantage: Attribute<Int> = Attribute.unknown("ABS SEIFA 2021", note = "Not computed yet"),
+    /** The SEIFA decile of economic resources (IER): 1 the fewest income, housing and asset resources, 10 the most (ADR 0050). */
+    val economicResources: Attribute<Int> = Attribute.unknown("ABS SEIFA 2021", note = "Not computed yet"),
+    /** The SEIFA decile of education and occupation (IEO): 1 the lowest qualifications and skills, 10 the highest (ADR 0050). */
+    val educationOccupation: Attribute<Int> = Attribute.unknown("ABS SEIFA 2021", note = "Not computed yet"),
 )
 
 /**
