@@ -4,6 +4,7 @@ import au.homefinder.app.selection.ArrangedRow
 import au.homefinder.app.selection.CardLayout
 import au.homefinder.app.selection.LotCardRows
 import au.homefinder.app.selection.LotCardState
+import au.homefinder.app.selection.UnknownRows
 import kotlinx.html.ButtonType
 import kotlinx.html.DL
 import kotlinx.html.FlowContent
@@ -42,7 +43,7 @@ fun lotCardSubtitle(card: LotCardState): String? = when (card) {
  * The basic lot card as plain HTML (ADR 0022), sharing the Suburb Card's look, buttons and provenance lines. Several
  * addresses (a strata plan) are listed under the header.
  */
-fun FlowContent.lotCard(card: LotCardState, layout: CardLayout = CardLayout(), customising: Boolean = false) {
+fun FlowContent.lotCard(card: LotCardState, layout: CardLayout = CardLayout(), customising: Boolean = false, showUnknown: Boolean = false) {
     section("suburb-card lot-card") {
         attributes["aria-label"] = "Lot card"
         div(STICKY_TOP_CLASS) {
@@ -73,9 +74,11 @@ fun FlowContent.lotCard(card: LotCardState, layout: CardLayout = CardLayout(), c
                 if (card.report.addresses.size > 1) {
                     ul("addresses") { card.report.addresses.forEach { li { +it } } }
                 }
-                val arranged = layout.arrange(LotCardRows.of(card.report)).filter { customising || !it.hidden }
-                if (arranged.isEmpty()) p("hint") { +ALL_HIDDEN_HINT }
+                val full = layout.arrange(LotCardRows.of(card.report))
+                val arranged = UnknownRows.visible(full, customising, showUnknown)
+                if (arranged.isEmpty() && UnknownRows.unknownCount(full, customising) == 0) p("hint") { +ALL_HIDDEN_HINT }
                 dl("rows") { arranged.forEachIndexed { i, item -> lotRow(item, i, arranged.size, customising) } }
+                unknownRowsNote(UnknownRows.unknownCount(full, customising), showUnknown)
                 p("disclaimer") { +CARD_DISCLAIMER }
             }
         }

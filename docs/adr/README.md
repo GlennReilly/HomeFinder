@@ -59,3 +59,4 @@
 | [0055](0055-capped-crime-sliders.md) | Capped crime sliders with a "No limit" position | Accepted |
 | [0056](0056-school-catchments.md) | The Lot Card shows the school catchments the lot lies in | Accepted |
 | [0057](0057-select-suburb-without-dimming-the-rest.md) | Selecting a suburb changes only that suburb | Accepted |
+| [0058](0058-hide-unknown-card-rows.md) | Rows without data are left off the cards | Accepted |

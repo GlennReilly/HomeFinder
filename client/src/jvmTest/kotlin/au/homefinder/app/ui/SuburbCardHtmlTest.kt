@@ -21,7 +21,8 @@ class SuburbCardHtmlTest {
         unknown(), unknown(), unknown(), unknown(), unknown(), unknown(), unknown(), unknown(), unknown(), unknown(), unknown(), unknown(),
     )
 
-    private fun html(card: SuburbCardState) = createHTML().div { suburbCard(card) }
+    /** These fixtures are all unknown, so by default the rows are shown (the tests are about layout); the hiding has its own tests below. */
+    private fun html(card: SuburbCardState, showUnknown: Boolean = true) = createHTML().div { suburbCard(card, showUnknown = showUnknown) }
 
     @Test
     fun `a loaded card names the suburb, shows no area and marks every statistic unknown`() {
@@ -198,8 +199,8 @@ class SuburbCardHtmlTest {
         assertFalse("""class="schools"""" in out)
     }
 
-    private fun custom(layout: CardLayout, customising: Boolean) =
-        createHTML().div { suburbCard(SuburbCardState.Loaded(report), layout, customising) }
+    private fun custom(layout: CardLayout, customising: Boolean, showUnknown: Boolean = true) =
+        createHTML().div { suburbCard(SuburbCardState.Loaded(report), layout, customising, showUnknown) }
 
     private fun labelsIn(out: String) = Regex("<dt>([^<]*)</dt>").findAll(out).map { it.groupValues[1] }.toList()
 
@@ -261,5 +262,41 @@ class SuburbCardHtmlTest {
         // While loading there is no Customise bar yet, but the name and the close button are still pinned.
         val loading = html(SuburbCardState.Loading("9001", SuburbRef("9001", "HAMILTON", "2303")))
         assertTrue(STICKY_TOP_CLASS in loading && "customise" !in loading)
+    }
+
+    @Test
+    fun `rows without data are left off, with a note that counts them and offers to show them`() {
+        val out = html(SuburbCardState.Loaded(report), showUnknown = false)
+        assertEquals(0, labelsIn(out).size, "every row of this report is unknown")
+        assertEquals(0, Regex("""class="value unknown"""").findAll(out).count())
+        assertTrue("18 rows without data are hidden." in out, out)
+        assertTrue("""data-action="show-unknown"""" in out && ">Show them<" in out)
+        assertTrue(CARD_DISCLAIMER in out && "<h2>HAMILTON</h2>" in out)
+        assertFalse(ALL_HIDDEN_HINT in out, "rows are left off because they are unknown, not because you hid them all")
+    }
+
+    @Test
+    fun `showing the unknown rows draws them with their reasons and offers to hide them again`() {
+        val out = html(SuburbCardState.Loaded(report), showUnknown = true)
+        assertEquals(18, labelsIn(out).size)
+        assertTrue("Showing 18 rows without data." in out && """data-action="hide-unknown"""" in out && ">Hide them again<" in out)
+    }
+
+    @Test
+    fun `customising lists every row and no note, and rows you hid yourself are not counted`() {
+        val customising = custom(CardLayout(), customising = true, showUnknown = false)
+        assertEquals(18, labelsIn(customising).size)
+        assertFalse("without data" in customising)
+        val oneHidden = createHTML().div { suburbCard(SuburbCardState.Loaded(report), CardLayout(hidden = setOf("Parks")), customising = false, showUnknown = false) }
+        assertTrue("17 rows without data are hidden." in oneHidden, oneHidden)
+    }
+
+    @Test
+    fun `the Homely block keeps its place under the price change when that row is unknown and left off`() {
+        val out = html(SuburbCardState.Loaded(report), showUnknown = false)
+        assertTrue(out.indexOf("""class="homely"""") in 0 until out.indexOf("unknown-note"), out)
+        val known = report.copy(medianHousePriceAud = Attribute(900_000L, Confidence.HIGH, "S", null), priceChange12MonthsPercent = Attribute.unknown("s"))
+        val shown = html(SuburbCardState.Loaded(known), showUnknown = false)
+        assertTrue(shown.indexOf("Median house price") in 0 until shown.indexOf("""class="homely""""), "the known row above the price change stays above the Homely block")
     }
 }

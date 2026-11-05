@@ -155,6 +155,8 @@ private fun start(apiKey: String) {
         when (val action = target?.getAttribute(CardActions.ATTRIBUTE)) {
             CardActions.CLOSE -> viewModel.clear()
             CardActions.RETRY -> viewModel.retry()
+            CardActions.SHOW_UNKNOWN -> { layouts.showUnknown = true; redraw() }
+            CardActions.HIDE_UNKNOWN -> { layouts.showUnknown = false; redraw() }
             CardActions.REMOVE_RATING -> scope.launch { announce(viewModel.removeRating(), card, ::showNotice) }
             LayoutActions.CUSTOMISE -> { layouts.customising = true; redraw() }
             LayoutActions.DONE -> { layouts.customising = false; redraw() }
@@ -353,6 +355,9 @@ private class CardLayouts {
     var lot: CardLayout = load(LOT_LAYOUT_STORAGE)
     var customising: Boolean = false
 
+    /** Whether rows without data are drawn (ADR 0058); not remembered, so each page load starts with them left off. */
+    var showUnknown: Boolean = false
+
     private fun load(key: String): CardLayout = CardLayout.decode(runCatching { localStorage.getItem(key) }.getOrNull())
 
     private fun save(key: String, layout: CardLayout) {
@@ -403,8 +408,8 @@ private fun renderCard(container: HTMLElement, suburb: SuburbCardState, lot: Lot
     scroll.value = plan.memory
     container.innerHTML = ""
     when (kind) {
-        CardKind.LOT -> container.append { div { lotCard(lot, layouts.lot, layouts.customising) } }
-        CardKind.SUBURB -> container.append { div { suburbCard(suburb, layouts.suburb, layouts.customising) } }
+        CardKind.LOT -> container.append { div { lotCard(lot, layouts.lot, layouts.customising, layouts.showUnknown) } }
+        CardKind.SUBURB -> container.append { div { suburbCard(suburb, layouts.suburb, layouts.customising, layouts.showUnknown) } }
         CardKind.NONE -> container.append { p("side-empty") { +SIDE_EMPTY_TEXT } }
     }
     container.scrollTop = plan.restoreTo.toDouble()

@@ -112,6 +112,10 @@ that is. A criterion whose data has not been loaded says so instead of showing i
 (ICSEA), `load-osm.sh` (beach and parks) `load-census.sh` (homes rented) and `load-seifa.sh` (socio-economic advantage, SEIFA decile) and `load-crime.sh` (recorded crime per 1,000 residents, BOCSAR; needs SEIFA's population for the rate, [ADR 0051](docs/adr/0051-bocsar-crime-rates.md)). Transport comes later; see
 [ADR 0035](docs/adr/0035-suburb-filter-panel.md), [ADR 0046](docs/adr/0046-filters-beach-parks-rented.md), [ADR 0048](docs/adr/0048-right-hand-tabs.md) and [ADR 0052](docs/adr/0052-single-slider-filters.md).
 
+### Rows without data
+
+A card row whose value is unknown is left off. A muted line under the rows says how many ("3 rows without data are hidden.") with a **Show them** button that reveals them with their source and reason, and **Hide them again**. The choice lasts until the page is reloaded. Customise still lists every row. See [ADR 0058](docs/adr/0058-hide-unknown-card-rows.md).
+
 ### Customising the cards
 
 The card's name, postcode, close button and Customise bar stay pinned at the top while you scroll, and choosing another suburb keeps the card scrolled to the same place, so you can compare rows ([ADR 0053](docs/adr/0053-pinned-card-header-reset-all-kept-scroll.md)). The Filters tab has a **Reset all** button.
