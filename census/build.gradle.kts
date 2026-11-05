@@ -11,6 +11,14 @@ application {
     applicationDefaultJvmArgs = listOf("-Xmx1g")
 }
 
+// Run by pipeline/scripts/load-seifa.sh (ADR 0049): `./gradlew :census:seifa --args="<workbook> <output csv>"`.
+tasks.register<JavaExec>("seifa") {
+    group = "application"
+    mainClass = "au.homefinder.census.SeifaMainKt"
+    classpath = sourceSets["main"].runtimeClasspath
+    jvmArgs("-Xmx1g")
+}
+
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.junit.jupiter)

@@ -22,6 +22,7 @@ data class SuburbFilterRow(
     val beachKm: Double? = null,
     val parkShare: Double? = null,
     val rentedShare: Double? = null,
+    val seifaDecile: Int? = null,
     val name: String = "",
 )
 
@@ -36,4 +37,5 @@ data class SuburbFilterData(
     val osmLoaded: Boolean = false,
     val osmAsOf: LocalDate? = null,
     val censusLoaded: Boolean = false,
+    val seifaLoaded: Boolean = false,
 )

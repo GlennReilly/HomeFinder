@@ -63,6 +63,16 @@ class FilterRoutesTest {
     }
 
     @Test
+    fun `the SEIFA decile and its provenance come only when the SEIFA data is loaded`() = api(
+        FakeDirectory(SuburbFilterData(listOf(SuburbFilterRow("9001", null, seifaDecile = 8), SuburbFilterRow("9002", null)), day, seifaLoaded = true)),
+    ) {
+        val body = ApiJson.decodeFromString<SuburbFiltersResponse>(get(ApiContract.SUBURB_FILTERS_PATH) { header(ApiContract.API_KEY_HEADER, key) }.bodyAsText())
+        assertEquals(8, body.suburbs.first().seifaDecile)
+        assertNull(body.suburbs.last().seifaDecile)
+        assertEquals(FilterProvenance(SuburbReportFactory.SEIFA_SOURCE, SuburbReportFactory.CENSUS_DATE), body.seifa)
+    }
+
+    @Test
     fun `a data set that is not loaded has no provenance`() = api(FakeDirectory(SuburbFilterData(listOf(SuburbFilterRow("9001", 1032)), day))) {
         val body = ApiJson.decodeFromString<SuburbFiltersResponse>(get(ApiContract.SUBURB_FILTERS_PATH) { header(ApiContract.API_KEY_HEADER, key) }.bodyAsText())
         assertNull(body.beach)

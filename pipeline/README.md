@@ -107,6 +107,20 @@ The Kotlin tool in the `census` module reads table G37 and the geography workboo
 using the council area (`lga`) to tell shared names apart. Data: Australian Bureau of Statistics, Census of Population and Housing 2021, Creative Commons
 Attribution 4.0; derived figures are credited "Based on Australian Bureau of Statistics data". See [ADR 0044](../docs/adr/0044-census-tenure-and-dwelling-structure.md).
 
+## SEIFA: socio-economic advantage
+
+```bash
+scripts/download-seifa.sh [dir]   # the ABS SEIFA 2021 suburb workbook (7 MB), into ../data/raw/seifa (run it yourself)
+scripts/load-seifa.sh [file]      # loads suburb_seifa (migration V20); lists suburbs it could not match
+tests/test_download_seifa.sh      # download script against a local stand-in (no Docker)
+tests/test_seifa.sh               # integration test on a tiny workbook (needs Docker, python3 and a JDK 17)
+```
+
+The Kotlin tool in the `census` module reads Table 1 of "Suburbs and Localities, Indexes, SEIFA 2021.xlsx" (NSW suburbs only: the first digit of the suburb code is
+the state); the script loads the Index of Relative Socio-economic Advantage and Disadvantage decile and score and matches ABS suburbs to ours exactly as the Census
+load does. Data: Australian Bureau of Statistics, SEIFA 2021, Creative Commons Attribution 4.0; credited "Based on Australian Bureau of Statistics data". See
+[ADR 0049](../docs/adr/0049-seifa-socio-economic-advantage.md).
+
 ## Schools (ICSEA)
 
 ```bash

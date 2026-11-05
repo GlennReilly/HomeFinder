@@ -79,6 +79,7 @@ object SuburbCardRows {
         row("Median unit price", report.medianUnitPriceAud, Formats::dollars),
         row(PRICE_CHANGE_LABEL, report.priceChange12MonthsPercent, Formats::signedPercent),
         row("Sales behind the prices", report.salesCount) { Formats.grouped(it.toLong()) },
+        row("Socio-economic advantage", report.socioEconomic) { "Decile ${it.decile} of 10 (10 is the most advantaged)" },
         row("Homes rented", report.rentedShare) { Formats.share(it) + " of homes are rented" },
         row("Houses and units", report.dwellingMix, ::dwellingMix),
         row("Distance to the beach", report.beach, ::beach),

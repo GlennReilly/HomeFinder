@@ -28,6 +28,9 @@ interface SuburbDirectory {
     /** The suburb's 2021 Census tenure and dwelling counts, or null when none have been loaded (or the table is missing). */
     suspend fun census(suburbId: String): SuburbCensus? = null
 
+    /** The suburb's SEIFA 2021 socio-economic advantage, or null when none has been loaded (or the table is missing). */
+    suspend fun seifa(suburbId: String): SuburbSeifa? = null
+
     /** The public schools inside the suburb, or null when no school data has been loaded (no load yet, or the table is missing). */
     suspend fun schools(suburbId: String): SuburbSchoolData? = null
 
@@ -103,6 +106,22 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
         }
     }
 
+    override suspend fun seifa(suburbId: String): SuburbSeifa? = withContext(Dispatchers.IO) {
+        try {
+            dataSource.connection.use { connection ->
+                connection.prepareStatement(SEIFA_SQL).use { statement ->
+                    statement.setString(1, suburbId)
+                    statement.executeQuery().use { rows ->
+                        if (rows.next()) SuburbSeifa(rows.getInt("irsad_decile"), rows.getDouble("irsad_score"), rows.getInt("population")) else null
+                    }
+                }
+            }
+        } catch (failure: SQLException) {
+            // Before the first SEIFA load the table does not exist; that is "no data", not an outage.
+            if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
+        }
+    }
+
     override suspend fun schools(suburbId: String): SuburbSchoolData? = withContext(Dispatchers.IO) {
         try {
             dataSource.connection.use { connection ->
@@ -144,19 +163,20 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
             val schools = hasRows(connection, "school")
             val amenity = hasRows(connection, "suburb_amenity")
             val census = hasRows(connection, "suburb_census")
-            if (!schools && !amenity && !census) return@use null
+            val seifa = hasRows(connection, "suburb_seifa")
+            if (!schools && !amenity && !census && !seifa) return@use null
             val schoolsDate = if (schools) singleDate(connection, "SELECT max(extracted_on) FROM school") else null
             val osmDate = if (amenity && hasRows(connection, "osm_import")) singleDate(connection, OSM_AS_OF_SQL) else null
-            connection.prepareStatement(filterValuesSql(schools, amenity, census)).use { statement ->
+            connection.prepareStatement(filterValuesSql(schools, amenity, census, seifa)).use { statement ->
                 statement.executeQuery().use { rows ->
                     fun double(column: String): Double? = rows.getDouble(column).takeIf { !rows.wasNull() }
                     val values = buildList {
                         while (rows.next()) {
                             val icsea = rows.getInt("average_icsea").takeIf { !rows.wasNull() }
-                            add(SuburbFilterRow(rows.getString("suburb_id"), icsea, double("beach_km"), double("park_share"), double("rented_share"), rows.getString("name").orEmpty()))
+                            add(SuburbFilterRow(rows.getString("suburb_id"), icsea, double("beach_km"), double("park_share"), double("rented_share"), rows.getInt("seifa_decile").takeIf { !rows.wasNull() }, rows.getString("name").orEmpty()))
                         }
                     }
-                    SuburbFilterData(values, schoolsDate, schoolsLoaded = schools, osmLoaded = amenity, osmAsOf = osmDate, censusLoaded = census)
+                    SuburbFilterData(values, schoolsDate, schoolsLoaded = schools, osmLoaded = amenity, osmAsOf = osmDate, censusLoaded = census, seifaLoaded = seifa)
                 }
             }
         }
@@ -241,6 +261,8 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
             SELECT tenure_stated, rented, houses, semis, flats, other_dwellings FROM suburb_census WHERE suburb_id = ?
         """.trimIndent()
 
+        val SEIFA_SQL = "SELECT irsad_decile, irsad_score, population FROM suburb_seifa WHERE suburb_id = ?"
+
         val SCHOOLS_LOADED_SQL = "SELECT count(*) AS n, max(extracted_on) AS latest FROM school"
 
         val SCHOOLS_SQL = """
@@ -252,14 +274,16 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
          * One row per suburb with every criterion's value; the columns of a data set that is not loaded are NULL (ADR 0046). A suburb with no
          * mapped park has a NULL park share, as the card shows it as unknown rather than 0%.
          */
-        fun filterValuesSql(schools: Boolean, amenity: Boolean, census: Boolean): String {
+        fun filterValuesSql(schools: Boolean, amenity: Boolean, census: Boolean, seifa: Boolean = false): String {
             val icsea = if (schools) "(SELECT round(avg(c.icsea))::int FROM school c WHERE c.suburb_id = s.suburb_id)" else "NULL::int"
             val beach = if (amenity) "a.beach_from_centre_m / 1000.0" else "NULL::float8"
             val park = if (amenity) "CASE WHEN a.park_area_m2 > 0 AND a.suburb_area_m2 > 0 THEN least(a.park_area_m2 / a.suburb_area_m2, 1.0) END" else "NULL::float8"
             val rented = if (census) "CASE WHEN k.tenure_stated > 0 THEN k.rented::float8 / k.tenure_stated END" else "NULL::float8"
+            val decile = if (seifa) "e.irsad_decile::int" else "NULL::int"
             val joins = (if (amenity) " LEFT JOIN suburb_amenity a ON a.suburb_id = s.suburb_id" else "") +
-                (if (census) " LEFT JOIN suburb_census k ON k.suburb_id = s.suburb_id" else "")
-            return "SELECT s.suburb_id, s.name, $icsea AS average_icsea, $beach AS beach_km, $park AS park_share, $rented AS rented_share " +
+                (if (census) " LEFT JOIN suburb_census k ON k.suburb_id = s.suburb_id" else "") +
+                (if (seifa) " LEFT JOIN suburb_seifa e ON e.suburb_id = s.suburb_id" else "")
+            return "SELECT s.suburb_id, s.name, $icsea AS average_icsea, $beach AS beach_km, $park AS park_share, $rented AS rented_share, $decile AS seifa_decile " +
                 "FROM suburb s$joins ORDER BY s.suburb_id"
         }
 
