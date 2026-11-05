@@ -18,10 +18,8 @@ object FilterIds {
     const val SUMMARY: String = "filter-summary"
 
     fun on(criterion: FilterCriterion): String = "filter-${criterion.key}-on"
-    fun min(criterion: FilterCriterion): String = "filter-${criterion.key}-min"
-    fun max(criterion: FilterCriterion): String = "filter-${criterion.key}-max"
-    fun minOut(criterion: FilterCriterion): String = "filter-${criterion.key}-min-value"
-    fun maxOut(criterion: FilterCriterion): String = "filter-${criterion.key}-max-value"
+    fun limit(criterion: FilterCriterion): String = "filter-${criterion.key}-limit"
+    fun limitOut(criterion: FilterCriterion): String = "filter-${criterion.key}-limit-value"
     fun unknown(criterion: FilterCriterion): String = "filter-${criterion.key}-unknown"
 
     /** The criterion an element id belongs to (any of the ids above), or null. */
@@ -38,8 +36,8 @@ val FILTER_ICSEA_HELP: String = checkNotNull(FilterCriterion.ICSEA.help)
 /** The line under the sliders: how many suburbs match every switched-on filter. The unknown counts sit beside each slider. */
 fun filterSummaryText(result: FilterResult): String = when {
     result.passingIds == null -> "Switch on a filter to highlight matching suburbs."
-    result.selection.ranges.size == 1 -> "${result.matching} of ${result.total} suburbs match." + NO_MATCH_HINT.takeIf { result.matching == 0 }.orEmpty()
-    else -> "${result.matching} of ${result.total} suburbs match all ${result.selection.ranges.size} filters." +
+    result.selection.limits.size == 1 -> "${result.matching} of ${result.total} suburbs match." + NO_MATCH_HINT.takeIf { result.matching == 0 }.orEmpty()
+    else -> "${result.matching} of ${result.total} suburbs match all ${result.selection.limits.size} filters." +
         NO_MATCH_HINT.takeIf { result.matching == 0 }.orEmpty()
 }
 
@@ -73,17 +71,11 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
             }
             div("range") {
                 label {
-                    htmlFor = FilterIds.min(criterion)
-                    +"At least "
-                    span { id = FilterIds.minOut(criterion); +criterion.format(bounds.min) }
+                    htmlFor = FilterIds.limit(criterion)
+                    +"${criterion.direction.word} "
+                    span { id = FilterIds.limitOut(criterion); +criterion.format(criterion.startLimit(bounds)) }
                 }
-                rangeInput(FilterIds.min(criterion), criterion, bounds.min, bounds.max, bounds.min)
-                label {
-                    htmlFor = FilterIds.max(criterion)
-                    +"At most "
-                    span { id = FilterIds.maxOut(criterion); +criterion.format(bounds.max) }
-                }
-                rangeInput(FilterIds.max(criterion), criterion, bounds.min, bounds.max, bounds.max)
+                rangeInput(FilterIds.limit(criterion), criterion, bounds.min, bounds.max, criterion.startLimit(bounds))
             }
             p("hint") {
                 id = FilterIds.unknown(criterion)

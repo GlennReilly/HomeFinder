@@ -16,7 +16,7 @@ class SuburbFilterTest {
     private fun data(vararg pairs: Pair<String, Int?>) =
         FilterData.from(SuburbFiltersResponse(pairs.map { SuburbFilterValue(it.first, it.second) }, "Schools", day))
 
-    private fun icsea(min: Double, max: Double) = FilterSelection(mapOf(FilterCriterion.ICSEA to FilterRange(min, max)))
+    private fun icsea(limit: Double) = FilterSelection(mapOf(FilterCriterion.ICSEA to limit))
 
     private val sample = data("a" to 1032, "b" to 961, "c" to null, "d" to 1105)
 
@@ -29,15 +29,15 @@ class SuburbFilterTest {
     }
 
     @Test
-    fun `an ICSEA range passes the suburbs inside it, ends included`() {
-        val result = sample.apply(icsea(961.0, 1032.0))
-        assertEquals(setOf("a", "b"), result.passingIds)
+    fun `an ICSEA limit passes the suburbs at or above it, the limit included`() {
+        val result = sample.apply(icsea(1032.0))
+        assertEquals(setOf("a", "d"), result.passingIds)
         assertEquals(2, result.matching)
     }
 
     @Test
     fun `a suburb with no ICSEA never passes and is counted as unknown`() {
-        val result = sample.apply(icsea(0.0, 2000.0))
+        val result = sample.apply(icsea(0.0))
         assertEquals(setOf("a", "b", "d"), result.passingIds)
         assertEquals(1, result.unknown.getValue(FilterCriterion.ICSEA))
         assertEquals(4, result.total)
@@ -62,7 +62,7 @@ class SuburbFilterTest {
         assertNull(none.bounds(FilterCriterion.ICSEA))
         assertFalse(none.hasData(FilterCriterion.ICSEA))
         assertFalse(none.hasAnyData)
-        assertEquals(emptySet(), none.apply(icsea(0.0, 2000.0)).passingIds)
+        assertEquals(emptySet(), none.apply(icsea(0.0)).passingIds)
     }
 
     @Test
@@ -83,6 +83,31 @@ class SuburbFilterTest {
     fun `a range cannot have its minimum above its maximum`() {
         assertFailsWith<IllegalArgumentException> { FilterRange(1100.0, 1000.0) }
         assertTrue(1000.0 in FilterRange(1000.0, 1000.0))
+    }
+
+    @Test
+    fun `each criterion has one fixed direction, and its slider starts where every suburb passes`() {
+        assertEquals(
+            listOf(Direction.AT_LEAST, Direction.AT_MOST, Direction.AT_LEAST, Direction.AT_MOST, Direction.AT_LEAST, Direction.AT_MOST, Direction.AT_MOST),
+            listOf(FilterCriterion.ICSEA, FilterCriterion.BEACH, FilterCriterion.PARKS, FilterCriterion.RENTED, FilterCriterion.SEIFA, FilterCriterion.VIOLENT, FilterCriterion.PROPERTY)
+                .map { it.direction },
+        )
+        val bounds = FilterRange(960.0, 1110.0)
+        assertEquals(960.0, FilterCriterion.ICSEA.startLimit(bounds), "at least: the lowest value")
+        assertEquals(1110.0, FilterCriterion.BEACH.startLimit(bounds), "at most: the highest value")
+        assertTrue(Direction.AT_LEAST.passes(5.0, 5.0) && Direction.AT_MOST.passes(5.0, 5.0), "the limit itself passes")
+        assertFalse(Direction.AT_LEAST.passes(4.9, 5.0) || Direction.AT_MOST.passes(5.1, 5.0))
+        assertEquals("At least", Direction.AT_LEAST.word)
+        assertEquals("40 per 1,000", FilterCriterion.VIOLENT.format(40.0))
+    }
+
+    @Test
+    fun `with every slider at its start limit, switching a criterion on loses no suburb that has a value`() {
+        FilterCriterion.entries.filter(all::hasData).forEach { criterion ->
+            val start = criterion.startLimit(checkNotNull(all.bounds(criterion)))
+            val result = all.apply(FilterSelection(mapOf(criterion to start)))
+            assertEquals(all.total - all.unknown(criterion), result.matching, criterion.name)
+        }
     }
 
     private val all = FilterData.from(
@@ -113,8 +138,8 @@ class SuburbFilterTest {
         val result = all.apply(
             FilterSelection(
                 mapOf(
-                    FilterCriterion.BEACH to FilterRange(0.0, 5.0),
-                    FilterCriterion.RENTED to FilterRange(25.0, 100.0),
+                    FilterCriterion.BEACH to 5.0,
+                    FilterCriterion.RENTED to 50.0,
                 ),
             ),
         )
@@ -123,14 +148,14 @@ class SuburbFilterTest {
         assertEquals(1, result.unknown.getValue(FilterCriterion.PARKS))
         assertEquals(0, result.unknown.getValue(FilterCriterion.BEACH))
         // A suburb with no value for a switched-on criterion never passes, however well it does on the others.
-        assertEquals(setOf("near", "far", "nocensus"), all.apply(FilterSelection(mapOf(FilterCriterion.PARKS to FilterRange(0.0, 100.0)))).passingIds)
+        assertEquals(setOf("near", "far", "nocensus"), all.apply(FilterSelection(mapOf(FilterCriterion.PARKS to 0.0))).passingIds)
     }
 
     @Test
     fun `element ids come from the criterion key and are found again from any of them`() {
         FilterCriterion.entries.forEach { criterion ->
-            assertEquals(criterion, au.homefinder.app.ui.FilterIds.criterionOf(au.homefinder.app.ui.FilterIds.min(criterion)))
-            assertEquals(criterion, au.homefinder.app.ui.FilterIds.criterionOf(au.homefinder.app.ui.FilterIds.maxOut(criterion)))
+            assertEquals(criterion, au.homefinder.app.ui.FilterIds.criterionOf(au.homefinder.app.ui.FilterIds.limit(criterion)))
+            assertEquals(criterion, au.homefinder.app.ui.FilterIds.criterionOf(au.homefinder.app.ui.FilterIds.limitOut(criterion)))
         }
         assertEquals("filter-icsea-on", au.homefinder.app.ui.FilterIds.on(FilterCriterion.ICSEA), "the ICSEA ids are unchanged")
         assertNull(au.homefinder.app.ui.FilterIds.criterionOf("filter-summary"))
@@ -149,7 +174,7 @@ class SuburbFilterTest {
             ),
         )
         assertEquals(FilterRange(4.0, 31.0), d.bounds(FilterCriterion.VIOLENT))
-        val result = d.apply(FilterSelection(mapOf(FilterCriterion.VIOLENT to FilterRange(0.0, 10.0), FilterCriterion.PROPERTY to FilterRange(0.0, 50.0))))
+        val result = d.apply(FilterSelection(mapOf(FilterCriterion.VIOLENT to 10.0, FilterCriterion.PROPERTY to 50.0)))
         assertEquals(setOf("calm"), result.passingIds, "'busy' is over both limits and 'tiny' has no rate")
         assertEquals(1, result.unknown.getValue(FilterCriterion.VIOLENT))
         assertEquals("BOCSAR", d.source(FilterCriterion.PROPERTY)?.source)

@@ -2,7 +2,6 @@ package au.homefinder.app.ui
 
 import au.homefinder.app.filter.FilterCriterion
 import au.homefinder.app.filter.FilterData
-import au.homefinder.app.filter.FilterRange
 import au.homefinder.app.filter.FilterSelection
 import au.homefinder.shared.model.FilterProvenance
 import au.homefinder.shared.model.SuburbFilterValue
@@ -23,11 +22,13 @@ class FilterPanelHtmlTest {
     private fun html(data: FilterData) = createHTML().div { filterPanel(data, data.apply(FilterSelection())) }
 
     @Test
-    fun `the panel has a switch and two sliders spanning the data, in steps of ten`() {
+    fun `the panel has a switch and one slider spanning the data, in steps of ten, starting at the lowest value for at least`() {
         val out = html(data(1032, 961, null))
         assertTrue("""id="${FilterIds.on(FilterCriterion.ICSEA)}"""" in out)
-        assertTrue("""id="${FilterIds.min(FilterCriterion.ICSEA)}"""" in out && """id="${FilterIds.max(FilterCriterion.ICSEA)}"""" in out)
-        assertTrue("""min="960"""" in out && """max="1040"""" in out && """step="10"""" in out, out)
+        assertTrue("""id="${FilterIds.limit(FilterCriterion.ICSEA)}"""" in out)
+        assertFalse("filter-icsea-min" in out || "filter-icsea-max" in out, "no second slider")
+        assertTrue("""min="960"""" in out && """max="1040"""" in out && """step="10"""" in out && """value="960"""" in out, out)
+        assertTrue("""At least <span id="filter-icsea-limit-value">960</span>""" in out, out)
     }
 
     @Test
@@ -41,7 +42,7 @@ class FilterPanelHtmlTest {
     fun `without any ICSEA it says the schools are not loaded and has no ICSEA sliders`() {
         val out = html(data(null, null))
         assertTrue(FILTER_NO_DATA_TEXT in out)
-        assertFalse(FilterIds.min(FilterCriterion.ICSEA) in out)
+        assertFalse(FilterIds.limit(FilterCriterion.ICSEA) in out)
     }
 
     @Test
@@ -50,9 +51,9 @@ class FilterPanelHtmlTest {
         assertEquals("Switch on a filter to highlight matching suburbs.", filterSummaryText(d.apply(FilterSelection())))
         assertEquals(
             "1 of 3 suburbs match.",
-            filterSummaryText(d.apply(FilterSelection(mapOf(FilterCriterion.ICSEA to FilterRange(1050.0, 1200.0))))),
+            filterSummaryText(d.apply(FilterSelection(mapOf(FilterCriterion.ICSEA to 1050.0)))),
         )
-        val two = FilterSelection(mapOf(FilterCriterion.ICSEA to FilterRange(0.0, 2000.0), FilterCriterion.RENTED to FilterRange(0.0, 100.0)))
+        val two = FilterSelection(mapOf(FilterCriterion.ICSEA to 0.0, FilterCriterion.RENTED to 100.0))
         assertEquals("0 of 3 suburbs match all 2 filters.$NO_MATCH_HINT", filterSummaryText(d.apply(two)))
     }
 
@@ -76,10 +77,11 @@ class FilterPanelHtmlTest {
     fun `every criterion with data gets a switch, two sliders in its own unit and its source`() {
         val out = html(full)
         FilterCriterion.entries.forEach { c ->
-            assertTrue("""id="${FilterIds.on(c)}"""" in out && """id="${FilterIds.min(c)}"""" in out && """id="${FilterIds.max(c)}"""" in out, c.name)
+            assertTrue("""id="${FilterIds.on(c)}"""" in out && """id="${FilterIds.limit(c)}"""" in out, c.name)
         }
-        assertTrue("""id="filter-rented-min-value">20%</span>""" in out, out)
-        assertTrue("""id="filter-beach-max-value">12 km</span>""" in out)
+        assertTrue("""At most <span id="filter-rented-limit-value">45%</span>""" in out, out)
+        assertTrue("""At most <span id="filter-beach-limit-value">12 km</span>""" in out)
+        assertTrue("""At least <span id="filter-seifa-limit-value">3</span>""" in out)
         assertTrue("Homes rented: Source: ABS Census · as of 2021-08-10" in out)
         assertTrue("Violent crime: Source: BOCSAR · as of 2026-06-30" in out)
         assertTrue("Break-ins, car and home theft: Source: BOCSAR · as of 2026-06-30" in out)
@@ -92,8 +94,8 @@ class FilterPanelHtmlTest {
     fun `a criterion whose data is not loaded says so instead of showing sliders`() {
         val out = html(data(1000, 1100))
         assertTrue(FilterCriterion.RENTED.notLoadedText in out && FilterCriterion.BEACH.notLoadedText in out)
-        assertFalse(FilterIds.min(FilterCriterion.RENTED) in out)
-        assertTrue(FilterIds.min(FilterCriterion.ICSEA) in out)
+        assertFalse(FilterIds.limit(FilterCriterion.RENTED) in out)
+        assertTrue(FilterIds.limit(FilterCriterion.ICSEA) in out)
     }
 
     @Test
