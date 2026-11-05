@@ -15,6 +15,9 @@ import kotlin.math.roundToLong
  * Estimated price are not shown because nothing reliable can fill them (ADR 0041); their fields stay in the report.
  */
 object LotCardRows {
+    /** What the Height above drainage row says where the suburb is too flat for the hint (ADR 0054). */
+    const val NOT_SUITABLE_FLAT_TEXT: String = "Not suitable for flat areas"
+
     /**
      * The block size and the OpenStreetMap proximity factors (ADR 0023) have values. The remaining factors are
      * formatted with a plain fallback; each gets its own wording when its pipeline lands and a real value can reach the card.
@@ -50,11 +53,13 @@ object LotCardRows {
      * says where water runs; it never says a lot floods.
      */
     fun drainage(hint: DrainageHint): String {
+        if (hint.proximity == DrainageProximity.FLAT_AREA) return NOT_SUITABLE_FLAT_TEXT
         val position = when (hint.proximity) {
             DrainageProximity.VERY_CLOSE -> "Very close to a drainage line"
             DrainageProximity.CLOSE -> "Close to a drainage line"
             DrainageProximity.MODERATE -> "Some way above a drainage line"
             DrainageProximity.WELL_ABOVE -> "Well above any drainage line"
+            DrainageProximity.FLAT_AREA -> NOT_SUITABLE_FLAT_TEXT
         }
         return "$position, ${Formats.decimal(hint.heightAboveDrainageM, 1)} m above a stream draining ${hectares(hint.streamCatchmentHa)}"
     }

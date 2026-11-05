@@ -13,7 +13,7 @@ Look up any NSW address or suburb on a map and see the factors that decide a pur
 | `e2e` | Browser smoke tests (Playwright for Java driving Chrome against a fake of the API), run with `./gradlew :e2e:e2eTest` |
 | `server` | Ktor API |
 | `census` | Kotlin tools for the pipeline: tenure and dwelling structure per suburb from the 2021 Census ([ADR 0044](docs/adr/0044-census-tenure-and-dwelling-structure.md)) SEIFA socio-economic advantage ([ADR 0049](docs/adr/0049-seifa-socio-economic-advantage.md)) and BOCSAR recorded crime ([ADR 0051](docs/adr/0051-bocsar-crime-rates.md)) |
-| `drainage` | Kotlin tool for the pipeline: height above nearest drainage per lot from the 5 m DEM ([ADR 0040](docs/adr/0040-height-above-drainage-hint.md)) |
+| `drainage` | Kotlin tool for the pipeline: height above nearest drainage per lot from the 5 m DEM ([ADR 0040](docs/adr/0040-height-above-drainage-hint.md); the Lot Card says "Not suitable for flat areas" in suburbs where over half the lots read under 1 m, [ADR 0054](docs/adr/0054-hand-not-suitable-for-flat-areas.md)) |
 | `pipeline` | Data pipeline: PostGIS, G-NAF, suburbs, lots, sales statistics ([pipeline/README.md](pipeline/README.md)) |
 
 The product is a web app ([ADR 0019](docs/adr/0019-pivot-to-web.md)); the Android and desktop clients were retired.

@@ -208,6 +208,16 @@ class LotSelectionTest {
     }
 
     @Test
+    fun `where the suburb is too flat the drainage row says it is not suitable, without figures or a confidence`() {
+        val base = report("1001", "12 MAIN STREET, HAMILTON NSW 2303")
+        val row = LotCardRows.of(
+            base.copy(heightAboveDrainage = Attribute(DrainageHint(0.4, 20.9, DrainageProximity.FLAT_AREA), Confidence.NONE, "DEM", note = "n")),
+        ).associateBy { it.label }.getValue("Height above drainage")
+        assertEquals("Not suitable for flat areas", row.value)
+        assertEquals(Confidence.NONE, row.confidence)
+    }
+
+    @Test
     fun `schools read as the nearest primary and high school with distance, estimated walk and ICSEA where published`() {
         val base = report("1001", "12 MAIN STREET, HAMILTON NSW 2303")
         fun row(vararg near: NearbySchool) = LotCardRows.of(

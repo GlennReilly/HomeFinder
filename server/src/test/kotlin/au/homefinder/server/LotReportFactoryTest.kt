@@ -136,6 +136,23 @@ class LotReportFactoryTest {
     }
 
     @Test
+    fun `a suburb where more than half the lots read under 1 m is too flat, so the row says so with no confidence and a reason`() {
+        fun hint(share: Double?, lots: Int) = LotReportFactory.build(
+            lot, drainage = LotDrainageData(LotDrainage(0.45, 20.9), loaded, suburbUnderOneMetreShare = share, suburbLotsWithResult = lots),
+        ).heightAboveDrainage
+        val flat = hint(0.91, 1500)
+        assertEquals(DrainageProximity.FLAT_AREA, flat.value?.proximity)
+        assertEquals(Confidence.NONE, flat.confidence)
+        val note = flat.note.orEmpty()
+        assertTrue("91% of this suburb's lots read under 1 m" in note && "not a flood result" in note.lowercase() && "overland flow" in note, note)
+        // The edge: exactly half is not "more than half"; a suburb with few lots is not judged.
+        assertEquals(DrainageProximity.VERY_CLOSE, hint(LotReportFactory.FLAT_SUBURB_SHARE_ABOVE, 1500).value?.proximity)
+        assertEquals(DrainageProximity.FLAT_AREA, hint(0.51, LotReportFactory.FLAT_SUBURB_MIN_LOTS).value?.proximity)
+        assertEquals(DrainageProximity.VERY_CLOSE, hint(0.9, LotReportFactory.FLAT_SUBURB_MIN_LOTS - 1).value?.proximity)
+        assertEquals(DrainageProximity.VERY_CLOSE, hint(null, 0).value?.proximity)
+    }
+
+    @Test
     fun `drainage becomes a hint with its class, low confidence and a note that it is not a flood result`() {
         val report = LotReportFactory.build(lot, drainage = LotDrainageData(LotDrainage(0.45, 20.9), loaded))
         val hint = assertNotNull(report.heightAboveDrainage.value)
