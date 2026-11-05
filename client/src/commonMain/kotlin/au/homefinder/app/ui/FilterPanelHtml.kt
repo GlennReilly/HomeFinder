@@ -12,7 +12,9 @@ import kotlinx.html.h2
 import kotlinx.html.id
 import kotlinx.html.input
 import kotlinx.html.label
+import kotlinx.html.details
 import kotlinx.html.p
+import kotlinx.html.summary
 import kotlinx.html.span
 
 /** Names the page uses to find the pieces of the filter panel; each criterion has its own set, built from its key. */
@@ -103,12 +105,16 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
         attributes["role"] = "status"
         +filterSummaryText(initial)
     }
-    FilterCriterion.entries.forEach { criterion ->
+    val sources = FilterCriterion.entries.mapNotNull { criterion ->
         data.source(criterion)?.takeIf { data.hasData(criterion) }?.let { source ->
-            p("hint") {
-                val details = listOfNotNull("Source: ${source.source}", source.asOf?.let { "as of $it" }).joinToString(" · ")
-                +"${criterion.label.substringBefore(" (")}: $details"
-            }
+            val details = listOfNotNull(source.source, source.asOf?.let { "as of $it" }).joinToString(" · ")
+            "${criterion.label.substringBefore(" (")}: $details"
+        }
+    }
+    if (sources.isNotEmpty()) {
+        details("source-details filter-sources") {
+            summary { +SOURCE_SUMMARY_TEXT }
+            sources.forEach { line -> p("hint") { +line } }
         }
     }
 }

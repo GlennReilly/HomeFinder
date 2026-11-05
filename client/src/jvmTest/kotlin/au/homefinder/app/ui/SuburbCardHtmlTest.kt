@@ -36,7 +36,7 @@ class SuburbCardHtmlTest {
         assertTrue("Postcode 2303" in out)
         assertFalse("km²" in out)
         assertEquals(18, Regex("""class="value unknown"""").findAll(out).count())
-        assertTrue("Source: Some source" in out)
+        assertTrue("Some source" in out)
         assertTrue("Not computed yet" in out)
         assertTrue(CARD_DISCLAIMER in out)
     }
@@ -118,7 +118,7 @@ class SuburbCardHtmlTest {
         val disclaimer = out.indexOf(CARD_DISCLAIMER)
         assertTrue(house in 0 until block && block < unit && unit < change && change < social, "rows keep their order: $house $block $unit $change $social")
         assertTrue(social < homely && homely < link && link < form && form < disclaimer, "Homely block last: $social $homely $link $form $disclaimer")
-        assertTrue("Source: Homely (entered by you) · as of 2026-10-30 · low confidence" in out)
+        assertTrue("Homely (entered by you) · as of 2026-10-30 · low confidence" in out)
         val formHtml = out.substringAfter("data-rating-form")
         assertTrue("value=\"2.1\"" in formHtml && "value=\"7\"" in formHtml)
         assertTrue("data-action=\"remove-rating\"" in formHtml)
@@ -132,7 +132,9 @@ class SuburbCardHtmlTest {
         val block = out.substringAfter("""<section class="homely">""").substringBefore("</section>")
         assertTrue("Homely rating</dt>" in block && HOMELY_LINK_TEXT in block && "data-rating-form" in block, "one block holds the rating, the link and the form")
         assertFalse(HOMELY_LINK_TEXT in out.substringBefore("""<section class="homely">"""), "the link is no longer above the block")
-        assertEquals(1, Regex("""<details""").findAll(out).count())
+        assertEquals(1, Regex("""<details class="rating-edit"""").findAll(out).count())
+        assertFalse(Regex("""<details class="source-details" open""").containsMatchIn(out), "every Source section starts closed")
+        assertTrue("""<details class="source-details"><summary>Source</summary>""" in out, out)
         assertTrue(RATING_EDIT_TEXT in html(SuburbCardState.Loaded(report)), "with no rating the edit link is still there")
     }
 
