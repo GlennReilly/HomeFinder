@@ -66,4 +66,12 @@ class CardLayoutTest {
         assertTrue(CardLayout.decode("").isDefault)
         assertFalse(CardLayout.decode("garbage\n\n?x").let { it.order.isNotEmpty() || it.hidden.isNotEmpty() })
     }
+
+    @Test
+    fun `a layout saved with the removed Sales behind the prices row still works`() {
+        val saved = CardLayout(order = listOf("C", "Sales behind the prices", "A"), hidden = setOf("Sales behind the prices", "B"))
+        assertEquals(listOf("C", "A", "D"), labels(saved), "the removed label is ignored, the rest keeps its order and hiding")
+        assertEquals(listOf("C", "A", "B", "D"), saved.arrange(rows).map { it.row.label })
+        assertEquals(listOf("B"), saved.arrange(rows).filter { it.hidden }.map { it.row.label })
+    }
 }

@@ -44,7 +44,7 @@ class SuburbCardRowsTest {
     @Test
     fun `the rows have no area and put the typical block size under the median house price`() {
         assertEquals(
-            listOf("Median house price", "Typical block size", "Median unit price", "Price change, 12 months", "Sales behind the prices",
+            listOf("Median house price", "Typical block size", "Median unit price", "Price change, 12 months",
                 "Socio-economic advantage", "Disadvantage (SEIFA)", "Economic resources (SEIFA)", "Education and occupation (SEIFA)", "Homes rented", "Houses and units", "Violent crime", "Break-ins, car and home theft", "Distance to the beach", "Schools", "Parks", "Shopping", "Transport"),
             SuburbCardRows.of(allUnknown).map { it.label },
         )
@@ -59,7 +59,29 @@ class SuburbCardRowsTest {
             assertEquals(Confidence.NONE, it.confidence, it.label)
             assertEquals("Not computed yet", it.note, it.label)
         }
-        assertEquals(listOf("A", "E", "B", "C", "D", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS 2021 Census", "ABS 2021 Census", "NSW BOCSAR", "NSW BOCSAR", "H", "I", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
+        assertEquals(listOf("A", "E", "B", "C", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS 2021 Census", "ABS 2021 Census", "NSW BOCSAR", "NSW BOCSAR", "H", "I", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
+    }
+
+    @Test
+    fun `the sales count sits in brackets after the price change, with its note after the change's own`() {
+        val withNotes = allKnown.copy(
+            priceChange12MonthsPercent = Attribute(4.2, Confidence.MEDIUM, "Sales", day, "House median price, from 40 and 38 house sales"),
+            salesCount = Attribute(31, Confidence.MEDIUM, "Sales", day, "24 house and 7 unit sales in the 12 months to the latest sale on file."),
+        )
+        val row = SuburbCardRows.priceChange(withNotes)
+        assertEquals("+4.2% (31 sales)", row.value)
+        assertEquals("House median price, from 40 and 38 house sales 24 house and 7 unit sales in the 12 months to the latest sale on file.", row.note)
+        assertEquals(Confidence.MEDIUM, row.confidence, "the row keeps the price change's own confidence")
+        assertEquals("+4.2% (1 sale)", SuburbCardRows.priceChange(withNotes.copy(salesCount = known(1))).value)
+    }
+
+    @Test
+    fun `an unknown price change stays empty with its reason, and a missing count adds nothing`() {
+        val reason = Attribute.unknown<Double>("Sales", day, "Too few house sales to compare two 12-month periods (2 and 8)")
+        val unknownChange = SuburbCardRows.priceChange(allKnown.copy(priceChange12MonthsPercent = reason))
+        assertEquals(null, unknownChange.value)
+        assertEquals("Too few house sales to compare two 12-month periods (2 and 8)", unknownChange.note)
+        assertEquals("+4.2%", SuburbCardRows.priceChange(allKnown.copy(salesCount = unknown("Sales"))).value)
     }
 
     @Test
@@ -67,8 +89,8 @@ class SuburbCardRowsTest {
         val rows = SuburbCardRows.of(allKnown).associate { it.label to it.value }
         assertEquals("\$1,050,000", rows["Median house price"])
         assertEquals("\$640,000", rows["Median unit price"])
-        assertEquals("+4.2%", rows["Price change, 12 months"])
-        assertEquals("1,187", rows["Sales behind the prices"])
+        assertEquals("+4.2% (1,187 sales)", rows["Price change, 12 months"])
+        assertFalse("Sales behind the prices" in rows, "the count lives in the price change row now (ADR 0059)")
         assertEquals("560 m² median (320 to 810 m²)", rows["Typical block size"])
         assertEquals("45% of homes are rented", rows["Homes rented"])
         val other = SuburbCardRows.of(allKnown.copy(disadvantage = known(6), economicResources = known(3), educationOccupation = known(9))).associate { it.label to it.value }

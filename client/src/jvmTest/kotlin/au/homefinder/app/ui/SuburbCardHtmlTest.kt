@@ -30,7 +30,7 @@ class SuburbCardHtmlTest {
         assertTrue("<h2>HAMILTON</h2>" in out)
         assertTrue("Postcode 2303" in out)
         assertFalse("km²" in out)
-        assertEquals(18, Regex("""class="value unknown"""").findAll(out).count())
+        assertEquals(17, Regex("""class="value unknown"""").findAll(out).count())
         assertTrue("Source: Some source" in out)
         assertTrue("Not computed yet" in out)
         assertTrue(CARD_DISCLAIMER in out)
@@ -109,7 +109,7 @@ class SuburbCardHtmlTest {
         val link = out.indexOf("homely.com.au/suburb-profile")
         val homely = out.indexOf("Homely rating</dt>")
         val form = out.indexOf("data-rating-form")
-        val sales = out.indexOf("Sales behind the prices</dt>")
+        val sales = out.indexOf("Socio-economic advantage</dt>")
         assertTrue(house in 0 until block && block < unit && unit < change && change < homely && homely < link && link < form && form < sales, "order: $house $block $unit $change $homely $link $form $sales")
         assertTrue("Source: Homely (entered by you) · as of 2026-10-30 · low confidence" in out)
         val formHtml = out.substringAfter("data-rating-form")
@@ -135,7 +135,7 @@ class SuburbCardHtmlTest {
         val change = out.indexOf("Price change, 12 months</dt>")
         val link = out.indexOf("homely.com.au/suburb-profile")
         val form = out.indexOf("data-rating-form")
-        val sales = out.indexOf("Sales behind the prices</dt>")
+        val sales = out.indexOf("Socio-economic advantage</dt>")
         assertTrue(change in 0 until link && link < form && form < sales, "order: $change $link $form $sales")
         assertFalse("Homely rating</dt>" in out)
     }
@@ -217,8 +217,8 @@ class SuburbCardHtmlTest {
     @Test
     fun `customising shows every row with controls, hidden ones dimmed, and Done and Reset`() {
         val out = custom(CardLayout().toggle("Parks"), customising = true)
-        assertEquals(18, labelsIn(out).size)
-        assertEquals(18, Regex("""class="row-controls"""").findAll(out).count())
+        assertEquals(17, labelsIn(out).size)
+        assertEquals(17, Regex("""class="row-controls"""").findAll(out).count())
         assertEquals(1, Regex("""class="row row-hidden"""").findAll(out).count())
         assertTrue("""aria-label="Show Parks"""" in out)
         assertTrue("""aria-label="Hide Shopping"""" in out)
@@ -243,7 +243,7 @@ class SuburbCardHtmlTest {
         assertTrue(out.indexOf("Price change, 12 months") < out.indexOf("homely.com.au") && out.indexOf("homely.com.au") < out.indexOf("Typical block size"))
         val hidden = custom(CardLayout().toggle(SuburbCardRows.PRICE_CHANGE_LABEL), false)
         assertFalse("Price change, 12 months" in hidden)
-        assertTrue(hidden.indexOf("Sales behind") > hidden.indexOf("homely.com.au"), "the block keeps the hidden row's place")
+        assertTrue(hidden.indexOf("Socio-economic advantage") > hidden.indexOf("homely.com.au"), "the block keeps the hidden row's place")
         assertTrue("Your Homely rating" in hidden)
     }
 
@@ -269,7 +269,7 @@ class SuburbCardHtmlTest {
         val out = html(SuburbCardState.Loaded(report), showUnknown = false)
         assertEquals(0, labelsIn(out).size, "every row of this report is unknown")
         assertEquals(0, Regex("""class="value unknown"""").findAll(out).count())
-        assertTrue("18 rows without data are hidden." in out, out)
+        assertTrue("17 rows without data are hidden." in out, out)
         assertTrue("""data-action="show-unknown"""" in out && ">Show them<" in out)
         assertTrue(CARD_DISCLAIMER in out && "<h2>HAMILTON</h2>" in out)
         assertFalse(ALL_HIDDEN_HINT in out, "rows are left off because they are unknown, not because you hid them all")
@@ -278,17 +278,17 @@ class SuburbCardHtmlTest {
     @Test
     fun `showing the unknown rows draws them with their reasons and offers to hide them again`() {
         val out = html(SuburbCardState.Loaded(report), showUnknown = true)
-        assertEquals(18, labelsIn(out).size)
-        assertTrue("Showing 18 rows without data." in out && """data-action="hide-unknown"""" in out && ">Hide them again<" in out)
+        assertEquals(17, labelsIn(out).size)
+        assertTrue("Showing 17 rows without data." in out && """data-action="hide-unknown"""" in out && ">Hide them again<" in out)
     }
 
     @Test
     fun `customising lists every row and no note, and rows you hid yourself are not counted`() {
         val customising = custom(CardLayout(), customising = true, showUnknown = false)
-        assertEquals(18, labelsIn(customising).size)
+        assertEquals(17, labelsIn(customising).size)
         assertFalse("without data" in customising)
         val oneHidden = createHTML().div { suburbCard(SuburbCardState.Loaded(report), CardLayout(hidden = setOf("Parks")), customising = false, showUnknown = false) }
-        assertTrue("17 rows without data are hidden." in oneHidden, oneHidden)
+        assertTrue("16 rows without data are hidden." in oneHidden, oneHidden)
     }
 
     @Test
