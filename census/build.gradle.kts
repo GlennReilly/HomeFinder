@@ -27,6 +27,14 @@ tasks.register<JavaExec>("crime") {
     jvmArgs("-Xmx512m")
 }
 
+// Run by pipeline/scripts/load-catchments.sh (ADR 0056): `./gradlew :census:catchments --args="<catchments dir> <output csv>"`.
+tasks.register<JavaExec>("catchments") {
+    group = "application"
+    mainClass = "au.homefinder.census.CatchmentsMainKt"
+    classpath = sourceSets["main"].runtimeClasspath
+    jvmArgs("-Xmx1g")
+}
+
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.junit.jupiter)

@@ -35,6 +35,9 @@ interface LotDirectory {
     /** The public schools nearest a lot (nearest first), or null when no school data has been loaded (or the table is missing). */
     suspend fun schools(lotId: String): LotSchoolData? = null
 
+    /** The school catchments covering a lot, or null when no catchments have been loaded (or a table is missing). A lot in no zone gives an empty list. */
+    suspend fun catchments(lotId: String): LotCatchmentData? = null
+
     /** The DEM-derived height and slope of a lot, or null when no DEM has been loaded (or the table is missing). */
     suspend fun terrain(lotId: String): LotTerrainData? = null
 
@@ -114,6 +117,39 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
             }
         } catch (failure: SQLException) {
             // Before the first schools load the table does not exist; that is "no data", not an outage.
+            if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
+        }
+    }
+
+    override suspend fun catchments(lotId: String): LotCatchmentData? = withContext(Dispatchers.IO) {
+        try {
+            dataSource.connection.use { connection ->
+                connection.prepareStatement(CATCHMENTS_SQL).use { statement ->
+                    statement.setString(1, lotId)
+                    statement.executeQuery().use { rows ->
+                        val zones = ArrayList<CatchmentZone>()
+                        var loaded = false
+                        while (rows.next()) {
+                            loaded = rows.getBoolean("loaded")
+                            val code = rows.getInt("school_code").takeIf { !rows.wasNull() } ?: continue
+                            val schoolName = rows.getString("school_name")
+                            val record = schoolName?.let {
+                                SchoolRecord(
+                                    code, it, rows.getString("level_label"), rows.getInt("icsea").takeIf { !rows.wasNull() },
+                                    rows.getDouble("enrolment_fte").takeIf { !rows.wasNull() }?.roundToInt(), rows.getString("website"),
+                                )
+                            }
+                            zones += CatchmentZone(
+                                code, rows.getString("level"), rows.getString("catch_type"), rows.getString("name"), rows.getString("years"),
+                                rows.getInt("enrolment_year").takeIf { !rows.wasNull() }, record,
+                            )
+                        }
+                        if (loaded) LotCatchmentData(zones) else null
+                    }
+                }
+            }
+        } catch (failure: SQLException) {
+            // Before the first catchments (or schools) load a table does not exist; that is "no data", not an outage.
             if (failure.sqlState == UNDEFINED_TABLE) null else throw failure
         }
     }
@@ -246,6 +282,20 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
             CROSS JOIN LATERAL (SELECT * FROM school ORDER BY geom <-> ST_PointOnSurface(l.geom) LIMIT $SCHOOL_CANDIDATES) s
             WHERE l.lot_id = ?
             ORDER BY distance_m, s.school_code
+        """.trimIndent()
+
+        /**
+         * One row per zone covering the lot's representative point (ADR 0056), each with its school's row where the schools data has one; one row with
+         * NULL school_code when the lot is in no zone; `loaded` says whether any catchments exist at all.
+         */
+        val CATCHMENTS_SQL = """
+            SELECT (SELECT EXISTS (SELECT 1 FROM school_catchment)) AS loaded, c.school_code, c.level, c.catch_type, c.name, c.years, c.enrolment_year,
+                   s.name AS school_name, s.level_label, s.icsea, s.enrolment_fte, s.website
+            FROM (SELECT 1) one
+            LEFT JOIN lot l ON l.lot_id = ?
+            LEFT JOIN school_catchment c ON ST_Covers(c.geom, ST_PointOnSurface(l.geom))
+            LEFT JOIN school s ON s.school_code = c.school_code
+            ORDER BY c.level, c.school_code
         """.trimIndent()
 
         val NEAREST_SQL = "SELECT kind, rank, name, distance_m FROM lot_nearest WHERE lot_id = ? ORDER BY kind, rank"

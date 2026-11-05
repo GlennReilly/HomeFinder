@@ -236,6 +236,28 @@ class LotSelectionTest {
     }
 
     @Test
+    fun `zoned schools come first, with the kind and years of the zone, and a nearest school is labelled as not zoned`() {
+        val base = report("1001", "12 MAIN STREET, HAMILTON NSW 2303")
+        fun row(info: SchoolInfo) = LotCardRows.of(base.copy(schools = Attribute(info, Confidence.MEDIUM, "Dept"))).associateBy { it.label }.getValue("Schools").value
+        val primary = School("1", "Hamilton Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, icsea = 1051, levelLabel = "primary, K-6")
+        val high = School("2", "Newcastle High School", SchoolSector.PUBLIC, SchoolLevel.HIGH, levelLabel = "high, 7-12")
+        assertEquals(
+            "Zoned: Hamilton Public School (primary, K-6), ICSEA 1,051, Newcastle High School (high, 7-12)",
+            row(SchoolInfo(zoned = listOf(primary, high), zonesChecked = true)),
+        )
+        val nearHigh = NearbySchool(School("3", "Near High", SchoolSector.PUBLIC, SchoolLevel.HIGH, levelLabel = "Secondary School"), 900, walkingMinutes = 15)
+        assertEquals(
+            "Zoned: Hamilton Public School (primary, K-6), ICSEA 1,051; Nearest, not zoned: Near High (Secondary School), 900 m away, about 15 min walk (estimated)",
+            row(SchoolInfo(zoned = listOf(primary), nearest = listOf(nearHigh), zonesChecked = true)),
+        )
+        assertEquals(
+            "Nearest, not zoned: Near High (Secondary School), 900 m away, about 15 min walk (estimated)",
+            row(SchoolInfo(nearest = listOf(nearHigh), zonesChecked = true)),
+        )
+        assertEquals("No public school found nearby", row(SchoolInfo(zonesChecked = true)))
+    }
+
+    @Test
     fun `proximity factors read as distance, estimated walk and park area`() {
         val base = report("1001", "12 MAIN STREET, HAMILTON NSW 2303")
         val withProximity = base.copy(
