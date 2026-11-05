@@ -1,5 +1,6 @@
 package au.homefinder.server
 
+import au.homefinder.shared.model.SocioEconomic
 import au.homefinder.shared.model.ApiJson
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
@@ -189,6 +190,26 @@ class SuburbReportFactoryTest {
         val empty = SuburbReportFactory.build(hamilton, census = SuburbCensus(0, 0, 0, 0, 0, 0))
         assertTrue(empty.rentedShare.isUnknown && empty.dwellingMix.isUnknown)
         assertEquals(LocalDate(2021, 8, 10), empty.rentedShare.asOf)
+    }
+
+    @Test
+    fun `SEIFA becomes a decile with the score, population, Census date and ABS attribution, firmer for bigger suburbs`() {
+        val report = SuburbReportFactory.build(hamilton, seifa = SuburbSeifa(irsadDecile = 8, irsadScore = 1035.7, population = 4614))
+        assertEquals(SocioEconomic(8, 1035.7, 4614), report.socioEconomic.value)
+        assertEquals(Confidence.HIGH, report.socioEconomic.confidence)
+        assertEquals(LocalDate(2021, 8, 10), report.socioEconomic.asOf)
+        assertEquals(SuburbReportFactory.SEIFA_SOURCE, report.socioEconomic.source)
+        val note = assertNotNull(report.socioEconomic.note)
+        assertTrue("4614 residents" in note && "not any one household" in note && "Based on Australian Bureau of Statistics data" in note, note)
+        assertEquals(Confidence.MEDIUM, SuburbReportFactory.build(hamilton, seifa = SuburbSeifa(5, 990.0, 500)).socioEconomic.confidence)
+        assertEquals(Confidence.LOW, SuburbReportFactory.build(hamilton, seifa = SuburbSeifa(1, 880.0, 33)).socioEconomic.confidence)
+    }
+
+    @Test
+    fun `without SEIFA data the socio-economic row is unknown with a reason`() {
+        val none = SuburbReportFactory.build(hamilton).socioEconomic
+        assertTrue(none.isUnknown)
+        assertEquals(SuburbReportFactory.SEIFA_NOT_LOADED_NOTE, none.note)
     }
 
     @Test

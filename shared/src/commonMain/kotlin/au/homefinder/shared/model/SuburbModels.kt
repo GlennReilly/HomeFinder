@@ -90,6 +90,8 @@ data class SuburbFilterValue(
     val parkShare: Double? = null,
     /** The share of occupied private dwellings that are rented (2021 Census), from 0 to 1. */
     val rentedShare: Double? = null,
+    /** The SEIFA decile of socio-economic advantage (1 most disadvantaged, 10 most advantaged; ADR 0049). */
+    val seifaDecile: Int? = null,
     /** The suburb's name, for the score ranking (ADR 0047). */
     val name: String = "",
 )
@@ -111,6 +113,7 @@ data class SuburbFiltersResponse(
     val beach: FilterProvenance? = null,
     val parks: FilterProvenance? = null,
     val rented: FilterProvenance? = null,
+    val seifa: FilterProvenance? = null,
 )
 
 /** The same factors as a property, rolled up to suburb level. Every statistic carries its own provenance. */
@@ -138,7 +141,20 @@ data class SuburbReport(
     val rentedShare: Attribute<Double> = Attribute.unknown("ABS 2021 Census", note = "Not computed yet"),
     /** What the occupied private dwellings are: separate houses, townhouses and semis, or flats and units (2021 Census, ADR 0044). */
     val dwellingMix: Attribute<DwellingMix> = Attribute.unknown("ABS 2021 Census", note = "Not computed yet"),
+    /** How advantaged the suburb's residents are as a group, from the ABS SEIFA 2021 (ADR 0049). */
+    val socioEconomic: Attribute<SocioEconomic> = Attribute.unknown("ABS SEIFA 2021", note = "Not computed yet"),
 )
+
+/**
+ * The Index of Relative Socio-economic Advantage and Disadvantage (IRSAD) for a suburb: [decile] from 1 (most disadvantaged tenth of areas
+ * in Australia) to 10 (most advantaged), the [score] on the ABS's arbitrary scale (average 1,000) and the [population] it rests on.
+ */
+@Serializable
+data class SocioEconomic(val decile: Int, val score: Double, val population: Int) {
+    init {
+        require(decile in 1..10) { "Decile must be from 1 to 10" }
+    }
+}
 
 /**
  * Shares of the suburb's occupied private dwellings by structure, each from 0 to 1. Houses are separate houses; [townhouseShare] covers

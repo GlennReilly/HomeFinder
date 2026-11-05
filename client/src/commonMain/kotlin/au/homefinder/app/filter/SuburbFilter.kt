@@ -41,6 +41,11 @@ enum class FilterCriterion(
         "rented", "Homes rented", "%", 1.0, "Census figure",
         "The share of occupied homes that were rented on Census night 2021. A suburb with few homes is only roughly right.",
         "Census data has not been loaded yet, so there is nothing to filter on.",
+    ),
+    SEIFA(
+        "seifa", "Socio-economic advantage (SEIFA decile, 10 = most advantaged)", "", 1.0, "SEIFA decile",
+        "From the ABS SEIFA 2021: it describes the residents of the suburb as a group, ranked across Australia from decile 1 (most disadvantaged) to 10 (most advantaged).",
+        "SEIFA data has not been loaded yet, so there is nothing to filter on.",
     );
 
     fun format(value: Double): String = Formats.decimal(value, 0) + unit
@@ -123,12 +128,14 @@ class FilterData(
                 FilterCriterion.BEACH to response.suburbs.associate { it.suburbId to it.beachKm },
                 FilterCriterion.PARKS to response.suburbs.associate { it.suburbId to it.parkShare?.times(PERCENT) },
                 FilterCriterion.RENTED to response.suburbs.associate { it.suburbId to it.rentedShare?.times(PERCENT) },
+                FilterCriterion.SEIFA to response.suburbs.associate { it.suburbId to it.seifaDecile?.toDouble() },
             )
             val sources = buildMap {
                 put(FilterCriterion.ICSEA, FilterSource(response.icseaSource, response.icseaAsOf))
                 response.beach?.let { put(FilterCriterion.BEACH, FilterSource(it.source, it.asOf)) }
                 response.parks?.let { put(FilterCriterion.PARKS, FilterSource(it.source, it.asOf)) }
                 response.rented?.let { put(FilterCriterion.RENTED, FilterSource(it.source, it.asOf)) }
+                response.seifa?.let { put(FilterCriterion.SEIFA, FilterSource(it.source, it.asOf)) }
             }
             return FilterData(values, sources, ids, response.suburbs.associate { it.suburbId to it.name })
         }

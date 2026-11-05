@@ -209,6 +209,8 @@ class SmokeTest {
         assertThat(page.locator("#filter-beach-max-value")).hasText("12 km")
         assertThat(page.locator("#filter-rented-unknown")).containsText("1 of 3 suburbs have no Census figure")
         assertThat(page.locator("#filters")).containsText("Homes rented: Source: Test Census · as of 2021-08-10")
+        assertThat(page.locator("#filter-seifa-min-value")).hasText("3")
+        assertThat(page.locator("#filters")).containsText("Socio-economic advantage: Source: Test SEIFA")
         page.locator("#filter-rented-on").check()
         assertThat(page.locator("#filter-summary")).containsText("2 of 3 suburbs match")
         page.locator("#filter-rented-min").fill("30")

@@ -4,6 +4,7 @@ import au.homefinder.shared.model.Attribute
 import au.homefinder.shared.model.BlockSizeSpread
 import au.homefinder.shared.model.Confidence
 import au.homefinder.shared.model.DwellingMix
+import au.homefinder.shared.model.SocioEconomic
 import au.homefinder.shared.model.HomelyRating
 import au.homefinder.shared.model.School
 import au.homefinder.shared.model.SchoolLevel
@@ -48,6 +49,7 @@ object SuburbReportFactory {
         amenity: SuburbAmenity? = null,
         schools: SuburbSchoolData? = null,
         census: SuburbCensus? = null,
+        seifa: SuburbSeifa? = null,
     ): SuburbReport = SuburbReport(
         suburbId = record.suburbId,
         name = record.name,
@@ -70,6 +72,7 @@ object SuburbReportFactory {
         homelyRating = homelyRating(rating),
         rentedShare = rentedShare(census),
         dwellingMix = dwellingMix(census),
+        socioEconomic = socioEconomic(seifa),
     )
 
     const val CENSUS_SOURCE: String = "ABS 2021 Census of Population and Housing (CC BY 4.0)"
@@ -83,6 +86,28 @@ object SuburbReportFactory {
     private const val SMALL_COUNT_NOTE = "The ABS randomly adjusts small counts, so a suburb with few homes is only roughly right"
 
     /** Confidence follows how many dwellings the share rests on, as for sales (a share of a few homes is rough). */
+    const val SEIFA_SOURCE: String = "ABS Socio-Economic Indexes for Areas (SEIFA) 2021 (CC BY 4.0)"
+    const val SEIFA_NOT_LOADED_NOTE: String = "SEIFA data not loaded yet"
+    const val SEIFA_NO_SCORE_NOTE: String = "The ABS gives no SEIFA score to this suburb (too few residents)"
+
+    /** Under this many residents a suburb's decile rests on very little (the ABS flags such areas), and under [SEIFA_HIGH_FROM] it is moderately firm. */
+    const val SEIFA_LOW_BELOW: Int = 200
+    const val SEIFA_HIGH_FROM: Int = 1_000
+
+    private fun socioEconomic(seifa: SuburbSeifa?): Attribute<SocioEconomic> {
+        if (seifa == null) return Attribute.unknown(SEIFA_SOURCE, note = SEIFA_NOT_LOADED_NOTE)
+        val confidence = when {
+            seifa.population < SEIFA_LOW_BELOW -> Confidence.LOW
+            seifa.population < SEIFA_HIGH_FROM -> Confidence.MEDIUM
+            else -> Confidence.HIGH
+        }
+        return Attribute(
+            SocioEconomic(seifa.irsadDecile, seifa.irsadScore, seifa.population), confidence, SEIFA_SOURCE, CENSUS_DATE,
+            "Describes the suburb's ${seifa.population} residents as a group, not any one household, and ranks suburbs across Australia " +
+                "(decile 1 is the most disadvantaged tenth, 10 the most advantaged). Score ${Math.round(seifa.irsadScore)} on a scale averaging 1,000. $CENSUS_ATTRIBUTION",
+        )
+    }
+
     private fun rentedShare(census: SuburbCensus?): Attribute<Double> {
         if (census == null) return Attribute.unknown(CENSUS_SOURCE, note = CENSUS_NOT_LOADED_NOTE)
         val share = census.rentedShare

@@ -147,6 +147,31 @@ class PostgisSuburbDirectoryIntegrationTest {
     }
 
     @Test
+    fun `a suburb's SEIFA row is read, a suburb without one has none, and the filter values carry the decile`() = withDirectory { directory ->
+        execute("TRUNCATE suburb_seifa")
+        assertNull(directory.seifa("9001"), "nothing loaded yet")
+        execute("INSERT INTO suburb_seifa (suburb_id, sal_code, irsad_score, irsad_decile, population) VALUES ('9001', 'SAL1', 1035.7, 8, 4614)")
+        assertEquals(SuburbSeifa(8, 1035.7, 4614), directory.seifa("9001"))
+        assertNull(directory.seifa("9002"), "loaded, but this suburb has no row")
+        assertNull(directory.seifa("9001' OR '1'='1"))
+        val data = assertNotNull(directory.filterValues(), "SEIFA alone is enough")
+        assertTrue(data.seifaLoaded)
+        assertEquals(8, data.suburbs.first { it.suburbId == "9001" }.seifaDecile)
+        assertNull(data.suburbs.first { it.suburbId == "9002" }.seifaDecile)
+        execute("TRUNCATE suburb_seifa")
+    }
+
+    @Test
+    fun `a database without the SEIFA table has no SEIFA rather than an error`() = withDirectory { directory ->
+        execute("ALTER TABLE suburb_seifa RENAME TO suburb_seifa_hidden")
+        try {
+            assertNull(directory.seifa("9001"))
+        } finally {
+            execute("ALTER TABLE suburb_seifa_hidden RENAME TO suburb_seifa")
+        }
+    }
+
+    @Test
     fun `a suburb's OpenStreetMap roll-up is read with nulls kept and the date of the data`() = withDirectory { directory ->
         execute(
             "TRUNCATE osm_import, suburb_amenity",

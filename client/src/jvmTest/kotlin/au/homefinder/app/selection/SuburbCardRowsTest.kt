@@ -7,6 +7,7 @@ import au.homefinder.shared.model.DwellingMix
 import au.homefinder.shared.model.School
 import au.homefinder.shared.model.SchoolLevel
 import au.homefinder.shared.model.SchoolSector
+import au.homefinder.shared.model.SocioEconomic
 import au.homefinder.shared.model.SuburbBeachDistance
 import au.homefinder.shared.model.SuburbBrickShare
 import au.homefinder.shared.model.SuburbFloodShare
@@ -43,7 +44,7 @@ class SuburbCardRowsTest {
     fun `the rows have no area and put the typical block size under the median house price`() {
         assertEquals(
             listOf("Median house price", "Typical block size", "Median unit price", "Price change, 12 months", "Sales behind the prices",
-                "Homes rented", "Houses and units", "Distance to the beach", "Schools", "Parks", "Shopping", "Transport"),
+                "Socio-economic advantage", "Homes rented", "Houses and units", "Distance to the beach", "Schools", "Parks", "Shopping", "Transport"),
             SuburbCardRows.of(allUnknown).map { it.label },
         )
     }
@@ -57,7 +58,7 @@ class SuburbCardRowsTest {
             assertEquals(Confidence.NONE, it.confidence, it.label)
             assertEquals("Not computed yet", it.note, it.label)
         }
-        assertEquals(listOf("A", "E", "B", "C", "D", "ABS 2021 Census", "ABS 2021 Census", "H", "I", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
+        assertEquals(listOf("A", "E", "B", "C", "D", "ABS SEIFA 2021", "ABS 2021 Census", "ABS 2021 Census", "H", "I", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
     }
 
     @Test
@@ -69,6 +70,8 @@ class SuburbCardRowsTest {
         assertEquals("1,187", rows["Sales behind the prices"])
         assertEquals("560 m² median (320 to 810 m²)", rows["Typical block size"])
         assertEquals("45% of homes are rented", rows["Homes rented"])
+        val advantaged = SuburbCardRows.of(allKnown.copy(socioEconomic = known(SocioEconomic(8, 1035.7, 4614)))).first { it.label == "Socio-economic advantage" }
+        assertEquals("Decile 8 of 10 (10 is the most advantaged)", advantaged.value)
         assertEquals("58% houses, 25% townhouses, 15% units", rows["Houses and units"])
         assertEquals("3.5 km from the centre, 2.4 km from the nearest edge", rows["Distance to the beach"])
         assertEquals("1 public school", rows["Schools"])
