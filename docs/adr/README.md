@@ -67,3 +67,4 @@
 | [0063](0063-sources-collapsed-by-default.md) | Source lines are collapsed by default | Accepted |
 | [0064](0064-card-row-groups.md) | Card rows are grouped into folding sections | Accepted |
 | [0065](0065-filter-shading-fades-at-lot-zoom.md) | The suburb filter shading fades out at lot zoom | Accepted |
+| [0066](0066-filter-groups.md) | Filters are grouped into folding sections | Accepted |

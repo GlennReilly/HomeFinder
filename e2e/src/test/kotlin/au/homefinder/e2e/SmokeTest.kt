@@ -254,9 +254,29 @@ class SmokeTest {
         assertThat(page.locator("#tab-suburb")).hasText("Suburb")
     }
 
+    /** Folds every filter group open (ADR 0066: only the first starts open) so the criteria can be reached. */
+    private fun openFilterGroups() {
+        page.evaluate("document.querySelectorAll('#filters details.filter-group').forEach(d => d.open = true)")
+    }
+
+    @Test
+    fun `filter groups fold, the first starts open, and a group counts its switched-on filters`() {
+        openWithKey()
+        assertTrue(page.evaluate("document.getElementById('filter-group-people-and-area').open") == true)
+        assertTrue(page.evaluate("document.getElementById('filter-group-schools').open") == false)
+        assertThat(page.locator("#filter-icsea-on")).not().isVisible()
+        page.locator("#filter-group-schools > summary").click()
+        assertThat(page.locator("#filter-icsea-on")).isVisible()
+        page.locator("#filter-icsea-on").check()
+        assertThat(page.locator("#filter-group-schools-count")).hasText("1 on")
+        page.locator("#filter-reset").click()
+        assertThat(page.locator("#filter-group-schools-count")).hasText("")
+    }
+
     @Test
     fun `the filter panel counts matching suburbs as the ICSEA slider moves`() {
         openWithKey()
+        openFilterGroups()
         assertThat(page.locator("#tab-filters")).hasAttribute("aria-selected", "true")
         assertThat(page.locator("#filter-summary")).containsText("Switch on a filter")
         assertThat(page.locator("#filter-icsea-unknown")).containsText("1 of 3 suburbs have no ICSEA")
@@ -276,6 +296,7 @@ class SmokeTest {
     @Test
     fun `filters on the share rented and the beach distance combine, and the sliders show their own units`() {
         openWithKey()
+        openFilterGroups()
         assertThat(page.locator("#filters")).isVisible()
         // "At most" sliders start at the highest value, "at least" at the lowest, so nothing is excluded until one is moved.
         assertThat(page.locator("#filter-rented-limit-value")).hasText("45%")
@@ -381,6 +402,7 @@ class SmokeTest {
         assertThat(page.locator("#tab-filters")).hasAttribute("aria-selected", "true")
         assertThat(page.locator("#filters")).isVisible()
         assertThat(page.locator("#card")).isHidden()
+        openFilterGroups()
         page.locator("#filter-icsea-limit").fill("1000")
         assertThat(page.locator("#tab-filters")).hasText("Filters (1 of 3)")
         tapSuburb()
@@ -422,6 +444,7 @@ class SmokeTest {
     @Test
     fun `reset all switches every filter off and puts the sliders back`() {
         openWithKey()
+        openFilterGroups()
         assertThat(page.locator("#filter-reset")).isDisabled()
         val start = page.locator("#filter-icsea-limit").inputValue()
         page.locator("#filter-icsea-limit").fill("1000")

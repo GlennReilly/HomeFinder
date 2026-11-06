@@ -2,6 +2,7 @@ package au.homefinder.app.ui
 
 import au.homefinder.app.filter.FilterCriterion
 import au.homefinder.app.filter.FilterData
+import au.homefinder.app.filter.FilterGroups
 import au.homefinder.app.filter.FilterResult
 import kotlinx.html.ButtonType
 import kotlinx.html.FlowContent
@@ -32,6 +33,9 @@ object FilterIds {
     fun criterionOf(elementId: String?): FilterCriterion? =
         FilterCriterion.entries.firstOrNull { elementId?.startsWith("filter-${it.key}-") == true }
 }
+
+/** The class of a filter group's `details` (ADR 0066). */
+const val FILTER_GROUP_CLASS: String = "filter-group"
 
 const val FILTER_RESET_TEXT: String = "Reset all filters"
 
@@ -80,30 +84,17 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
             +FILTER_RESET_TEXT
         }
     }
-    FilterCriterion.entries.forEach { criterion ->
-        val bounds = data.bounds(criterion)
-        if (bounds == null) {
-            p("filter-status") { +criterion.notLoadedText }
-            return@forEach
-        }
-        div("filter") {
-            label {
-                input(InputType.checkBox) { id = FilterIds.on(criterion) }
-                +" ${criterion.label}"
+    // Criteria sit in foldable groups (ADR 0066); a group starts open if it is the first or has a switched-on criterion.
+    val on = initial.selection.limits.keys
+    FilterGroups.arrange(on).forEach { group ->
+        details(FILTER_GROUP_CLASS) {
+            id = group.id
+            if (group.open) attributes["open"] = "open"
+            summary {
+                +group.title
+                span("group-count") { id = group.countId; +FilterGroups.onText(group, on) }
             }
-            div("range") {
-                label {
-                    htmlFor = FilterIds.limit(criterion)
-                    span { id = FilterIds.limitPrefix(criterion); +data.limitPrefix(criterion, criterion.startLimit(bounds)) }
-                    span { id = FilterIds.limitOut(criterion); +data.limitText(criterion, criterion.startLimit(bounds)) }
-                }
-                rangeInput(FilterIds.limit(criterion), criterion, bounds.min, bounds.max, criterion.startLimit(bounds))
-            }
-            p("hint") {
-                id = FilterIds.unknown(criterion)
-                +filterUnknownText(data, criterion)
-            }
-            criterion.help?.let { help -> p("hint") { +help } }
+            group.criteria.forEach { criterion -> filterCriterion(data, criterion) }
         }
     }
     p("filter-summary") {
@@ -122,6 +113,33 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
             summary { +SOURCE_SUMMARY_TEXT }
             sources.forEach { line -> p("hint") { +line } }
         }
+    }
+}
+
+private fun FlowContent.filterCriterion(data: FilterData, criterion: FilterCriterion) {
+    val bounds = data.bounds(criterion)
+    if (bounds == null) {
+        p("filter-status") { +criterion.notLoadedText }
+        return
+    }
+    div("filter") {
+        label {
+            input(InputType.checkBox) { id = FilterIds.on(criterion) }
+            +" ${criterion.label}"
+        }
+        div("range") {
+            label {
+                htmlFor = FilterIds.limit(criterion)
+                span { id = FilterIds.limitPrefix(criterion); +data.limitPrefix(criterion, criterion.startLimit(bounds)) }
+                span { id = FilterIds.limitOut(criterion); +data.limitText(criterion, criterion.startLimit(bounds)) }
+            }
+            rangeInput(FilterIds.limit(criterion), criterion, bounds.min, bounds.max, criterion.startLimit(bounds))
+        }
+        p("hint") {
+            id = FilterIds.unknown(criterion)
+            +filterUnknownText(data, criterion)
+        }
+        criterion.help?.let { help -> p("hint") { +help } }
     }
 }
 
