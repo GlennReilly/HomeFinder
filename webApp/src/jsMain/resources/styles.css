@@ -195,11 +195,12 @@ button.close { font-size: 1.3rem; line-height: 1; padding: 2px 10px; min-width: 
 .source-details p, .note-details p { margin: 4px 0 0; }
 .source-details, .note-details { margin-top: calc(var(--details-gap) + var(--summary-overlap)); }
 /* A Source straight after a Details sits one line below it, not a section gap away. */
-/* The two 44 px tap boxes sit edge to edge without overlapping: the Details text rides at the bottom of its box and the Source text at the top of its box, so the visible space between the texts is only the stack gap. */
-.note-details:has(+ .source-details) { margin-top: calc(var(--details-gap) + var(--summary-overlap)); }
-.note-details:has(+ .source-details) summary { align-items: flex-end; margin-top: calc(-1 * (var(--summary-overlap) + var(--summary-slack) / 2)); margin-bottom: 0; }
-.note-details + .source-details { margin-top: var(--details-stack-gap); }
-.note-details + .source-details summary { align-items: flex-start; margin-top: 0; margin-bottom: calc(-1 * (var(--summary-overlap) + var(--summary-slack) / 2)); }
+/* Details and Source sit in sibling dd elements (.note, .provenance). The two 44 px tap boxes sit edge to edge without overlapping: the Details text rides at the bottom of its box and the Source text at the top of its box, so the visible space between the texts is only the stack gap. */
+.note:has(+ .provenance) > .note-details { margin-top: calc(var(--details-gap) + var(--summary-overlap)); }
+.note:has(+ .provenance) > .note-details summary { align-items: flex-end; margin-top: calc(-1 * (var(--summary-overlap) + var(--summary-slack) / 2)); margin-bottom: 0; }
+.note + .provenance { margin-top: var(--details-stack-gap); }
+.note + .provenance > .source-details { margin-top: 0; }
+.note + .provenance > .source-details summary { align-items: flex-start; margin-top: 0; margin-bottom: calc(-1 * (var(--summary-overlap) + var(--summary-slack) / 2)); }
 /* Card groups (ADR 0064): a folding heading per group; the rows inside keep their own dividers. */
 .card-group { border-top: 1px solid rgba(128, 128, 128, .35); }
 .card-group:first-of-type { border-top: 0; }
