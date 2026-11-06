@@ -1,5 +1,6 @@
 package au.homefinder.app.ui
 
+import au.homefinder.app.selection.CardGroups
 import au.homefinder.app.selection.CardLayout
 import au.homefinder.app.selection.SuburbCardRows
 import au.homefinder.app.selection.SuburbCardState
@@ -193,7 +194,7 @@ class SuburbCardHtmlTest {
         assertTrue("""<span class="school-name">Small School</span><span class="detail">Primary School · ICSEA not published</span>""" in out, out)
         assertTrue("""href="https://www.myschool.edu.au/"""" in out && MY_SCHOOL_LINK_TEXT in out)
         val row = out.indexOf("Schools</dt>")
-        assertTrue(row in 0 until out.indexOf("Hamilton Public School") && out.indexOf("Hamilton Public School") < out.indexOf("Parks</dt>"), "the list sits inside the Schools row")
+        assertTrue(row in 0 until out.indexOf("Hamilton Public School") && out.indexOf("Hamilton Public School") < out.indexOf("Zoned schools</dt>"), "the list sits inside the Schools row")
     }
 
     @Test
@@ -372,5 +373,39 @@ class SuburbCardHtmlTest {
         assertTrue("Zoned schools" in out && "Hamilton Public School (primary), Newcastle High School (high)" in out, out)
         assertTrue("""href="https://hamilton-p.schools.nsw.gov.au"""" in out && "primary, K-6 · 82% of the suburb" in out && "lots · ICSEA 1,041" in out, out)
         assertTrue("Newcastle High School</span>" in out && "ICSEA 1,017" in out, out)
+    }
+
+    private val headings get() = { out: String -> Regex("""<summary>([^<]*)</summary>""").findAll(out).map { it.groupValues[1] }.filter { it !in setOf(SOURCE_SUMMARY_TEXT, DETAILS_SUMMARY_TEXT, RATING_EDIT_TEXT) }.toList() }
+
+    @Test
+    fun `rows sit in folding groups, and only the first starts open`() {
+        val out = custom(CardLayout(), false)
+        assertEquals(listOf("Prices and blocks", "People and area", "Crime", "Location", "Schools"), headings(out))
+        assertTrue(Regex("""<details class="card-group" data-group="Prices and blocks" open="open">""").containsMatchIn(out), out)
+        assertEquals(1, Regex("""class="card-group"[^>]* open="open"""").findAll(out).count(), "every other group starts closed")
+    }
+
+    @Test
+    fun `a group you opened stays open, and one you closed stays closed`() {
+        val out = createHTML().div { suburbCard(SuburbCardState.Loaded(report), CardLayout(), false, true, mapOf("Crime" to true, "Prices and blocks" to false)) }
+        assertTrue(Regex("""data-group="Crime" open="open"""").containsMatchIn(out))
+        assertFalse(Regex("""data-group="Prices and blocks" open="open"""").containsMatchIn(out))
+    }
+
+    @Test
+    fun `groups follow the order you chose, and customising opens them all with group controls`() {
+        val moved = CardLayout().moveGroup("Crime", SuburbCardRows.of(report), CardGroups.SUBURB, -1)
+        assertEquals(listOf("Prices and blocks", "Crime", "People and area", "Location", "Schools"), headings(custom(moved, false)))
+        val out = custom(CardLayout(), true)
+        assertEquals(5, Regex("""class="card-group"[^>]* open="open"""").findAll(out).count())
+        assertTrue(Regex("""aria-label="Move the Prices and blocks group up"[^>]*disabled""").containsMatchIn(out), "the first group cannot move up")
+        assertTrue("""aria-label="Move the Crime group down"""" in out)
+        assertTrue(Regex("""aria-label="Move Violent crime up"[^>]*disabled""").containsMatchIn(out), "a row cannot leave its group")
+    }
+
+    @Test
+    fun `a group whose rows are all hidden is left off`() {
+        val hidden = custom(CardLayout(hidden = setOf("Violent crime", "Break-ins, car and home theft")), false)
+        assertFalse("Crime" in headings(hidden))
     }
 }

@@ -1,6 +1,7 @@
 package au.homefinder.app.ui
 
 import au.homefinder.app.selection.ArrangedRow
+import au.homefinder.app.selection.CardGroups
 import au.homefinder.app.selection.CardLayout
 import au.homefinder.app.selection.LotCardRows
 import au.homefinder.app.selection.LotCardState
@@ -43,7 +44,13 @@ fun lotCardSubtitle(card: LotCardState): String? = when (card) {
  * The basic lot card as plain HTML (ADR 0022), sharing the Suburb Card's look, buttons and provenance lines. Several
  * addresses (a strata plan) are listed under the header.
  */
-fun FlowContent.lotCard(card: LotCardState, layout: CardLayout = CardLayout(), customising: Boolean = false, showUnknown: Boolean = false) {
+fun FlowContent.lotCard(
+    card: LotCardState,
+    layout: CardLayout = CardLayout(),
+    customising: Boolean = false,
+    showUnknown: Boolean = false,
+    groupOpen: Map<String, Boolean> = emptyMap(),
+) {
     section("suburb-card lot-card") {
         attributes["aria-label"] = "Lot card"
         div(STICKY_TOP_CLASS) {
@@ -74,15 +81,23 @@ fun FlowContent.lotCard(card: LotCardState, layout: CardLayout = CardLayout(), c
                 if (card.report.addresses.size > 1) {
                     ul("addresses") { card.report.addresses.forEach { li { +it } } }
                 }
-                val full = layout.arrange(LotCardRows.of(card.report))
+                val groups = layout.arrangeGroups(LotCardRows.of(card.report), CardGroups.LOT)
+                val full = groups.flatMap { it.rows }
                 val arranged = UnknownRows.visible(full, customising, showUnknown)
                 if (arranged.isEmpty() && UnknownRows.unknownCount(full, customising) == 0) p("hint") { +ALL_HIDDEN_HINT }
-                dl("rows") {
+                groups.forEachIndexed { gi, group ->
+                    val drawn = UnknownRows.visible(group.rows, customising, showUnknown)
                     // Every row is walked so the address links survive a block size row that has no value and is left off (ADR 0061).
-                    full.forEach { item ->
-                        val i = arranged.indexOfFirst { it.row.label == item.row.label }
-                        val links = ListingLinks.forLotRow(item.row.label, card.report)
-                        if (i >= 0) lotRow(item, i, arranged.size, customising, links) else if (links != null && !item.hidden) listingLinksRow(links)
+                    val linkOnly = group.rows.any { r -> drawn.none { it.row.label == r.row.label } && !r.hidden && ListingLinks.forLotRow(r.row.label, card.report) != null }
+                    if (drawn.isEmpty() && !linkOnly) return@forEachIndexed
+                    cardGroup(group.title, gi, groups.size, customising, open = groupOpen[group.title] ?: group.openByDefault) {
+                        dl("rows") {
+                            group.rows.forEach { item ->
+                                val i = drawn.indexOfFirst { it.row.label == item.row.label }
+                                val links = ListingLinks.forLotRow(item.row.label, card.report)
+                                if (i >= 0) lotRow(item, i, drawn.size, customising, links) else if (links != null && !item.hidden) listingLinksRow(links)
+                            }
+                        }
                     }
                 }
                 unknownRowsNote(UnknownRows.unknownCount(full, customising), showUnknown)

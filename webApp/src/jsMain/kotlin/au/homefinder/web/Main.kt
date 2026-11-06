@@ -17,6 +17,7 @@ import au.homefinder.app.api.RatingApi
 import au.homefinder.app.api.SearchApi
 import au.homefinder.app.api.SuburbApi
 import au.homefinder.app.selection.CardKind
+import au.homefinder.app.selection.CardGroups
 import au.homefinder.app.selection.CardLayout
 import au.homefinder.app.selection.CardScroll
 import au.homefinder.app.selection.CardRow
@@ -167,8 +168,19 @@ private fun start(apiKey: String) {
                 val label = target.getAttribute(LayoutActions.ROW_ATTRIBUTE)
                 if (label != null) { layouts.change(latest, action, label); redraw() }
             }
+            LayoutActions.GROUP_UP, LayoutActions.GROUP_DOWN -> {
+                val title = target.getAttribute(LayoutActions.GROUP_ATTRIBUTE)
+                if (title != null) { layouts.change(latest, action, title); redraw() }
+            }
         }
     })
+    // A group folding open or shut is remembered for this page load, so a redraw (another suburb, a saved rating) keeps it as you left it (ADR 0064).
+    // `toggle` does not bubble, hence the capturing listener.
+    card.addEventListener("toggle", { event ->
+        val details = event.target as? HTMLElement
+        val title = details?.getAttribute(LayoutActions.GROUP_ATTRIBUTE)
+        if (details != null && title != null && !layouts.customising) layouts.groupOpen[title] = details.hasAttribute("open")
+    }, true)
     card.addEventListener("submit", { event ->
         val form = event.target as? HTMLFormElement
         if (form?.hasAttribute(RatingForm.ATTRIBUTE) == true) {
@@ -358,6 +370,9 @@ private class CardLayouts {
     var lot: CardLayout = load(LOT_LAYOUT_STORAGE)
     var customising: Boolean = false
 
+    /** Which groups are open (ADR 0064), by title; a group not listed starts as its default says. Not remembered across page loads. */
+    val groupOpen: MutableMap<String, Boolean> = mutableMapOf()
+
     /** Whether rows without data are drawn (ADR 0058); not remembered, so each page load starts with them left off. */
     var showUnknown: Boolean = false
 
@@ -383,9 +398,12 @@ private class CardLayouts {
     fun change(state: MapUiState, action: String, label: String) {
         val rows = rows(state) ?: return
         val current = if (showsLot(state)) lot else suburb
+        val groups = if (showsLot(state)) CardGroups.LOT else CardGroups.SUBURB
         val next = when (action) {
-            LayoutActions.ROW_UP -> current.moveUp(label, rows)
-            LayoutActions.ROW_DOWN -> current.moveDown(label, rows)
+            LayoutActions.ROW_UP -> current.moveRowInGroup(label, rows, groups, -1)
+            LayoutActions.ROW_DOWN -> current.moveRowInGroup(label, rows, groups, 1)
+            LayoutActions.GROUP_UP -> current.moveGroup(label, rows, groups, -1)
+            LayoutActions.GROUP_DOWN -> current.moveGroup(label, rows, groups, 1)
             else -> current.toggle(label)
         }
         update(state, next)
@@ -411,8 +429,8 @@ private fun renderCard(container: HTMLElement, suburb: SuburbCardState, lot: Lot
     scroll.value = plan.memory
     container.innerHTML = ""
     when (kind) {
-        CardKind.LOT -> container.append { div { lotCard(lot, layouts.lot, layouts.customising, layouts.showUnknown) } }
-        CardKind.SUBURB -> container.append { div { suburbCard(suburb, layouts.suburb, layouts.customising, layouts.showUnknown) } }
+        CardKind.LOT -> container.append { div { lotCard(lot, layouts.lot, layouts.customising, layouts.showUnknown, layouts.groupOpen) } }
+        CardKind.SUBURB -> container.append { div { suburbCard(suburb, layouts.suburb, layouts.customising, layouts.showUnknown, layouts.groupOpen) } }
         CardKind.NONE -> container.append { p("side-empty") { +SIDE_EMPTY_TEXT } }
     }
     container.scrollTop = plan.restoreTo.toDouble()

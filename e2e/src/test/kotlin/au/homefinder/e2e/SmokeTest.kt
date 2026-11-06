@@ -131,7 +131,12 @@ class SmokeTest {
         tapSuburb()
         assertThat(page.locator("#card")).containsText("Postcode 2303")
         assertThat(page.locator("#card dl.rows .row").first()).containsText("Median house price")
-        assertThat(page.locator("#card dl.rows .row").nth(1)).containsText("Typical block size")
+        // Rows sit in folding groups (ADR 0064): the prices and blocks group starts open and the others start closed.
+        assertThat(page.locator("#card details.card-group[data-group='Prices and blocks'] .row")).containsText(
+            arrayOf("Median house price", "Typical block size", "Median unit price", "Price change"),
+        )
+        assertThat(page.locator("#card details.card-group[data-group='Prices and blocks']")).hasAttribute("open", "open")
+        assertThat(page.locator("#card details.card-group[data-group='Schools']")).not().hasAttribute("open", "open")
         assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Area"))).hasCount(0)
         assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Price change"))).containsText("+4.2% (120 sales)")
         assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Sales behind the prices"))).hasCount(0)
@@ -181,6 +186,7 @@ class SmokeTest {
         assertThat(row.first()).containsText("1 public school, average ICSEA 1,051 (1,000 is average)")
         assertThat(page.locator("#card ul.schools a")).hasAttribute("href", "https://hamilton-p.schools.nsw.gov.au")
         assertThat(page.locator("#card ul.schools")).containsText("ICSEA 1,051 · 412 students")
+        page.locator("#card details.card-group[data-group='Schools'] > summary").click()
         assertThat(page.locator("#card a[href='https://www.myschool.edu.au/']")).isVisible()
     }
 
