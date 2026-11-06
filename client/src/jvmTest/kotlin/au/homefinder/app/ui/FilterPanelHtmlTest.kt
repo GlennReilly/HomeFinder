@@ -120,6 +120,14 @@ class FilterPanelHtmlTest {
     }
 
     @Test
+    fun `the Reset all button names what it resets, and says when nothing has changed`() {
+        assertEquals("Reset all filters", FILTER_RESET_TEXT)
+        assertEquals("Reset all filters (none changed)", filterResetTitle(anyOn = false))
+        assertEquals("Reset all filters: switch every filter off", filterResetTitle(anyOn = true))
+        assertTrue("""aria-label="Reset all filters (none changed)"""" in html(data(1000, 1100)))
+    }
+
+    @Test
     fun `a capped crime slider starts on No limit, with no words before it, and spans the lowest 90 percent plus that position`() {
         val values = (1..19).map { SuburbFilterValue("s$it", violentPer1000 = it.toDouble()) } + SuburbFilterValue("outlier", violentPer1000 = 100.0)
         val d = FilterData.from(SuburbFiltersResponse(values, "S", LocalDate(2026, 10, 2), crime = FilterProvenance("BOCSAR", LocalDate(2026, 6, 30))))

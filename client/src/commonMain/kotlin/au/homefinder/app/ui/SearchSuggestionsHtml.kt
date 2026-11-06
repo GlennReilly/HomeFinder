@@ -26,9 +26,12 @@ fun kindLabel(kind: SearchResultKind): String = when (kind) {
     SearchResultKind.ADDRESS -> "Address"
 }
 
-/** The second line of a suggestion: a suburb says "Suburb, NSW 2303", an address says whether a lot is known. */
+/** The server's suburb detail starts with the kind, which the tag beside the suggestion already says. */
+private const val SUBURB_DETAIL_PREFIX: String = "Suburb, "
+
+/** The second line of a suggestion: a suburb says "NSW 2303" (the tag says it is a suburb), an address says whether a lot is known. */
 fun suggestionDetail(result: SearchResult): String? = when (result.kind) {
-    SearchResultKind.SUBURB -> result.detail
+    SearchResultKind.SUBURB -> result.detail?.removePrefix(SUBURB_DETAIL_PREFIX)
     SearchResultKind.ADDRESS -> if (result.lotId == null) "No lot known for this address" else result.detail
 }
 
