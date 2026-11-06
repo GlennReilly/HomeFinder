@@ -7,7 +7,9 @@
   --error: #b3261e; /* 6.5:1 on white */
   --tap-target: 44px; /* least height of a small tap target (WCAG 2.5.5) */
   --summary-overlap: 14px; /* the part of a 44 px summary tap area that sits outside its text line (hit area only, not visible space) */
-  --details-stack-gap: 8px; /* space between a Details line and the Source line under it */
+  --details-stack-gap: 4px; /* visible space between the Details text and the Source text under it */
+  --summary-line-height: 1.2; /* line height of the Details and Source summaries */
+  --summary-slack: calc(var(--tap-target) - .8rem * var(--summary-line-height)); /* the part of a 44 px summary box outside its text line */
   --sheet-open-height: 50dvh; /* height of the open bottom sheet below 600 px (ADR 0067); the map above it stays usable */
   --sheet-credit-height: 28px; /* room for the map credit line, kept above the open sheet */
   --chevron-size: 8px; /* side of the fold chevron on the selected tab (bottom sheet only) */
@@ -188,12 +190,16 @@ button.reset-all:disabled { opacity: .75; color: var(--muted); border-style: das
 /* The close button is a cross. */
 button.close { font-size: 1.3rem; line-height: 1; padding: 2px 10px; min-width: var(--tap-target); min-height: var(--tap-target); cursor: pointer; }
 .source-details, .note-details { font-size: .8rem; color: var(--muted); }
-.source-details summary, .note-details summary { cursor: pointer; width: fit-content; min-height: var(--tap-target); margin: calc(-1 * var(--summary-overlap)) 0; display: flex; align-items: center; text-decoration: underline; text-underline-offset: 3px; }
+.source-details summary, .note-details summary { cursor: pointer; width: fit-content; min-height: var(--tap-target); line-height: var(--summary-line-height); margin: calc(-1 * var(--summary-overlap)) 0; display: flex; align-items: center; text-decoration: underline; text-underline-offset: 3px; }
 .source-details summary:focus-visible, .note-details summary:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
 .source-details p, .note-details p { margin: 4px 0 0; }
 .source-details, .note-details { margin-top: calc(var(--details-gap) + var(--summary-overlap)); }
 /* A Source straight after a Details sits one line below it, not a section gap away. */
-.note-details + .source-details { margin-top: calc(var(--details-stack-gap) + var(--summary-overlap)); }
+/* The two 44 px tap boxes sit edge to edge without overlapping: the Details text rides at the bottom of its box and the Source text at the top of its box, so the visible space between the texts is only the stack gap. */
+.note-details:has(+ .source-details) { margin-top: calc(var(--details-gap) + var(--summary-overlap)); }
+.note-details:has(+ .source-details) summary { align-items: flex-end; margin-top: calc(-1 * (var(--summary-overlap) + var(--summary-slack) / 2)); margin-bottom: 0; }
+.note-details + .source-details { margin-top: var(--details-stack-gap); }
+.note-details + .source-details summary { align-items: flex-start; margin-top: 0; margin-bottom: calc(-1 * (var(--summary-overlap) + var(--summary-slack) / 2)); }
 /* Card groups (ADR 0064): a folding heading per group; the rows inside keep their own dividers. */
 .card-group { border-top: 1px solid rgba(128, 128, 128, .35); }
 .card-group:first-of-type { border-top: 0; }
