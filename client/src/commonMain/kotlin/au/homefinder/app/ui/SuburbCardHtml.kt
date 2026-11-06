@@ -87,9 +87,23 @@ fun provenanceLine(row: CardRow): String =
 /** Heading of the collapsed section that holds a row's source, so the card stays short until you ask. */
 const val SOURCE_SUMMARY_TEXT: String = "Source"
 
-/** A row's provenance as a `details` that is closed by default. Call through the list: `dd` is only defined there. */
+/** Heading of the collapsed section that holds a row's explanatory note (sales counts, caveats). */
+const val DETAILS_SUMMARY_TEXT: String = "Details"
+
+/**
+ * A row's note and provenance, each in a `details` that is closed by default, the note ("Details") above the "Source".
+ * Call through the list: `dd` is only defined there.
+ */
 fun DL.provenanceDetails(row: CardRow) {
     val list = this
+    row.note?.let { note ->
+        list.dd("note") {
+            details("note-details") {
+                summary { +DETAILS_SUMMARY_TEXT }
+                p { +note }
+            }
+        }
+    }
     list.dd("provenance") {
         details("source-details") {
             summary { +SOURCE_SUMMARY_TEXT }
@@ -300,7 +314,6 @@ private fun kotlinx.html.DL.cardRow(
         val value = row.value
         list.dd(if (value == null) "value unknown" else "value") { +(value ?: SuburbCardRows.UNKNOWN) }
         list.provenanceDetails(row)
-        row.note?.let { list.dd("note") { +it } }
         extra?.invoke(this)
         if (customising) rowControls(item, first = index == 0, last = index == count - 1)
     }

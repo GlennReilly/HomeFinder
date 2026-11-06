@@ -7,7 +7,7 @@ Every card row carried a "Source: … · as of … · confidence" line, and the 
 made the card long and noisy, though the source is only wanted now and then.
 
 ## Decision
-Each row's provenance sits in a closed `<details class="source-details">` whose summary reads "Source"; opening it shows the source, as-of date and confidence. The filter
+Each row's explanatory note (sales counts, caveats) sits in a closed "Details" section above its "Source"; the provenance sits in a closed `<details class="source-details">` whose summary reads "Source"; opening it shows the source, as-of date and confidence. The filter
 panel groups its source lines in one closed "Source" section. Nothing is dropped: ADR 0019's rule that every row names its source still holds, one click away.
 
 ## Consequences

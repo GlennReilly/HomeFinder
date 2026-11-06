@@ -100,7 +100,6 @@ private fun DL.lotRow(item: ArrangedRow, index: Int, count: Int, customising: Bo
         val value = row.value
         list.dd(if (value == null) "value unknown" else "value") { +(value ?: "Unknown") }
         list.provenanceDetails(row)
-        row.note?.let { list.dd("note") { +it } }
         links?.let { listingLinksLine(it) }
         if (customising) rowControls(item, first = index == 0, last = index == count - 1)
     }

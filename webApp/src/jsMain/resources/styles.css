@@ -48,6 +48,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--purple); ou
 progress { width: 100%; margin: 16px 0; }
 .rows { margin: 12px 0 0; }
 .row { border-top: 1px solid rgba(128, 128, 128, .35); padding: 8px 0; }
+/* The pinned header already draws a line above the first row, so the top row (whichever it is after re-ordering) needs none. */
+.rows > .row:first-child { border-top: 0; }
 .row dt { font-size: .8rem; color: var(--muted); }
 .row dd { margin: 2px 0 0; }
 .row .value { font-size: 1.05rem; }
@@ -140,7 +142,7 @@ button.reset-all:disabled { opacity: .4; cursor: default; }
 
 /* The close button is a cross. */
 button.close { font-size: 1.3rem; line-height: 1; padding: 2px 10px; cursor: pointer; }
-.source-details { font-size: .8rem; color: var(--muted); }
-.source-details summary { cursor: pointer; width: fit-content; text-decoration: underline; text-underline-offset: 3px; }
-.source-details summary:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
-.source-details p { margin: 4px 0 0; }
+.source-details, .note-details { font-size: .8rem; color: var(--muted); }
+.source-details summary, .note-details summary { cursor: pointer; width: fit-content; text-decoration: underline; text-underline-offset: 3px; }
+.source-details summary:focus-visible, .note-details summary:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
+.source-details p, .note-details p { margin: 4px 0 0; }
