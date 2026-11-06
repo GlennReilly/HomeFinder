@@ -33,7 +33,11 @@ object FilterIds {
         FilterCriterion.entries.firstOrNull { elementId?.startsWith("filter-${it.key}-") == true }
 }
 
-const val FILTER_RESET_TEXT: String = "Reset all"
+const val FILTER_RESET_TEXT: String = "Reset all filters"
+
+/** The button's accessible name and tooltip: what it does, or that there is nothing to reset yet. */
+fun filterResetTitle(anyOn: Boolean): String =
+    if (anyOn) "Reset all filters: switch every filter off" else "Reset all filters (none changed)"
 const val FILTER_LOADING_TEXT: String = "Loading filters…"
 const val FILTER_UNAVAILABLE_TEXT: String = "The filters could not be loaded."
 const val FILTER_NO_DATA_TEXT: String = "No data has been loaded yet, so there is nothing to filter on."
@@ -70,8 +74,8 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
         h2 { +"Filter suburbs" }
         button(type = ButtonType.button, classes = "reset-all") {
             id = FilterIds.RESET
-            attributes["aria-label"] = "Reset all filters: switch every filter off"
-            attributes["title"] = "Reset all filters: switch every filter off"
+            attributes["aria-label"] = filterResetTitle(initial.selection.isActive)
+            attributes["title"] = filterResetTitle(initial.selection.isActive)
             if (!initial.selection.isActive) attributes["disabled"] = "disabled"
             +FILTER_RESET_TEXT
         }

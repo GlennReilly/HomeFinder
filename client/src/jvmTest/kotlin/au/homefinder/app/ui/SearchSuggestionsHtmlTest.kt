@@ -27,9 +27,16 @@ class SearchSuggestionsHtmlTest {
         val out = html(ready())
         assertTrue("role=\"listbox\"" in out)
         assertEquals(3, Regex("role=\"option\"").findAll(out).count())
-        assertTrue("<span class=\"kind\">Suburb</span><span class=\"label\">HAMILTON</span><span class=\"detail\">Suburb, NSW 2303</span>" in out)
+        assertTrue("<span class=\"kind\">Suburb</span><span class=\"label\">HAMILTON</span><span class=\"detail\">NSW 2303</span>" in out)
         assertTrue("12 MAIN STREET, HAMILTON NSW 2303" in out)
         assertTrue("data-index=\"2\"" in out)
+    }
+
+    @Test
+    fun `a suburb detail drops the repeated kind word and keeps state and postcode`() {
+        assertEquals("NSW 2303", suggestionDetail(suburb))
+        assertEquals("NSW", suggestionDetail(suburb.copy(detail = "Suburb, NSW")))
+        assertEquals("NSW 2303", suggestionDetail(suburb.copy(detail = "NSW 2303")))
     }
 
     @Test

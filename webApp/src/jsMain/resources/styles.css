@@ -76,8 +76,8 @@ progress { width: 100%; margin: 16px 0; }
 .external-link:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
 
 /* Search box: beside the map's zoom buttons; the suggestions drop down over the map. */
-#search { position: fixed; top: 10px; left: 54px; width: min(380px, calc(100vw - 64px)); z-index: 3; }
-@media (min-width: 600px) { #search { width: min(380px, calc(100vw - 54px - 360px - 24px)); } }
+#search { position: fixed; top: 10px; left: 64px; width: min(380px, calc(100vw - 74px)); z-index: 3; }
+@media (min-width: 600px) { #search { width: min(380px, calc(100vw - 64px - 360px - 24px)); } }
 /* The scale bar (a MapLibre control) sits at the bottom of the map, just left of the right-hand panel and above the map credit, so neither
    covers it. On a narrow window the panel is a bottom sheet, so it sits at the right just above the sheet's folded tab strip (an open
    sheet can cover it). */
@@ -116,7 +116,9 @@ progress { width: 100%; margin: 16px 0; }
 .schools, .zones { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .schools li, .zones li { display: grid; gap: 1px; }
 .schools .detail, .zones .detail { font-size: .8rem; color: var(--muted); }
-.listing-links { margin: 6px 0 0; font-size: .85rem; color: var(--muted); }
+.listing-links { margin: 0; font-size: .85rem; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; }
+/* Each link has a full-height tap area; the label sits on the same line, flush with the first link. */
+.listing-links .external-link, .row-links .external-link { display: inline-flex; align-items: center; min-height: var(--tap-target); }
 .row-links dd.links { font-size: .85rem; }
 .row .hint { margin: 8px 0 0; font-size: .85rem; }
 
@@ -125,9 +127,13 @@ progress { width: 100%; margin: 16px 0; }
 .filter-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 #filters h2 { font-size: 1.1rem; margin: 10px 0; }
 button.reset-all { font-size: .85rem; padding: 4px 10px; min-height: var(--tap-target); cursor: pointer; }
-button.reset-all:disabled { opacity: .4; cursor: default; }
+/* Nothing to reset: muted but readable (not the faint 0.4 that failed contrast), dashed so it reads as a button with nothing to do. */
+button.reset-all:disabled { opacity: .75; color: var(--muted); border-style: dashed; cursor: default; }
 #filters .range { display: grid; gap: 4px; margin: 8px 0 0 22px; }
-#filters .range input { width: 100%; }
+#filters .range input { width: 100%; height: var(--tap-target); margin: 0; }
+/* The whole label row is the checkbox's hit area, with a larger box. */
+#filters .filter > label { display: flex; align-items: center; gap: 8px; min-height: var(--tap-target); cursor: pointer; }
+#filters .filter > label input { width: 22px; height: 22px; margin: 0; flex: none; }
 #filters .hint, #filters .filter-status { font-size: .8rem; color: var(--muted); }
 #filters .filter-summary { font-weight: 600; }
 #filters .filter { border-top: 1px solid rgba(128, 128, 128, .35); padding: 10px 0; }
@@ -137,14 +143,17 @@ button.reset-all:disabled { opacity: .4; cursor: default; }
 .layout-bar .hint { margin: 0 0 6px; font-size: .85rem; color: var(--muted); }
 .layout-bar .buttons { display: flex; gap: 8px; }
 .unknown-note { margin: 10px 0 0; font-size: .85rem; color: var(--muted); }
-.unknown-toggle { font: inherit; font-size: .85rem; padding: 0; border: 0; background: none; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.unknown-toggle { font: inherit; font-size: .85rem; padding: 0; min-height: var(--tap-target); border: 0; background: none; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .layout-button { font-size: .8rem; padding: 4px 10px; min-height: var(--tap-target); cursor: pointer; }
 .layout-button:disabled { opacity: .4; cursor: default; }
 .row-controls { display: flex; gap: 6px; margin-top: 6px; }
 .row-hidden { opacity: .5; }
 
+/* The map's zoom buttons (a MapLibre control) get the same tap size. */
+.maplibregl-ctrl-group button { width: var(--tap-target); height: var(--tap-target); }
+
 /* The close button is a cross. */
-button.close { font-size: 1.3rem; line-height: 1; padding: 2px 10px; cursor: pointer; }
+button.close { font-size: 1.3rem; line-height: 1; padding: 2px 10px; min-width: var(--tap-target); min-height: var(--tap-target); cursor: pointer; }
 .source-details, .note-details { font-size: .8rem; color: var(--muted); }
 .source-details summary, .note-details summary { cursor: pointer; width: fit-content; min-height: var(--tap-target); display: flex; align-items: center; text-decoration: underline; text-underline-offset: 3px; }
 .source-details summary:focus-visible, .note-details summary:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
