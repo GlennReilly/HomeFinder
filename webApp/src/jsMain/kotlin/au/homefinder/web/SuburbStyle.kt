@@ -27,6 +27,10 @@ object SuburbStyle {
     private const val SELECTED_OUTLINE_WIDTH = 3.5
     private const val OUTLINE_FULL_UNTIL_ZOOM = 12
     private const val OUTLINE_FADED_FROM_ZOOM = 15
+    /** The filter wash and tint are full strength until this zoom and gone at [TileContract.LOTS_MIN_ZOOM], where lot outlines start (ADR 0065). */
+    private const val FILTER_FULL_UNTIL_ZOOM = 15
+    private const val FILTER_GONE = 0
+    private const val FILTER_FULL = 1
     private const val LABEL_MAX_ZOOM = 14
     private const val LABEL_SIZE = 12
     private const val SUBURB_ID = "suburb_id"
@@ -52,6 +56,12 @@ object SuburbStyle {
         else -> jsArray("!", passes(passing))
     }
 
+    /** Opacity of the filter layers: full to zoom 15, fading to nothing at the lot-outline zoom. */
+    fun filterOpacity(): dynamic = jsArray(
+        "interpolate", jsArray("linear"), jsArray("zoom"),
+        FILTER_FULL_UNTIL_ZOOM, FILTER_FULL, TileContract.LOTS_MIN_ZOOM, FILTER_GONE,
+    )
+
     fun source(tilesUrl: String): dynamic = jsObject(
         "type" to "vector",
         "tiles" to arrayOf(tilesUrl),
@@ -71,8 +81,8 @@ object SuburbStyle {
     /** Layers bottom to top; the name layer is last so labels sit over the outlines. */
     fun layers(): List<dynamic> = listOf(
         polygonLayer(SELECTED_FILL_LAYER, "fill", jsObject("fill-color" to SELECTED_FILL), selectedFilter(null)),
-        polygonLayer(FILTER_DIM_LAYER, "fill", jsObject("fill-color" to FILTER_DIM), filterDimFilter(null)),
-        polygonLayer(FILTER_MATCH_LAYER, "fill", jsObject("fill-color" to FILTER_MATCH), filterMatchFilter(null)),
+        polygonLayer(FILTER_DIM_LAYER, "fill", jsObject("fill-color" to FILTER_DIM, "fill-opacity" to filterOpacity()), filterDimFilter(null)),
+        polygonLayer(FILTER_MATCH_LAYER, "fill", jsObject("fill-color" to FILTER_MATCH, "fill-opacity" to filterOpacity()), filterMatchFilter(null)),
         polygonLayer(
             OUTLINE_LAYER, "line",
             jsObject(

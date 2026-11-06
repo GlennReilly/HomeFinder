@@ -66,3 +66,4 @@
 | [0062](0062-suburb-catchments-and-zoned-icsea-filter.md) | School catchments on the Suburb Card and an ICSEA filter on them | Accepted |
 | [0063](0063-sources-collapsed-by-default.md) | Source lines are collapsed by default | Accepted |
 | [0064](0064-card-row-groups.md) | Card rows are grouped into folding sections | Accepted |
+| [0065](0065-filter-shading-fades-at-lot-zoom.md) | The suburb filter shading fades out at lot zoom | Accepted |
