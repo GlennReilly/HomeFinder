@@ -19,6 +19,7 @@ import kotlinx.html.li
 import kotlinx.html.p
 import kotlinx.html.progress
 import kotlinx.html.section
+import kotlinx.html.span
 import kotlinx.html.ul
 
 /** What the lot card says in its header: the first address, else the parcel label, else the lot id. */
@@ -29,16 +30,21 @@ fun lotCardTitle(card: LotCardState): String = when (card) {
     is LotCardState.Failed -> "Lot"
 }
 
-/** The line under the title: suburb and postcode, then the parcel label when it is not already the title. */
-fun lotCardSubtitle(card: LotCardState): String? = when (card) {
-    is LotCardState.Loaded -> {
-        val report = card.report
-        val place = listOfNotNull(report.suburbName, report.postcode).joinToString(" ")
-        val parcel = report.parcelLabel?.takeIf { report.addresses.isNotEmpty() }?.let { "Parcel $it" }
-        listOfNotNull(place.takeIf { it.isNotEmpty() }, parcel).joinToString(" · ").ifEmpty { null }
-    }
+/** The suburb and postcode under the title, or null. */
+fun lotCardPlace(card: LotCardState): String? = when (card) {
+    is LotCardState.Loaded -> listOfNotNull(card.report.suburbName, card.report.postcode).joinToString(" ").ifEmpty { null }
     else -> null
 }
+
+/** The parcel label ("Parcel 1//DP100"), only when it is not already the title. */
+fun lotCardParcel(card: LotCardState): String? = when (card) {
+    is LotCardState.Loaded -> card.report.parcelLabel?.takeIf { card.report.addresses.isNotEmpty() }?.let { "Parcel $it" }
+    else -> null
+}
+
+/** The line under the title: suburb and postcode, then the parcel label when it is not already the title. */
+fun lotCardSubtitle(card: LotCardState): String? =
+    listOfNotNull(lotCardPlace(card), lotCardParcel(card)).joinToString(" · ").ifEmpty { null }
 
 /**
  * The basic lot card as plain HTML (ADR 0022), sharing the Suburb Card's look, buttons and provenance lines. Several
@@ -57,7 +63,13 @@ fun FlowContent.lotCard(
             div("card-header") {
                 div {
                     h2 { +lotCardTitle(card) }
-                    lotCardSubtitle(card)?.let { p("subtitle") { +it } }
+                    // On a narrow window the parcel part is hidden here and shown again below the pinned block, so it scrolls away (ADR 0067).
+                    val place = lotCardPlace(card)
+                    val parcel = lotCardParcel(card)
+                    if (place != null || parcel != null) p("subtitle") {
+                        if (place != null) +place
+                        if (parcel != null) span("parcel-line") { +(if (place != null) " · $parcel" else parcel) }
+                    }
                 }
                 button(type = ButtonType.button, classes = "close") {
                     attributes[CardActions.ATTRIBUTE] = CardActions.CLOSE
@@ -67,6 +79,7 @@ fun FlowContent.lotCard(
             }
             if (card is LotCardState.Loaded) layoutBar(customising, layout.isDefault)
         }
+        lotCardParcel(card)?.let { p("subtitle parcel-scroll") { +it } }
         when (card) {
             LotCardState.Hidden -> Unit
             is LotCardState.Loading -> progress { attributes["aria-label"] = "Loading lot" }
