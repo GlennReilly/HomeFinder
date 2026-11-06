@@ -129,6 +129,8 @@ class SmokeTest {
     fun `the filter wash and tint fade out by the zoom where lot outlines start`() {
         openWithKey()
         assertThat(page.locator("#map canvas")).isVisible()
+        // The layers are added when the style has loaded, which on a slow runner is after the canvas shows.
+        page.waitForFunction("window.homefinderMap && window.homefinderMap.getLayer('suburb-filter-match') && window.homefinderMap.getLayer('suburb-filter-dim')")
         for (layer in listOf("suburb-filter-match", "suburb-filter-dim")) {
             val opacity = page.evaluate("JSON.stringify(window.homefinderMap.getPaintProperty('$layer', 'fill-opacity'))").toString()
             assertEquals("""["interpolate",["linear"],["zoom"],15,1,16,0]""", opacity, layer)
