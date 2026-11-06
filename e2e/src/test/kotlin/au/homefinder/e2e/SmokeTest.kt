@@ -126,6 +126,16 @@ class SmokeTest {
     }
 
     @Test
+    fun `the filter wash and tint fade out by the zoom where lot outlines start`() {
+        openWithKey()
+        assertThat(page.locator("#map canvas")).isVisible()
+        for (layer in listOf("suburb-filter-match", "suburb-filter-dim")) {
+            val opacity = page.evaluate("JSON.stringify(window.homefinderMap.getPaintProperty('$layer', 'fill-opacity'))").toString()
+            assertEquals("""["interpolate",["linear"],["zoom"],15,1,16,0]""", opacity, layer)
+        }
+    }
+
+    @Test
     fun `tapping the map selects a suburb and shows its card, and Escape closes it`() {
         openWithKey()
         tapSuburb()
