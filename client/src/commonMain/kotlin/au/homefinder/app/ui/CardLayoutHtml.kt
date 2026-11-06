@@ -42,17 +42,19 @@ fun FlowContent.layoutBar(customising: Boolean, isDefault: Boolean) {
             p("hint") { +CUSTOMISE_HINT }
             div("buttons") {
                 actionButton(LayoutActions.DONE, "Done")
-                if (!isDefault) actionButton(LayoutActions.RESET, "Reset to default")
+                if (!isDefault) actionButton(LayoutActions.RESET, "Reset to default", "Reset to default: this card's rows go back to the standard layout")
             }
         } else {
-            actionButton(LayoutActions.CUSTOMISE, "Customise")
+            actionButton(LayoutActions.CUSTOMISE, "Customise", "Customise this card's rows: hide, show and re-order")
         }
     }
 }
 
-private fun DIV.actionButton(action: String, text: String) {
+private fun DIV.actionButton(action: String, text: String, description: String = text) {
     button(type = ButtonType.button, classes = "layout-button") {
         attributes[CardActions.ATTRIBUTE] = action
+        attributes["title"] = description
+        attributes["aria-label"] = description
         +text
     }
 }

@@ -70,6 +70,8 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
         h2 { +"Filter suburbs" }
         button(type = ButtonType.button, classes = "reset-all") {
             id = FilterIds.RESET
+            attributes["aria-label"] = "Reset all filters: switch every filter off"
+            attributes["title"] = "Reset all filters: switch every filter off"
             if (!initial.selection.isActive) attributes["disabled"] = "disabled"
             +FILTER_RESET_TEXT
         }
