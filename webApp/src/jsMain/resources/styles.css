@@ -4,11 +4,14 @@
   --muted: #5f5b66;
   --surface: #ffffff;
   --panel-width: 360px;
+  --error: #b3261e; /* 6.5:1 on white */
+  --tap-target: 44px; /* least height of a small tap target (WCAG 2.5.5) */
+  --details-gap: 14px; /* extra space above each foldable details section on the cards */
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--ink);
 }
 @media (prefers-color-scheme: dark) {
-  :root { --ink: #ece9f1; --muted: #b3aebc; --surface: #1f1d24; }
+  :root { --ink: #ece9f1; --muted: #b3aebc; --surface: #1f1d24; --error: #ff8a80; /* 7.3:1 on the dark surface */ }
 }
 html, body { margin: 0; height: 100%; }
 #map { position: fixed; inset: 0; }
@@ -87,18 +90,18 @@ progress { width: 100%; margin: 16px 0; }
 #search-results:empty { display: none; }
 .suggestions { list-style: none; margin: 0; padding: 4px 0; max-height: 60vh; overflow-y: auto; }
 .suggestion { display: grid; grid-template-columns: 4.5rem 1fr; gap: 0 8px; padding: 8px 12px; cursor: pointer; }
-.suggestion .kind { grid-row: span 2; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding-top: 3px; }
+.suggestion .kind { grid-row: span 2; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding-top: 3px; }
 .suggestion .detail { font-size: .8rem; color: var(--muted); }
 .suggestion.highlighted, .suggestion:hover { background: rgba(109, 91, 166, .22); }
 .search-status { padding: 10px 12px; color: var(--muted); }
-.search-status.error { color: #b3261e; }
+.search-status.error { color: var(--error); }
 
 /* The Homely score you type in. */
 .homely { margin-top: 12px; padding: 0; border-top: 1px solid rgba(128, 128, 128, .35); }
 .homely dl.rows { margin: 0; }
 .homely .external { border-top: none; padding: 8px 0; }
 .rating-edit { padding: 0 0 12px; }
-.rating-edit summary { cursor: pointer; width: fit-content; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.rating-edit summary { cursor: pointer; width: fit-content; min-height: var(--tap-target); display: flex; align-items: center; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .rating-edit summary:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
 .rating-form { margin: 0; padding: 10px 0 0; }
 .rating-form .hint { margin: 0 0 10px; font-size: .8rem; color: var(--muted); }
@@ -107,7 +110,7 @@ progress { width: 100%; margin: 16px 0; }
 .rating-form input { font: inherit; padding: 7px 8px; border: 1px solid rgba(128, 128, 128, .6); border-radius: 6px; background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
 .rating-form .buttons { display: flex; gap: 8px; margin-top: 10px; }
 .rating-form .buttons button[type="submit"] { background: var(--purple); color: #fff; }
-.rating-message { min-height: 1.2em; margin: 8px 0 0; font-size: .85rem; color: #b3261e; }
+.rating-message { min-height: 1.2em; margin: 8px 0 0; font-size: .85rem; color: var(--error); }
 
 /* The public schools listed under the Schools row. */
 .schools, .zones { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
@@ -121,7 +124,7 @@ progress { width: 100%; margin: 16px 0; }
 #filters { padding: 4px 14px 12px; }
 .filter-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 #filters h2 { font-size: 1.1rem; margin: 10px 0; }
-button.reset-all { font-size: .85rem; padding: 4px 10px; cursor: pointer; }
+button.reset-all { font-size: .85rem; padding: 4px 10px; min-height: var(--tap-target); cursor: pointer; }
 button.reset-all:disabled { opacity: .4; cursor: default; }
 #filters .range { display: grid; gap: 4px; margin: 8px 0 0 22px; }
 #filters .range input { width: 100%; }
@@ -135,7 +138,7 @@ button.reset-all:disabled { opacity: .4; cursor: default; }
 .layout-bar .buttons { display: flex; gap: 8px; }
 .unknown-note { margin: 10px 0 0; font-size: .85rem; color: var(--muted); }
 .unknown-toggle { font: inherit; font-size: .85rem; padding: 0; border: 0; background: none; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.layout-button { font-size: .8rem; padding: 4px 10px; cursor: pointer; }
+.layout-button { font-size: .8rem; padding: 4px 10px; min-height: var(--tap-target); cursor: pointer; }
 .layout-button:disabled { opacity: .4; cursor: default; }
 .row-controls { display: flex; gap: 6px; margin-top: 6px; }
 .row-hidden { opacity: .5; }
@@ -143,6 +146,20 @@ button.reset-all:disabled { opacity: .4; cursor: default; }
 /* The close button is a cross. */
 button.close { font-size: 1.3rem; line-height: 1; padding: 2px 10px; cursor: pointer; }
 .source-details, .note-details { font-size: .8rem; color: var(--muted); }
-.source-details summary, .note-details summary { cursor: pointer; width: fit-content; text-decoration: underline; text-underline-offset: 3px; }
+.source-details summary, .note-details summary { cursor: pointer; width: fit-content; min-height: var(--tap-target); display: flex; align-items: center; text-decoration: underline; text-underline-offset: 3px; }
 .source-details summary:focus-visible, .note-details summary:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
 .source-details p, .note-details p { margin: 4px 0 0; }
+.source-details, .note-details { margin-top: var(--details-gap); }
+/* Card groups (ADR 0064): a folding heading per group; the rows inside keep their own dividers. */
+.card-group { border-top: 1px solid rgba(128, 128, 128, .35); }
+.card-group:first-of-type { border-top: 0; }
+.card-group:not(:first-of-type) { margin-top: calc(var(--details-gap) / 2); }
+.card-group > summary { cursor: pointer; padding: 10px 0; min-height: var(--tap-target); box-sizing: border-box; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1rem; list-style: none; }
+.card-group > summary::-webkit-details-marker { display: none; }
+/* A chevron that turns down when the group is open; the text and keyboard use are the native summary's. */
+.card-group > summary::before { content: ""; width: 7px; height: 7px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(-45deg); transition: transform .15s; flex: none; }
+.card-group[open] > summary::before { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) { .card-group > summary::before { transition: none; } }
+.card-group > summary:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
+.card-group > .rows { margin-top: 0; }
+.group-controls { display: flex; gap: 6px; margin: 0 0 6px; }

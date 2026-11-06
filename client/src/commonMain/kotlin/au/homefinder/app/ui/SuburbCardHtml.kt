@@ -1,6 +1,7 @@
 package au.homefinder.app.ui
 
 import au.homefinder.app.selection.ArrangedRow
+import au.homefinder.app.selection.CardGroups
 import au.homefinder.app.selection.CardLayout
 import au.homefinder.app.selection.CardRow
 import au.homefinder.app.selection.SuburbCardRows
@@ -116,7 +117,13 @@ fun DL.provenanceDetails(row: CardRow) {
  * The Suburb Card as plain HTML (ADR 0019). Unknown values read "Unknown" in italics, never blank; every row names its
  * source, as-of date and confidence. Buttons carry a [CardActions.ATTRIBUTE] the page wires up.
  */
-fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayout(), customising: Boolean = false, showUnknown: Boolean = false) {
+fun FlowContent.suburbCard(
+    card: SuburbCardState,
+    layout: CardLayout = CardLayout(),
+    customising: Boolean = false,
+    showUnknown: Boolean = false,
+    groupOpen: Map<String, Boolean> = emptyMap(),
+) {
     section("suburb-card") {
         attributes["aria-label"] = "Suburb card"
         // The name, postcode, close button and Customise bar stay pinned at the top while the rows scroll (ADR 0053).
@@ -147,24 +154,32 @@ fun FlowContent.suburbCard(card: SuburbCardState, layout: CardLayout = CardLayou
             is SuburbCardState.Loaded -> {
                 // Customising shows every row (hidden ones dimmed) with its controls; otherwise only the rows not hidden, and not the unknown ones
                 // unless you asked to see them (ADR 0058).
-                val full = layout.arrange(SuburbCardRows.of(card.report))
+                val groups = layout.arrangeGroups(SuburbCardRows.of(card.report), CardGroups.SUBURB)
+                val full = groups.flatMap { it.rows }
                 val arranged = UnknownRows.visible(full, customising, showUnknown)
                 if (arranged.isEmpty() && UnknownRows.unknownCount(full, customising) == 0) p("hint") { +ALL_HIDDEN_HINT }
-                dl("rows") {
+                groups.forEachIndexed { gi, group ->
+                    val drawn = UnknownRows.visible(group.rows, customising, showUnknown)
                     // Walk every row, so the for-sale links under a price row are not lost when that row has no value and is left off (ADR 0061).
-                    full.forEach { item ->
-                        val i = arranged.indexOfFirst { it.row.label == item.row.label }
-                        val links = ListingLinks.forSuburbRow(item.row.label, card.report)
-                        if (i >= 0) {
-                            val extra: (kotlinx.html.DIV.() -> Unit)? = when {
-                                item.row.label == SuburbCardRows.SCHOOLS_LABEL -> schoolList(card.report)
-                                item.row.label == SuburbCardRows.ZONED_LABEL -> zoneList(card.report)
-                                links != null -> ({ listingLinksLine(links) })
-                                else -> null
+                    val linkOnly = group.rows.any { r -> drawn.none { it.row.label == r.row.label } && !r.hidden && ListingLinks.forSuburbRow(r.row.label, card.report) != null }
+                    if (drawn.isEmpty() && !linkOnly) return@forEachIndexed
+                    cardGroup(group.title, gi, groups.size, customising, open = groupOpen[group.title] ?: group.openByDefault) {
+                        dl("rows") {
+                            group.rows.forEach { item ->
+                                val i = drawn.indexOfFirst { it.row.label == item.row.label }
+                                val links = ListingLinks.forSuburbRow(item.row.label, card.report)
+                                if (i >= 0) {
+                                    val extra: (kotlinx.html.DIV.() -> Unit)? = when {
+                                        item.row.label == SuburbCardRows.SCHOOLS_LABEL -> schoolList(card.report)
+                                        item.row.label == SuburbCardRows.ZONED_LABEL -> zoneList(card.report)
+                                        links != null -> ({ listingLinksLine(links) })
+                                        else -> null
+                                    }
+                                    cardRow(item, i, drawn.size, customising, extra)
+                                } else if (links != null && !item.hidden) {
+                                    listingLinksRow(links)
+                                }
                             }
-                            cardRow(item, i, arranged.size, customising, extra)
-                        } else if (links != null && !item.hidden) {
-                            listingLinksRow(links)
                         }
                     }
                 }

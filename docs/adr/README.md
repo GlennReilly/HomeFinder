@@ -65,3 +65,4 @@
 | [0061](0061-listing-links.md) | Links to listings on realestate.com.au and Domain | Accepted |
 | [0062](0062-suburb-catchments-and-zoned-icsea-filter.md) | School catchments on the Suburb Card and an ICSEA filter on them | Accepted |
 | [0063](0063-sources-collapsed-by-default.md) | Source lines are collapsed by default | Accepted |
+| [0064](0064-card-row-groups.md) | Card rows are grouped into folding sections | Accepted |
