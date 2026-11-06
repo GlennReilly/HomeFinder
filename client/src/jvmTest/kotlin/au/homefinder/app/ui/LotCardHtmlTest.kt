@@ -28,12 +28,23 @@ class LotCardHtmlTest {
     fun `a loaded lot shows its address, suburb, parcel, measured area and unknown factors`() {
         val out = html(LotCardState.Loaded(report(listOf("12 MAIN STREET, HAMILTON NSW 2303"))))
         assertTrue("<h2>12 MAIN STREET, HAMILTON NSW 2303</h2>" in out)
-        assertTrue("HAMILTON 2303 · Parcel 1//DP100" in out)
+        assertTrue("HAMILTON 2303<span class=\"parcel-line\"> · Parcel 1//DP100</span>" in out)
+        assertTrue("""<p class="subtitle parcel-scroll">Parcel 1//DP100</p>""" in out, "the parcel is repeated below the pinned header for narrow windows")
+        assertEquals("HAMILTON 2303 · Parcel 1//DP100", lotCardSubtitle(LotCardState.Loaded(report(listOf("12 MAIN STREET, HAMILTON NSW 2303")))))
         assertTrue("561 m²" in out)
         assertEquals(9, Regex("""class="value unknown"""").findAll(out).count())
         assertTrue("cadastre" in out)
         assertTrue(CARD_DISCLAIMER in out)
         assertFalse("<ul" in out, "one address needs no list")
+    }
+
+    @Test
+    fun `the parcel part of the header is separate from the place and absent when the parcel is the title`() {
+        val withAddress = LotCardState.Loaded(report(listOf("12 MAIN STREET, HAMILTON NSW 2303")))
+        assertEquals("HAMILTON 2303", lotCardPlace(withAddress))
+        assertEquals("Parcel 1//DP100", lotCardParcel(withAddress))
+        assertEquals(null, lotCardParcel(LotCardState.Loaded(report(emptyList()))))
+        assertFalse("parcel-scroll" in html(LotCardState.Loaded(report(emptyList()))))
     }
 
     @Test

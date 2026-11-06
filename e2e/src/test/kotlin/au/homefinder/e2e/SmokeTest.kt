@@ -528,6 +528,15 @@ class SmokeTest {
         assertTrue(bar.y + bar.height <= sheet.y, "the scale bar is under the folded sheet: bar bottom ${bar.y + bar.height}, sheet top ${sheet.y}")
         assertTrue(bar.x >= 0 && bar.x + bar.width <= checkNotNull(page.viewportSize()).width, "the scale bar is off screen")
         assertTrue(bar.x + bar.width <= credit.x || bar.x >= credit.x + credit.width || bar.y + bar.height <= credit.y || bar.y >= credit.y + credit.height, "the scale bar overlaps the map credit")
+        // Tapped again the sheet opens: at most half the window, with the bar and credit kept above it (ADR 0067).
+        page.locator("#tab-suburb").click()
+        val height = checkNotNull(page.viewportSize()).height
+        val open = checkNotNull(page.locator("#side").boundingBox())
+        assertTrue(open.height <= height / 2 + 1, "the open sheet is taller than half the window: ${open.height} of $height")
+        val openBar = checkNotNull(scale.boundingBox())
+        val openCredit = checkNotNull(page.locator(".maplibregl-ctrl-attrib").boundingBox())
+        assertTrue(openBar.y + openBar.height <= open.y, "the scale bar is under the open sheet")
+        assertTrue(openCredit.y + openCredit.height <= open.y + 1, "the map credit is under the open sheet")
     }
 
     @Test

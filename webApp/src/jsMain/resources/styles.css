@@ -8,6 +8,9 @@
   --tap-target: 44px; /* least height of a small tap target (WCAG 2.5.5) */
   --summary-overlap: 14px; /* the part of a 44 px summary tap area that sits outside its text line (hit area only, not visible space) */
   --details-stack-gap: 8px; /* space between a Details line and the Source line under it */
+  --sheet-open-height: 50dvh; /* height of the open bottom sheet below 600 px (ADR 0067); the map above it stays usable */
+  --sheet-credit-height: 28px; /* room for the map credit line, kept above the open sheet */
+  --chevron-size: 8px; /* side of the fold chevron on the selected tab (bottom sheet only) */
   --details-gap: 14px; /* extra space above each foldable details section on the cards */
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--ink);
@@ -37,8 +40,23 @@ html, body { margin: 0; height: 100%; }
   #side[data-collapsed="true"] { bottom: auto; }
 }
 @media (max-width: 599.98px) {
-  #side { left: 0; right: 0; bottom: 0; max-height: 60vh; border-radius: 16px 16px 0 0; overflow: hidden; }
+  #side { left: 0; right: 0; bottom: 0; border-radius: 16px 16px 0 0; overflow: hidden; resize: none; }
+  /* Open, the sheet has a fixed height (the card scrolls inside it); folded, it is just the tab strip. The map credit and the scale bar
+     are lifted to sit above whichever it is (ADR 0067). */
+  #side[data-collapsed="false"] { height: var(--sheet-open-height); }
+  body:has(#side[data-collapsed="false"]) .maplibregl-ctrl-bottom-right { bottom: var(--sheet-open-height); }
+  body:has(#side[data-collapsed="false"]) .maplibregl-ctrl-scale { bottom: calc(var(--sheet-open-height) + var(--sheet-credit-height)); }
+  /* A chevron on the selected tab: up when the sheet is folded (tap to open), down when it is open (tap to fold). */
+  #side-tabs button[aria-selected="true"]::after {
+    content: ""; display: inline-block; width: var(--chevron-size); height: var(--chevron-size); margin-left: 8px;
+    border-left: 2px solid currentColor; border-top: 2px solid currentColor; transform: translateY(2px) rotate(45deg);
+  }
+  #side-tabs button[aria-selected="true"][aria-expanded="true"]::after { transform: translateY(-2px) rotate(225deg); }
+  .card-header h2 { font-size: 1.15rem; }
+  .card-sticky .parcel-line { display: none; }
 }
+@media (min-width: 600px) { .parcel-scroll { display: none; } }
+@media (prefers-reduced-motion: no-preference) { #side-tabs button::after { transition: transform .15s; } }
 .side-empty { padding: 16px; color: var(--muted); }
 .suburb-card { padding: 16px; }
 /* The name, postcode, close button and Customise bar stay in view while the rows scroll (ADR 0053); the negative margin and padding
