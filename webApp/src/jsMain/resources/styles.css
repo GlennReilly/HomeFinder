@@ -140,6 +140,19 @@ button.reset-all:disabled { opacity: .75; color: var(--muted); border-style: das
 #filters .filter-summary { font-weight: 600; }
 #filters .filter { border-top: 1px solid rgba(128, 128, 128, .35); padding: 10px 0; }
 
+/* Foldable filter groups (ADR 0066): same look as the card groups. */
+.filter-group { border-top: 1px solid rgba(128, 128, 128, .35); }
+.filter-group:first-of-type { border-top: 0; }
+.filter-group > summary { cursor: pointer; padding: 10px 0; min-height: var(--tap-target); box-sizing: border-box; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1rem; list-style: none; }
+.filter-group > summary::-webkit-details-marker { display: none; }
+.filter-group > summary::before { content: ""; width: 7px; height: 7px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(-45deg); transition: transform .15s; flex: none; }
+.filter-group[open] > summary::before { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) { .filter-group > summary::before { transition: none; } }
+.filter-group > summary:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
+.filter-group .group-count { margin-left: auto; font-weight: 600; font-size: .85rem; color: var(--muted); }
+/* The group line already separates groups, so the first criterion in a group needs no line of its own. */
+#filters .filter-group > .filter:first-of-type { border-top: 0; }
+
 /* Customising a card's rows (ADR 0039). */
 .layout-bar { margin: 8px 0; }
 .layout-bar .hint { margin: 0 0 6px; font-size: .85rem; color: var(--muted); }

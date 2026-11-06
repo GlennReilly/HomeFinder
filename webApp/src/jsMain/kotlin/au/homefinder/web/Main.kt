@@ -4,6 +4,7 @@ import au.homefinder.app.api.ApiConfig
 import au.homefinder.app.api.FilterApi
 import au.homefinder.app.filter.FilterCriterion
 import au.homefinder.app.filter.FilterData
+import au.homefinder.app.filter.FilterGroups
 import au.homefinder.app.filter.FilterSelection
 import au.homefinder.app.ui.FILTER_LOADING_TEXT
 import au.homefinder.app.ui.FILTER_UNAVAILABLE_TEXT
@@ -256,6 +257,9 @@ private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap, 
         onResult(result)
         (document.getElementById(FilterIds.RESET) as? HTMLButtonElement)?.disabled = !result.selection.isActive
         document.getElementById(FilterIds.SUMMARY)?.textContent = filterSummaryText(result)
+        // The "N on" beside each group title (ADR 0066).
+        val on = result.selection.limits.keys
+        FilterGroups.arrange(on).forEach { group -> document.getElementById(group.countId)?.textContent = FilterGroups.onText(group, on) }
         FilterCriterion.entries.forEach { criterion ->
             input(FilterIds.limit(criterion))?.let {
                 val limit = it.value.toDouble()

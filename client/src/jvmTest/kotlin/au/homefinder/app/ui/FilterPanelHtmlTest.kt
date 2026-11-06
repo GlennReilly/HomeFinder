@@ -135,4 +135,15 @@ class FilterPanelHtmlTest {
         assertTrue("""<span id="filter-violent-limit-prefix"></span><span id="filter-violent-limit-value">No limit</span>""" in out, out)
         assertTrue(Regex("""id="filter-violent-limit"[^>]*max="19"[^>]*value="19"""").containsMatchIn(out) || Regex("""id="filter-violent-limit"[^>]*value="19"[^>]*max="19"""").containsMatchIn(out), out)
     }
+
+    @Test
+    fun `criteria sit in foldable groups, the first open and the others closed, with the ids unchanged`() {
+        val out = html(data(1032, 961, null))
+        assertTrue("""<details class="$FILTER_GROUP_CLASS" id="filter-group-people-and-area" open="open">""" in out, out)
+        assertTrue("""<details class="$FILTER_GROUP_CLASS" id="filter-group-schools">""" in out, out)
+        assertTrue("""id="filter-group-schools-count"""" in out)
+        val schools = out.substringAfter("""id="filter-group-schools"""").substringBefore("</details>")
+        assertTrue("""id="filter-icsea-on"""" in schools && """id="filter-icsea-limit"""" in schools)
+        assertTrue("""id="${FilterIds.RESET}"""" in out && """id="${FilterIds.SUMMARY}"""" in out)
+    }
 }
