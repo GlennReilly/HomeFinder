@@ -10,6 +10,8 @@ import au.homefinder.shared.model.SuburbReport
 import au.homefinder.shared.model.SuburbZone
 import au.homefinder.shared.model.SuburbZonedSchools
 import au.homefinder.shared.model.School
+import au.homefinder.shared.model.NaplanRules
+import au.homefinder.shared.model.NaplanScore
 import au.homefinder.shared.model.SchoolLevel
 import au.homefinder.shared.model.SuburbSchools
 import au.homefinder.shared.model.SuburbShopping
@@ -93,8 +95,8 @@ object SuburbCardRows {
         row("Violent crime", report.violentCrime, ::crime),
         row("Break-ins, car and home theft", report.propertyCrime, ::crime),
         row("Distance to the beach", report.beach, ::beach),
-        row(SCHOOLS_LABEL, report.schools, ::schools),
-        row(ZONED_LABEL, report.zonedSchools, ::zonedSchools),
+        withNaplanSource(row(SCHOOLS_LABEL, report.schools, ::schools), report.schools.value?.publicSchoolsInside.orEmpty()),
+        withNaplanSource(row(ZONED_LABEL, report.zonedSchools, ::zonedSchools), report.zonedSchools.value?.zones.orEmpty().map { it.school }),
         row("Parks", report.parkAreaShare) { Formats.share(it) + " of the suburb is park" },
         row("Shopping", report.shopping, ::shopping),
         row("Transport", report.transport, ::transport),
@@ -127,6 +129,13 @@ object SuburbCardRows {
             Formats.decimal(rating.stars, 1) + " ★" + reviews
         }
     }
+
+    /** A schools row whose schools include a NAPLAN figure you typed in names My School and ACARA in its Source line too (ADR 0068). */
+    internal fun withNaplanSource(row: CardRow, schools: List<School>): CardRow =
+        if (schools.any { it.naplan != null }) row.copy(source = "${row.source}; ${NaplanScore.SOURCE}") else row
+
+    /** ", NAPLAN 512 (2025)" after a school's ICSEA when you have typed a figure in, else nothing. */
+    fun naplanSuffix(school: School, separator: String): String = school.naplan?.let { separator + NaplanRules.label(it) }.orEmpty()
 
     internal fun <T> row(label: String, attribute: Attribute<T>, format: (T) -> String): CardRow = CardRow(
         label = label,
@@ -168,6 +177,7 @@ object SuburbCardRows {
         zone.school.levelLabel,
         "${Formats.share(zone.lotShare)} of the suburb's lots",
         zone.school.icsea?.let { "ICSEA ${Formats.grouped(it.toLong())}" } ?: "ICSEA not published",
+        zone.school.naplan?.let(NaplanRules::label),
     ).joinToString(" · ")
 
     private fun schools(schools: SuburbSchools): String {
@@ -181,6 +191,7 @@ object SuburbCardRows {
     fun schoolDetail(school: School): String = listOfNotNull(
         school.levelLabel ?: when (school.level) { SchoolLevel.PRIMARY -> "Primary"; SchoolLevel.HIGH -> "High school"; SchoolLevel.COMBINED -> "Combined" },
         school.icsea?.let { "ICSEA ${Formats.grouped(it.toLong())}" } ?: "ICSEA not published",
+        school.naplan?.let(NaplanRules::label),
         school.enrolments?.let { "${Formats.grouped(it.toLong())} students" },
     ).joinToString(" · ")
 

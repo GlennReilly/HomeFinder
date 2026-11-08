@@ -16,9 +16,9 @@ private const val MIN_LONGITUDE = -180.0
 private const val MAX_LONGITUDE = 180.0
 
 /** The suburb endpoints, inside the API-key guarded `/v1` route. [directory] is null when no database is configured. */
-fun Route.suburbRoutes(directory: SuburbDirectory?, ratings: RatingStore? = null) {
+fun Route.suburbRoutes(directory: SuburbDirectory?, ratings: RatingStore? = null, naplan: NaplanStore? = null) {
     get(ApiContract.SUBURBS_AT_PATH.removePrefix(AUTHENTICATED_PREFIX)) { suburbAt(call, directory) }
-    get(ApiContract.SUBURBS_PATH.removePrefix(AUTHENTICATED_PREFIX) + "/{suburbId}") { suburbReport(call, directory, ratings) }
+    get(ApiContract.SUBURBS_PATH.removePrefix(AUTHENTICATED_PREFIX) + "/{suburbId}") { suburbReport(call, directory, ratings, naplan) }
 }
 
 private suspend fun suburbAt(call: RoutingCall, directory: SuburbDirectory?) {
@@ -33,9 +33,13 @@ private suspend fun suburbAt(call: RoutingCall, directory: SuburbDirectory?) {
     respondFrom(call, directory) { it.findAt(latitude, longitude)?.toRef() }
 }
 
-private suspend fun suburbReport(call: RoutingCall, directory: SuburbDirectory?, ratings: RatingStore?) {
+private suspend fun suburbReport(call: RoutingCall, directory: SuburbDirectory?, ratings: RatingStore?, naplan: NaplanStore?) {
     val suburbId = call.parameters["suburbId"].orEmpty()
-    respondFrom(call, directory) { dir -> dir.find(suburbId)?.let { SuburbReportFactory.build(it, dir.stats(suburbId), ratings?.get(suburbId), dir.amenity(suburbId), dir.schools(suburbId), dir.census(suburbId), dir.seifa(suburbId), dir.crime(suburbId), dir.zones(suburbId)) } }
+    respondFrom(call, directory) { dir ->
+        val report = dir.find(suburbId)?.let { SuburbReportFactory.build(it, dir.stats(suburbId), ratings?.get(suburbId), dir.amenity(suburbId), dir.schools(suburbId), dir.census(suburbId), dir.seifa(suburbId), dir.crime(suburbId), dir.zones(suburbId)) }
+        // Your NAPLAN figures go on the schools listed (ADR 0068).
+        report?.let { found -> naplan?.let { store -> SchoolNaplans.attach(found, store.forSchools(SchoolNaplans.codes(found))) } ?: found }
+    }
 }
 
 /** Runs a lookup: 503 without a database or when it fails, 404 when nothing is found, otherwise the result as JSON. */

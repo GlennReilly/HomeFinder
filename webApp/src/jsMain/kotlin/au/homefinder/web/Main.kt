@@ -14,6 +14,7 @@ import au.homefinder.app.ui.filterSummaryText
 import au.homefinder.app.api.KtorHttp
 import au.homefinder.app.api.LotApi
 import au.homefinder.app.api.LookupResult
+import au.homefinder.app.api.NaplanApi
 import au.homefinder.app.api.RatingApi
 import au.homefinder.app.api.SearchApi
 import au.homefinder.app.api.SuburbApi
@@ -34,10 +35,12 @@ import au.homefinder.app.selection.filtersTabLabel
 import au.homefinder.app.selection.firstTabLabel
 import au.homefinder.app.filter.FilterResult
 import au.homefinder.app.selection.RatingOutcome
+import au.homefinder.app.selection.NaplanOutcome
 import au.homefinder.app.selection.SearchViewModel
 import au.homefinder.app.selection.SuburbCardState
 import au.homefinder.app.ui.CardActions
 import au.homefinder.app.ui.RatingForm
+import au.homefinder.app.ui.NaplanIds
 import au.homefinder.app.ui.SearchIds
 import au.homefinder.app.ui.LayoutActions
 import au.homefinder.app.ui.lotCard
@@ -109,7 +112,7 @@ private fun start(apiKey: String) {
     val config = ApiConfig(origin, apiKey)
     val http = KtorHttp()
     val ratingApi = RatingApi(config, http, http)
-    val viewModel = MapViewModel(SuburbApi(config, http), scope, LotApi(config, http), ratingApi)
+    val viewModel = MapViewModel(SuburbApi(config, http), scope, LotApi(config, http), ratingApi, NaplanApi(config, http))
     val map = SuburbMap(origin, apiKey, viewModel::onMapTap)
 
     val card = element("card")
@@ -141,6 +144,7 @@ private fun start(apiKey: String) {
         map.showSelection(state.selectedSuburbId, state.selectedLotId)
         if (state.selectedSuburbId != latest.selectedSuburbId || state.selectedLotId != latest.selectedLotId) {
             layouts.customising = false
+            layouts.naplanOpen = null
             if (state.selectedSuburbId != null || state.selectedLotId != null) side.cardOpened() else side.cardClosed()
         }
         latest = state
@@ -162,6 +166,16 @@ private fun start(apiKey: String) {
             CardActions.SHOW_UNKNOWN -> { layouts.showUnknown = true; redraw() }
             CardActions.HIDE_UNKNOWN -> { layouts.showUnknown = false; redraw() }
             CardActions.REMOVE_RATING -> scope.launch { announce(viewModel.removeRating(), card, ::showNotice) }
+            // One NAPLAN form at a time, under the school whose link was pressed (ADR 0068); pressing the open one's link again closes it.
+            CardActions.EDIT_NAPLAN -> {
+                layouts.naplanOpen = target.id.takeIf { it != layouts.naplanOpen }
+                redraw()
+                (document.getElementById(NaplanIds.SCORE) as? HTMLInputElement)?.focus()
+            }
+            CardActions.CANCEL_NAPLAN -> { layouts.naplanOpen = null; redraw() }
+            CardActions.CLEAR_NAPLAN -> naplanCode(target)?.let { code ->
+                scope.launch { announceNaplan(viewModel.removeNaplan(code), card, layouts, ::redraw, ::showNotice) }
+            }
             LayoutActions.CUSTOMISE -> { layouts.customising = true; redraw() }
             LayoutActions.DONE -> { layouts.customising = false; redraw() }
             LayoutActions.RESET -> { layouts.reset(latest); redraw() }
@@ -189,6 +203,13 @@ private fun start(apiKey: String) {
             val stars = (form.elements.namedItem(RatingForm.STARS_FIELD) as? HTMLInputElement)?.value.orEmpty()
             val reviews = (form.elements.namedItem(RatingForm.REVIEWS_FIELD) as? HTMLInputElement)?.value.orEmpty()
             scope.launch { announce(viewModel.saveRating(stars, reviews), card, ::showNotice) }
+        } else if (form?.id == NaplanIds.FORM) {
+            event.preventDefault()
+            val code = naplanCode(form) ?: return@addEventListener
+            fun field(name: String) = (form.elements.namedItem(name) as? HTMLInputElement)?.value.orEmpty()
+            scope.launch {
+                announceNaplan(viewModel.saveNaplan(code, field(NaplanIds.SCORE), field(NaplanIds.YEAR), field(NaplanIds.NOTE)), card, layouts, ::redraw, ::showNotice)
+            }
         }
     })
     document.addEventListener("keydown", { event ->
@@ -380,6 +401,9 @@ private class CardLayouts {
     /** Whether rows without data are drawn (ADR 0058); not remembered, so each page load starts with them left off. */
     var showUnknown: Boolean = false
 
+    /** The id of the NAPLAN edit link whose form is open (ADR 0068), or null; closed again when the selection changes. */
+    var naplanOpen: String? = null
+
     private fun load(key: String): CardLayout = CardLayout.decode(runCatching { localStorage.getItem(key) }.getOrNull())
 
     private fun save(key: String, layout: CardLayout) {
@@ -433,8 +457,8 @@ private fun renderCard(container: HTMLElement, suburb: SuburbCardState, lot: Lot
     scroll.value = plan.memory
     container.innerHTML = ""
     when (kind) {
-        CardKind.LOT -> container.append { div { lotCard(lot, layouts.lot, layouts.customising, layouts.showUnknown, layouts.groupOpen) } }
-        CardKind.SUBURB -> container.append { div { suburbCard(suburb, layouts.suburb, layouts.customising, layouts.showUnknown, layouts.groupOpen) } }
+        CardKind.LOT -> container.append { div { lotCard(lot, layouts.lot, layouts.customising, layouts.showUnknown, layouts.groupOpen, layouts.naplanOpen) } }
+        CardKind.SUBURB -> container.append { div { suburbCard(suburb, layouts.suburb, layouts.customising, layouts.showUnknown, layouts.groupOpen, layouts.naplanOpen) } }
         CardKind.NONE -> container.append { p("side-empty") { +SIDE_EMPTY_TEXT } }
     }
     container.scrollTop = plan.restoreTo.toDouble()
@@ -450,5 +474,22 @@ private fun announce(outcome: RatingOutcome, card: HTMLElement, showNotice: (Str
         RatingOutcome.Removed -> showNotice("Homely rating removed")
         is RatingOutcome.Rejected -> card.querySelector(".${RatingForm.MESSAGE_CLASS}")?.textContent = outcome.message
         is RatingOutcome.Failed -> card.querySelector(".${RatingForm.MESSAGE_CLASS}")?.textContent = "Could not save: ${outcome.message}"
+    }
+}
+
+/** The school code a NAPLAN control or form carries, from the element itself or the form it sits in. */
+private fun naplanCode(element: HTMLElement): String? =
+    (element.closest("[${NaplanIds.CODE_ATTRIBUTE}]") as? HTMLElement)?.getAttribute(NaplanIds.CODE_ATTRIBUTE)
+
+/** Says how saving or clearing a NAPLAN figure went: success closes the form and shows a notice, a problem shows beside the form. */
+private fun announceNaplan(outcome: NaplanOutcome, card: HTMLElement, layouts: CardLayouts, redraw: () -> Unit, showNotice: (String) -> Unit) {
+    when (outcome) {
+        NaplanOutcome.Saved, NaplanOutcome.Removed -> {
+            layouts.naplanOpen = null
+            redraw()
+            showNotice(if (outcome == NaplanOutcome.Saved) "NAPLAN score saved" else "NAPLAN score cleared")
+        }
+        is NaplanOutcome.Rejected -> card.querySelector("#${NaplanIds.MESSAGE}")?.textContent = outcome.message
+        is NaplanOutcome.Failed -> card.querySelector("#${NaplanIds.MESSAGE}")?.textContent = "Could not save: ${outcome.message}"
     }
 }

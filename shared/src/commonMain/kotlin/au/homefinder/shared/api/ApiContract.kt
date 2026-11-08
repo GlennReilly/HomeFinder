@@ -28,6 +28,16 @@ object ApiContract {
 
     fun suburbRatingPath(encodedSuburbId: String): String = "$SUBURBS_PATH/$encodedSuburbId/rating"
 
+    /**
+     * Your own NAPLAN figures, one per school (ADR 0068): `GET /v1/schools/naplan` lists them (`?codes=1,2` for some schools only);
+     * `PUT` and `DELETE` on `/v1/schools/{schoolCode}/naplan` set and remove one. The suburb and lot reports carry them on each school.
+     */
+    const val SCHOOLS_PATH: String = "/v1/schools"
+    const val SCHOOL_NAPLAN_PATH: String = "/v1/schools/naplan"
+    const val CODES_PARAMETER: String = "codes"
+
+    fun schoolNaplanPath(encodedSchoolCode: String): String = "$SCHOOLS_PATH/$encodedSchoolCode/naplan"
+
     /** Search: `GET /v1/search?q=` suggests suburbs and addresses for what has been typed so far (ADR 0026). */
     const val SEARCH_PATH: String = "/v1/search"
     const val QUERY_PARAMETER: String = "q"
@@ -105,5 +115,6 @@ data class ApiError(val error: String) {
         const val UNAVAILABLE: String = "unavailable"
         const val INVALID_QUERY: String = "invalid_query"
         const val INVALID_RATING: String = "invalid_rating"
+        const val INVALID_NAPLAN: String = "invalid_naplan"
     }
 }

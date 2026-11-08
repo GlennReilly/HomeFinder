@@ -16,9 +16,9 @@ private const val MIN_LONGITUDE = -180.0
 private const val MAX_LONGITUDE = 180.0
 
 /** The lot endpoints, inside the API-key guarded `/v1` route. [directory] is null when no database is configured. */
-fun Route.lotRoutes(directory: LotDirectory?) {
+fun Route.lotRoutes(directory: LotDirectory?, naplan: NaplanStore? = null) {
     get(ApiContract.LOTS_AT_PATH.removePrefix(AUTHENTICATED_PREFIX)) { lotAt(call, directory) }
-    get(ApiContract.LOTS_PATH.removePrefix(AUTHENTICATED_PREFIX) + "/{lotId}") { lotReport(call, directory) }
+    get(ApiContract.LOTS_PATH.removePrefix(AUTHENTICATED_PREFIX) + "/{lotId}") { lotReport(call, directory, naplan) }
 }
 
 private suspend fun lotAt(call: RoutingCall, directory: LotDirectory?) {
@@ -33,9 +33,13 @@ private suspend fun lotAt(call: RoutingCall, directory: LotDirectory?) {
     respondLot(call, directory) { it.findAt(latitude, longitude)?.toRef() }
 }
 
-private suspend fun lotReport(call: RoutingCall, directory: LotDirectory?) {
+private suspend fun lotReport(call: RoutingCall, directory: LotDirectory?, naplan: NaplanStore?) {
     val lotId = call.parameters["lotId"].orEmpty()
-    respondLot(call, directory) { dir -> dir.find(lotId)?.let { LotReportFactory.build(it, dir.proximity(lotId), dir.terrain(lotId), dir.drainage(lotId), dir.schools(lotId), dir.catchments(lotId)) } }
+    respondLot(call, directory) { dir ->
+        val report = dir.find(lotId)?.let { LotReportFactory.build(it, dir.proximity(lotId), dir.terrain(lotId), dir.drainage(lotId), dir.schools(lotId), dir.catchments(lotId)) }
+        // Your NAPLAN figures go on the schools listed (ADR 0068).
+        report?.let { found -> naplan?.let { store -> SchoolNaplans.attach(found, store.forSchools(SchoolNaplans.codes(found))) } ?: found }
+    }
 }
 
 /** Runs a lookup: 503 without a database or when it fails, 404 when nothing is found, otherwise the result as JSON. */

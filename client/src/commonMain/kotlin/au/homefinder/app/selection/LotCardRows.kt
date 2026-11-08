@@ -32,7 +32,7 @@ object LotCardRows {
         SuburbCardRows.row("Height above sea level", report.elevationM, ::height),
         SuburbCardRows.row("Height above drainage", report.heightAboveDrainage, ::drainage),
         SuburbCardRows.row("Distance to the beach", report.beach, ::beach),
-        SuburbCardRows.row(SuburbCardRows.SCHOOLS_LABEL, report.schools, ::schools),
+        SuburbCardRows.withNaplanSource(SuburbCardRows.row(SuburbCardRows.SCHOOLS_LABEL, report.schools, ::schools), listedSchools(report)),
         SuburbCardRows.row("Parks", report.parks, ::parks),
         SuburbCardRows.row("Shopping", report.shopping, ::shopping),
         SuburbCardRows.row("Transport", report.transport) { it.toString() },
@@ -78,6 +78,9 @@ object LotCardRows {
         return parts.joinToString("; ").ifEmpty { "No public school found nearby" }
     }
 
+    /** The schools the Schools row names, in the order it names them: the zoned ones, then the nearest (ADR 0056); each can carry a NAPLAN figure (ADR 0068). */
+    fun listedSchools(report: LotReport): List<School> = report.schools.value?.let { info -> info.zoned + info.nearest.map { it.school } }.orEmpty()
+
     /** What the nearest schools are called where the lot has a zone for the other level or none at all (ADR 0056). */
     const val NEAREST_NOT_ZONED_PREFIX: String = "Nearest, not zoned: "
 
@@ -85,7 +88,7 @@ object LotCardRows {
     private fun zoned(school: School): String {
         val kind = school.levelLabel?.let { " ($it)" }.orEmpty()
         val icsea = school.icsea?.let { ", ICSEA ${Formats.grouped(it.toLong())}" }.orEmpty()
-        return "${school.name}$kind$icsea"
+        return "${school.name}$kind$icsea${SuburbCardRows.naplanSuffix(school, ", ")}"
     }
 
     private fun nearest(info: SchoolInfo): String {
@@ -94,7 +97,7 @@ object LotCardRows {
             val kind = school.levelLabel?.let { " ($it)" }.orEmpty()
             val walk = near.walkingMinutes?.takeIf { it <= WALK_ESTIMATE_MAX_MINUTES }?.let { ", about $it min walk (estimated)" }.orEmpty()
             val icsea = school.icsea?.let { ", ICSEA ${Formats.grouped(it.toLong())}" }.orEmpty()
-            "${school.name}$kind, ${Formats.distance(near.distanceM)} away$walk$icsea"
+            "${school.name}$kind, ${Formats.distance(near.distanceM)} away$walk$icsea${SuburbCardRows.naplanSuffix(school, ", ")}"
         }
     }
 

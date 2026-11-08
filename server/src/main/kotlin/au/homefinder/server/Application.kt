@@ -44,6 +44,7 @@ fun Application.module(
     lots: LotDirectory? = null,
     search: SearchIndex? = null,
     ratings: RatingStore? = null,
+    naplan: NaplanStore? = null,
     today: () -> kotlinx.datetime.LocalDate = ::currentDate,
 ) {
     install(ContentNegotiation) { json(ApiJson) }
@@ -71,9 +72,10 @@ fun Application.module(
             }
             // The literal paths (ratings, filters, at) are tried before the {suburbId} path, so they are not mistaken for ids.
             ratingRoutes(ratings, suburbs, today)
+            naplanRoutes(naplan) { today().year }
             filterRoutes(suburbs)
-            suburbRoutes(suburbs, ratings)
-            lotRoutes(lots)
+            suburbRoutes(suburbs, ratings, naplan)
+            lotRoutes(lots, naplan)
             searchRoutes(search)
         }
         route(TileContract.TILES_PREFIX) {
