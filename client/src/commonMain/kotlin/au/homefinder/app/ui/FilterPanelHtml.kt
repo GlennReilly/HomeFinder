@@ -78,7 +78,7 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
         h2 { +"Filter suburbs" }
         button(type = ButtonType.button, classes = "reset-all") {
             id = FilterIds.RESET
-            attributes["aria-label"] = filterResetTitle(initial.selection.isActive)
+            attributes[Aria.LABEL] = filterResetTitle(initial.selection.isActive)
             attributes["title"] = filterResetTitle(initial.selection.isActive)
             if (!initial.selection.isActive) attributes["disabled"] = "disabled"
             +FILTER_RESET_TEXT
@@ -99,7 +99,7 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
     }
     p("filter-summary") {
         id = FilterIds.SUMMARY
-        attributes["role"] = "status"
+        attributes[Aria.ROLE] = "status"
         +filterSummaryText(initial)
     }
     val sources = FilterCriterion.entries.mapNotNull { criterion ->

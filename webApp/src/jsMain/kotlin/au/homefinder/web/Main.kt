@@ -38,6 +38,7 @@ import au.homefinder.app.selection.RatingOutcome
 import au.homefinder.app.selection.NaplanOutcome
 import au.homefinder.app.selection.SearchViewModel
 import au.homefinder.app.selection.SuburbCardState
+import au.homefinder.app.ui.Aria
 import au.homefinder.app.ui.CardActions
 import au.homefinder.app.ui.RatingForm
 import au.homefinder.app.ui.NaplanIds
@@ -237,8 +238,8 @@ private class SidePanel(private val narrow: Boolean) {
         root.setAttribute("data-collapsed", next.collapsed.toString())
         SideTab.entries.forEach { tab ->
             val selected = tab == next.tab
-            tabs.getValue(tab).setAttribute("aria-selected", selected.toString())
-            tabs.getValue(tab).setAttribute("aria-expanded", (selected && !next.collapsed).toString())
+            tabs.getValue(tab).setAttribute(Aria.SELECTED, selected.toString())
+            tabs.getValue(tab).setAttribute(Aria.EXPANDED, (selected && !next.collapsed).toString())
             panes.getValue(tab).hidden = !selected || next.collapsed
         }
     }
@@ -352,9 +353,9 @@ private fun wireSearch(scope: CoroutineScope, api: SearchApi, map: MapViewModel,
     search.state.onEach { state ->
         searchIsOpen = state.isOpen && state.status !is SearchStatus.Idle
         if (input.value != state.query) input.value = state.query
-        input.setAttribute("aria-expanded", searchIsOpen.toString())
-        if (state.highlighted >= 0 && searchIsOpen) input.setAttribute("aria-activedescendant", SearchIds.option(state.highlighted))
-        else input.removeAttribute("aria-activedescendant")
+        input.setAttribute(Aria.EXPANDED, searchIsOpen.toString())
+        if (state.highlighted >= 0 && searchIsOpen) input.setAttribute(Aria.ACTIVE_DESCENDANT, SearchIds.option(state.highlighted))
+        else input.removeAttribute(Aria.ACTIVE_DESCENDANT)
         results.innerHTML = ""
         results.append { div { searchSuggestions(state) } }
         results.querySelector(".highlighted")?.scrollIntoView(js("({block: 'nearest'})"))

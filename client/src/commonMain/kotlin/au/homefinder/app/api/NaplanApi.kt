@@ -16,7 +16,7 @@ private const val HTTP_NOT_FOUND = 404
 class NaplanApi(private val config: ApiConfig, private val writes: HttpWrite) {
     /** Saves a figure; the server answers with what it kept (the note trimmed, the day added). */
     suspend fun save(schoolCode: String, entry: NaplanEntry): LookupResult<NaplanScore> =
-        when (val answer = writes.send("PUT", naplanUrl(schoolCode), headers(), ApiJson.encodeToString(entry))) {
+        when (val answer = writes.send(HttpVerb.PUT, naplanUrl(schoolCode), headers(), ApiJson.encodeToString(entry))) {
             is HttpResult.Failure -> LookupResult.Failed(answer.message)
             is HttpResult.Response -> when (answer.status) {
                 HTTP_OK -> runCatching { ApiJson.decodeFromString<NaplanScore>(answer.body) }
@@ -29,7 +29,7 @@ class NaplanApi(private val config: ApiConfig, private val writes: HttpWrite) {
         }
 
     /** Removes a figure. Removing one that is not there is fine. */
-    suspend fun remove(schoolCode: String): LookupResult<Unit> = when (val answer = writes.send("DELETE", naplanUrl(schoolCode), headers(), null)) {
+    suspend fun remove(schoolCode: String): LookupResult<Unit> = when (val answer = writes.send(HttpVerb.DELETE, naplanUrl(schoolCode), headers(), null)) {
         is HttpResult.Failure -> LookupResult.Failed(answer.message)
         is HttpResult.Response -> when (answer.status) {
             HTTP_NO_CONTENT, HTTP_OK -> LookupResult.Found(Unit)

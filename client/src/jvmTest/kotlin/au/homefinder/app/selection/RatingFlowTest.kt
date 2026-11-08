@@ -3,6 +3,7 @@ package au.homefinder.app.selection
 import au.homefinder.app.api.ApiConfig
 import au.homefinder.app.api.HttpGet
 import au.homefinder.app.api.HttpResult
+import au.homefinder.app.api.HttpVerb
 import au.homefinder.app.api.HttpWrite
 import au.homefinder.app.api.RatingApi
 import au.homefinder.app.api.SuburbApi
@@ -53,7 +54,7 @@ class RatingFlowTest {
             world.writes += "$method $url $body"
             when {
                 world.writeFails -> HttpResult.Response(503, "")
-                method == "PUT" -> { world.stored = ApiJson.decodeFromString<HomelyRating>(body!!); HttpResult.Response(200, body) }
+                method == HttpVerb.PUT -> { world.stored = ApiJson.decodeFromString<HomelyRating>(body!!); HttpResult.Response(200, body) }
                 else -> { world.stored = null; HttpResult.Response(204, "") }
             }
         }

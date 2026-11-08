@@ -182,8 +182,7 @@ class MapViewModel(
 
     /** Reloads the lot or suburb card in place (no loading flash) if it is still the one selected. */
     private suspend fun refreshShownCard() {
-        val lotId = mutableState.value.selectedLotId
-        if (lotId != null) {
+        mutableState.value.selectedLotId?.let { lotId ->
             val report = lots?.report(lotId)
             if (report is LookupResult.Found && mutableState.value.selectedLotId == lotId) mutableState.update { it.copy(lotCard = LotCardState.Loaded(report.value)) }
             return

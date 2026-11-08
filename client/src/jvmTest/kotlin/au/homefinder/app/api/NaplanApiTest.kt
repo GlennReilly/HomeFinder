@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 class NaplanApiTest {
     private class Writes(private val result: HttpResult) : HttpWrite {
         val calls = mutableListOf<List<Any?>>()
-        override suspend fun send(method: String, url: String, headers: Map<String, String>, body: String?): HttpResult =
+        override suspend fun send(method: HttpVerb, url: String, headers: Map<String, String>, body: String?): HttpResult =
             result.also { calls += listOf(method, url, headers, body) }
     }
 
@@ -24,7 +24,7 @@ class NaplanApiTest {
         val result = NaplanApi(config, writes).save("1234", NaplanEntry(512, 2025, "Year 5"))
         assertEquals(LookupResult.Found(NaplanScore(512, 2025, "Year 5", LocalDate(2026, 11, 8))), result)
         val (method, url, headers, body) = writes.calls.single()
-        assertEquals("PUT", method)
+        assertEquals(HttpVerb.PUT, method)
         assertEquals("http://host:8080/v1/schools/1234/naplan", url)
         assertEquals(mapOf("X-API-Key" to "secret-key-123456"), headers)
         assertEquals("""{"score":512,"year":2025,"note":"Year 5"}""", body)
@@ -52,7 +52,7 @@ class NaplanApiTest {
     fun `removing sends a DELETE and accepts no content`() = runBlocking<Unit> {
         val writes = Writes(HttpResult.Response(204, ""))
         assertEquals(LookupResult.Found(Unit), NaplanApi(config, writes).remove("1234"))
-        assertEquals(listOf("DELETE", "http://host:8080/v1/schools/1234/naplan"), writes.calls.single().take(2))
+        assertEquals(listOf(HttpVerb.DELETE, "http://host:8080/v1/schools/1234/naplan"), writes.calls.single().take(2))
         assertEquals(LookupResult.Unauthorized, NaplanApi(config, Writes(HttpResult.Response(401, ""))).remove("1234"))
         assertIs<LookupResult.Failed>(NaplanApi(config, Writes(HttpResult.Failure("offline"))).remove("1234"))
     }

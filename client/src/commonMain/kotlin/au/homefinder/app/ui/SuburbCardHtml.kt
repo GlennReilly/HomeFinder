@@ -131,7 +131,7 @@ fun FlowContent.suburbCard(
     naplanOpen: String? = null,
 ) {
     section("suburb-card") {
-        attributes["aria-label"] = "Suburb card"
+        attributes[Aria.LABEL] = "Suburb card"
         // The name, postcode, close button and Customise bar stay pinned at the top while the rows scroll (ADR 0053).
         div(STICKY_TOP_CLASS) {
             div("card-header") {
@@ -141,7 +141,7 @@ fun FlowContent.suburbCard(
                 }
                 button(type = ButtonType.button, classes = "close") {
                     attributes[CardActions.ATTRIBUTE] = CardActions.CLOSE
-                    attributes["aria-label"] = "Close suburb card"
+                    attributes[Aria.LABEL] = "Close suburb card"
                     +CLOSE_BUTTON_TEXT
                 }
             }
@@ -149,7 +149,7 @@ fun FlowContent.suburbCard(
         }
         when (card) {
             SuburbCardState.Hidden -> Unit
-            is SuburbCardState.Loading -> progress { attributes["aria-label"] = "Loading suburb" }
+            is SuburbCardState.Loading -> progress { attributes[Aria.LABEL] = "Loading suburb" }
             is SuburbCardState.Failed -> {
                 p("error") { +"Could not load this suburb: ${card.reason}." }
                 button(type = ButtonType.button, classes = "retry") {
@@ -235,7 +235,7 @@ fun FlowContent.ratingForm(report: SuburbReport) {
 private fun DETAILS.ratingFormBody(current: au.homefinder.shared.model.HomelyRating?) {
     form(classes = "rating-form") {
         attributes[RatingForm.ATTRIBUTE] = "true"
-        attributes["aria-label"] = "Your Homely rating"
+        attributes[Aria.LABEL] = "Your Homely rating"
         p("hint") { +"Copy the score from the suburb's Homely page by hand. Nothing is fetched from Homely." }
         div("fields") {
             label {
@@ -265,7 +265,7 @@ private fun DETAILS.ratingFormBody(current: au.homefinder.shared.model.HomelyRat
                 }
             }
         }
-        p(RatingForm.MESSAGE_CLASS) { attributes["role"] = "status" }
+        p(RatingForm.MESSAGE_CLASS) { attributes[Aria.ROLE] = "status" }
     }
 }
 
@@ -333,10 +333,10 @@ private fun kotlinx.html.DL.cardRow(
     val list = this
     val row = item.row
     // dt and dd are only defined on the list, so call them through it from inside the row's div.
-    div(if (item.hidden) "row row-hidden" else "row") {
+    div(CardRowClasses.row(item.hidden)) {
         list.dt { +row.label }
         val value = row.value
-        list.dd(if (value == null) "value unknown" else "value") { +(value ?: SuburbCardRows.UNKNOWN) }
+        list.valueCell(value)
         list.provenanceDetails(row)
         extra?.invoke(this)
         if (customising) rowControls(item, first = index == 0, last = index == count - 1)

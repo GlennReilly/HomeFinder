@@ -71,8 +71,8 @@ fun FlowContent.naplanControls(school: School, slots: NaplanSlots) {
             id = editId
             attributes[CardActions.ATTRIBUTE] = CardActions.EDIT_NAPLAN
             attributes[NaplanIds.CODE_ATTRIBUTE] = school.id
-            attributes["aria-expanded"] = open.toString()
-            attributes["aria-label"] = "${if (school.naplan == null) NAPLAN_ADD_TEXT else NAPLAN_EDIT_TEXT} for ${school.name}"
+            attributes[Aria.EXPANDED] = open.toString()
+            attributes[Aria.LABEL] = "${if (school.naplan == null) NAPLAN_ADD_TEXT else NAPLAN_EDIT_TEXT} for ${school.name}"
             +(if (school.naplan == null) NAPLAN_ADD_TEXT else NAPLAN_EDIT_TEXT)
         }
     }
@@ -85,7 +85,7 @@ private fun FlowContent.naplanForm(school: School) {
     form(classes = "naplan-form") {
         id = NaplanIds.FORM
         attributes[NaplanIds.CODE_ATTRIBUTE] = school.id
-        attributes["aria-label"] = "NAPLAN for ${school.name}"
+        attributes[Aria.LABEL] = "NAPLAN for ${school.name}"
         p("hint") {
             +"Type the school's overall NAPLAN score from "
             a(href = ExternalLinks.MY_SCHOOL_HOME, target = "_blank", classes = "external-link") {
@@ -145,7 +145,7 @@ private fun FlowContent.naplanForm(school: School) {
         }
         p(NaplanIds.MESSAGE) {
             id = NaplanIds.MESSAGE
-            attributes["role"] = "status"
+            attributes[Aria.ROLE] = "status"
         }
     }
 }

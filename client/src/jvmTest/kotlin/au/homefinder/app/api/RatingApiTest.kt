@@ -15,7 +15,7 @@ class RatingApiTest {
 
     private class Writes(private val result: HttpResult) : HttpWrite {
         val calls = mutableListOf<List<Any?>>()
-        override suspend fun send(method: String, url: String, headers: Map<String, String>, body: String?): HttpResult =
+        override suspend fun send(method: HttpVerb, url: String, headers: Map<String, String>, body: String?): HttpResult =
             result.also { calls += listOf(method, url, headers, body) }
     }
 
@@ -28,7 +28,7 @@ class RatingApiTest {
         val result = RatingApi(config, Reads(HttpResult.Response(200, "")), writes).save("9001", HomelyRating(2.1, 7))
         assertEquals(LookupResult.Found(HomelyRating(2.1, 7)), result)
         val (method, url, headers, body) = writes.calls.single()
-        assertEquals("PUT", method)
+        assertEquals(HttpVerb.PUT, method)
         assertEquals("http://host:8080/v1/suburbs/9001/rating", url)
         assertEquals(mapOf("X-API-Key" to "secret-key-123456"), headers)
         assertEquals("""{"stars":2.1,"reviewCount":7}""", body)
@@ -57,7 +57,7 @@ class RatingApiTest {
         val writes = Writes(HttpResult.Response(204, ""))
         assertEquals(LookupResult.Found(Unit), RatingApi(config, Reads(HttpResult.Response(200, "")), writes).remove("9001"))
         val (method, url, _, body) = writes.calls.single()
-        assertEquals("DELETE", method)
+        assertEquals(HttpVerb.DELETE, method)
         assertEquals("http://host:8080/v1/suburbs/9001/rating", url)
         assertEquals(null, body)
         assertEquals(LookupResult.Unauthorized, RatingApi(config, Reads(HttpResult.Response(200, "")), Writes(HttpResult.Response(401, ""))).remove("9001"))

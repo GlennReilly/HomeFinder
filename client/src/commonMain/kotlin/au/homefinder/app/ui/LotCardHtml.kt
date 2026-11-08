@@ -12,7 +12,6 @@ import kotlinx.html.ButtonType
 import kotlinx.html.DL
 import kotlinx.html.FlowContent
 import kotlinx.html.button
-import kotlinx.html.dd
 import kotlinx.html.div
 import kotlinx.html.dl
 import kotlinx.html.dt
@@ -61,7 +60,7 @@ fun FlowContent.lotCard(
     naplanOpen: String? = null,
 ) {
     section("suburb-card lot-card") {
-        attributes["aria-label"] = "Lot card"
+        attributes[Aria.LABEL] = "Lot card"
         div(STICKY_TOP_CLASS) {
             div("card-header") {
                 div {
@@ -76,7 +75,7 @@ fun FlowContent.lotCard(
                 }
                 button(type = ButtonType.button, classes = "close") {
                     attributes[CardActions.ATTRIBUTE] = CardActions.CLOSE
-                    attributes["aria-label"] = "Close lot card"
+                    attributes[Aria.LABEL] = "Close lot card"
                     +CLOSE_BUTTON_TEXT
                 }
             }
@@ -85,7 +84,7 @@ fun FlowContent.lotCard(
         lotCardParcel(card)?.let { p("subtitle parcel-scroll") { +it } }
         when (card) {
             LotCardState.Hidden -> Unit
-            is LotCardState.Loading -> progress { attributes["aria-label"] = "Loading lot" }
+            is LotCardState.Loading -> progress { attributes[Aria.LABEL] = "Loading lot" }
             is LotCardState.Failed -> {
                 p("error") { +"Could not load this lot: ${card.reason}." }
                 button(type = ButtonType.button, classes = "retry") {
@@ -136,10 +135,10 @@ private fun DL.lotRow(
 ) {
     val list = this
     val row = item.row
-    div(if (item.hidden) "row row-hidden" else "row") {
+    div(CardRowClasses.row(item.hidden)) {
         list.dt { +row.label }
         val value = row.value
-        list.dd(if (value == null) "value unknown" else "value") { +(value ?: "Unknown") }
+        list.valueCell(value)
         list.provenanceDetails(row)
         links?.let { listingLinksLine(it) }
         // Under the Schools row: each school it names, with the link to add or edit your NAPLAN figure for it (ADR 0068).

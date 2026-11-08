@@ -44,13 +44,13 @@ fun FlowContent.searchSuggestions(state: SearchUiState) {
     if (state.results.isNotEmpty()) {
         ul("suggestions") {
             id = SearchIds.LIST
-            attributes["role"] = "listbox"
-            attributes["aria-label"] = "Search suggestions"
+            attributes[Aria.ROLE] = "listbox"
+            attributes[Aria.LABEL] = "Search suggestions"
             state.results.forEachIndexed { index, result ->
                 li(if (index == state.highlighted) "suggestion highlighted" else "suggestion") {
                     id = SearchIds.option(index)
-                    attributes["role"] = "option"
-                    attributes["aria-selected"] = (index == state.highlighted).toString()
+                    attributes[Aria.ROLE] = "option"
+                    attributes[Aria.SELECTED] = (index == state.highlighted).toString()
                     attributes[SearchIds.INDEX_ATTRIBUTE] = index.toString()
                     span("kind") { +kindLabel(result.kind) }
                     span("label") { +result.label }
@@ -60,9 +60,9 @@ fun FlowContent.searchSuggestions(state: SearchUiState) {
         }
     }
     when (val status = state.status) {
-        SearchStatus.Searching -> div("search-status") { attributes["role"] = "status"; +"Searching…" }
-        SearchStatus.NoMatches -> div("search-status") { attributes["role"] = "status"; +"No matches" }
-        is SearchStatus.Failed -> div("search-status error") { attributes["role"] = "alert"; +status.message }
+        SearchStatus.Searching -> div("search-status") { attributes[Aria.ROLE] = "status"; +"Searching…" }
+        SearchStatus.NoMatches -> div("search-status") { attributes[Aria.ROLE] = "status"; +"No matches" }
+        is SearchStatus.Failed -> div("search-status error") { attributes[Aria.ROLE] = "alert"; +status.message }
         else -> Unit
     }
 }

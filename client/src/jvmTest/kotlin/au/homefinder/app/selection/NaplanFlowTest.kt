@@ -3,6 +3,7 @@ package au.homefinder.app.selection
 import au.homefinder.app.api.ApiConfig
 import au.homefinder.app.api.HttpGet
 import au.homefinder.app.api.HttpResult
+import au.homefinder.app.api.HttpVerb
 import au.homefinder.app.api.HttpWrite
 import au.homefinder.app.api.LotApi
 import au.homefinder.app.api.NaplanApi
@@ -69,7 +70,7 @@ class NaplanFlowTest {
             when {
                 world.writeFails -> HttpResult.Response(503, "")
                 url.contains("/schools/9999/") -> HttpResult.Response(404, "")
-                method == "PUT" -> {
+                method == HttpVerb.PUT -> {
                     val entry = ApiJson.decodeFromString<NaplanEntry>(body!!)
                     val kept = NaplanScore(entry.score, entry.year, entry.note, day).also { world.stored = it }
                     HttpResult.Response(200, ApiJson.encodeToString(kept))
