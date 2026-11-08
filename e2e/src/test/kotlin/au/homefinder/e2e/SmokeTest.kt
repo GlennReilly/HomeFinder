@@ -298,9 +298,13 @@ class SmokeTest {
     }
 
     /** Folds every filter group open (ADR 0066: only the first starts open) so the criteria can be reached. */
-    private fun openFilterGroups() {
-        // The panel is drawn once its values arrive; opening the groups before then would open nothing.
+    /** The filter panel is drawn only once its values arrive from the API; anything that reads or opens its groups must wait for that first. */
+    private fun waitForFilterPanel() {
         page.waitForFunction("() => document.querySelectorAll('#filters details.filter-group').length > 0")
+    }
+
+    private fun openFilterGroups() {
+        waitForFilterPanel()
         page.evaluate("document.querySelectorAll('#filters details.filter-group').forEach(d => d.open = true)")
         page.waitForFunction("() => [...document.querySelectorAll('#filters details.filter-group')].every(d => d.open)")
     }
@@ -308,6 +312,7 @@ class SmokeTest {
     @Test
     fun `filter groups fold, the first starts open, and a group counts its switched-on filters`() {
         openWithKey()
+        waitForFilterPanel()
         assertTrue(page.evaluate("document.getElementById('filter-group-people-and-area').open") == true)
         assertTrue(page.evaluate("document.getElementById('filter-group-schools').open") == false)
         assertThat(page.locator("#filter-icsea-on")).not().isVisible()
