@@ -9,6 +9,8 @@ import au.homefinder.app.map.NaplanLabel
 import au.homefinder.app.map.OutlinePiece
 import au.homefinder.shared.model.GeoBounds
 import au.homefinder.shared.model.SuburbRatingPoint
+import au.homefinder.app.ui.Aria
+import kotlinx.browser.document
 import kotlinx.browser.window
 
 /** Where the map starts: suburb-level zoom over Newcastle and Lake Macquarie (spec: pilot region). */
@@ -43,6 +45,10 @@ object MapDefaults {
     const val SCALE_MAX_WIDTH_PX: Int = 120
     const val SCALE_UNIT: String = "metric"
     const val SCALE_POSITION: String = "top-left"
+
+    /** The north arrow: MapLibre's own compass button, kept on, with a spoken name. CSS draws it big and clear (ADR 0082). */
+    const val COMPASS_CLASS: String = "maplibregl-ctrl-compass"
+    const val COMPASS_LABEL: String = "Compass: north is up the arrow. Press to turn the map back to north"
 }
 
 /**
@@ -89,7 +95,12 @@ class SuburbMap(
     init {
         // maplibreCss is read so webpack keeps the stylesheet import.
         check(jsTypeOf(maplibreCss).isNotEmpty())
-        map.addControl(MapLibre.NavigationControl(), "top-left")
+        map.addControl(MapLibre.NavigationControl(jsObject("showCompass" to true, "showZoom" to true, "visualizePitch" to false)), "top-left")
+        // The compass button is named here so the spoken name does not depend on MapLibre's language strings.
+        (document.querySelector("." + MapDefaults.COMPASS_CLASS) as? org.w3c.dom.HTMLElement)?.let {
+            it.setAttribute(Aria.LABEL, MapDefaults.COMPASS_LABEL)
+            it.title = MapDefaults.COMPASS_LABEL
+        }
         map.addControl(MapLibre.ScaleControl(jsObject("maxWidth" to MapDefaults.SCALE_MAX_WIDTH_PX, "unit" to MapDefaults.SCALE_UNIT)), MapDefaults.SCALE_POSITION)
         // Sources and layers are added on "load": MapLibre 6 has no tile manager for a source added on "style.load".
         map.on("load") {
