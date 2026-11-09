@@ -117,7 +117,6 @@ fun FlowContent.lotCard(
                         }
                     }
                 }
-                unknownRowsNote(UnknownRows.unknownCount(full, customising), showUnknown)
                 p("disclaimer") { +CARD_DISCLAIMER }
             }
         }

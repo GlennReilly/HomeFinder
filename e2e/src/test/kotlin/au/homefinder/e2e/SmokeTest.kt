@@ -86,10 +86,10 @@ class SmokeTest {
         assertThat(page.locator("#map canvas")).isVisible()
     }
 
-    /** The fake suburb has rows with no data, which the card leaves off; this reveals them (ADR 0058). */
+    /** The fake suburb has rows with no data, which the card leaves off; Customise lists every row, which makes the card long enough to scroll (ADR 0058). */
     private fun showUnknownRows() {
-        page.locator("#card button[data-action=show-unknown]").click()
-        assertThat(page.locator("#card button[data-action=hide-unknown]")).isVisible()
+        page.locator("#card button[data-action=customise]").click()
+        assertThat(page.locator("#card button[data-action=customise-done]")).isVisible()
     }
 
     private fun tapSuburb() {
@@ -197,9 +197,11 @@ class SmokeTest {
     fun `the one Schools row names the zoned schools and lists each with its share of the suburb, ICSEA, own website and SchoolRank link`() {
         openWithKey()
         tapSuburb()
-        val rows = page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Schools"))
+        val rows = page.locator("#card dl.rows .row:has(.zones)")
         assertThat(page.locator("#card dl.rows dt", Page.LocatorOptions().setHasText("Zoned schools"))).hasCount(0)
-        assertThat(page.locator("#card dl.rows dt", Page.LocatorOptions().setHasText(Pattern.compile("^Schools$")))).hasCount(1)
+        // The group heading says "Schools"; the list under it has no second heading.
+        assertThat(page.locator("#card dl.rows dt", Page.LocatorOptions().setHasText(Pattern.compile("^Schools$")))).hasCount(0)
+        assertThat(page.locator("#card summary", Page.LocatorOptions().setHasText(Pattern.compile("^Schools$")))).hasCount(1)
         val row = rows.first()
         assertThat(row).not().containsText("Hamilton South Public School (primary), Newcastle High School (high)")
         assertThat(row).containsText("Hamilton South Public School")
@@ -256,7 +258,7 @@ class SmokeTest {
         assertEquals(-41, app.naplan["2"]?.score)
         assertThat(page.locator("#naplan-edit-2")).hasText("Edit NAPLAN")
         // The row's Source says it is your own figure, without claiming where it came from (ADR 0069).
-        assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Schools")).first()).containsText("Your own figure, typed in.")
+        assertThat(page.locator("#card dl.rows .row:has(.zones)").first()).containsText("Your own figure, typed in.")
 
         // There is no year at all (ADR 0073): no box in the form, none on the card, none sent.
         page.locator("#naplan-edit-2").click()
@@ -731,25 +733,21 @@ class SmokeTest {
     }
 
     @Test
-    fun `rows without data are left off the card, counted in a note, and can be shown and hidden again`() {
+    fun `rows without data are left off the card, with no note, and Customise lists them`() {
         openWithKey()
         tapSuburb()
         assertThat(page.locator("#card .value.unknown")).hasCount(0)
         assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Transport"))).hasCount(0)
-        assertThat(page.locator("#card .unknown-note")).containsText("rows without data are hidden.")
+        assertThat(page.locator("#card .unknown-note")).hasCount(0)
         // The Homely block is at the bottom, after the rows and the note.
         val order = page.locator("#card dl.rows .row dt, #card details.rating-edit summary").allInnerTexts()
         assertTrue(order.indexOf("Price change, 12 months") < order.indexOf("Edit the Homely rating"), "order was $order")
         assertTrue(order.last() == "Edit the Homely rating", "the Homely block is last: $order")
-        page.locator("#card button[data-action=show-unknown]").click()
+        // Customising lists every row, unknown ones included, with their reason.
+        page.locator("#card button[data-action=customise]").click()
         assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Transport"))).hasCount(1)
         assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Transport"))).containsText("Not computed yet")
-        assertThat(page.locator("#card .unknown-note")).containsText("Showing")
-        // Customising lists every row either way, with no note.
-        page.locator("#card button[data-action=customise]").click()
-        assertThat(page.locator("#card .unknown-note")).hasCount(0)
         page.locator("#card button[data-action=customise-done]").click()
-        page.locator("#card button[data-action=hide-unknown]").click()
         assertThat(page.locator("#card .value.unknown")).hasCount(0)
     }
 }

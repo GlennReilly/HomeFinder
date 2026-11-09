@@ -17,21 +17,7 @@ class UnknownRowsTest {
     }
 
     @Test
-    fun `rows you hid yourself are not counted as unknown, and nothing is counted while customising`() {
-        assertEquals(2, UnknownRows.unknownCount(arranged, customising = false))
-        assertEquals(1, UnknownRows.unknownCount(CardLayout(hidden = setOf("B")).arrange(rows), customising = false))
-        assertEquals(0, UnknownRows.unknownCount(arranged, customising = true))
+    fun `rows you hid yourself stay hidden even when unknown ones are shown`() {
         assertEquals(listOf("A", "E"), UnknownRows.visible(CardLayout(hidden = setOf("C")).arrange(rows), customising = false, showUnknown = false).map { it.row.label })
-    }
-
-    @Test
-    fun `the note and the button read in the singular and the plural`() {
-        assertEquals("1 row without data is hidden.", UnknownRows.note(1, showing = false))
-        assertEquals("3 rows without data are hidden.", UnknownRows.note(3, showing = false))
-        assertEquals("Showing 3 rows without data.", UnknownRows.note(3, showing = true))
-        assertEquals("Show it", UnknownRows.toggleText(1, showing = false))
-        assertEquals("Show them", UnknownRows.toggleText(2, showing = false))
-        assertEquals("Hide it again", UnknownRows.toggleText(1, showing = true))
-        assertEquals("Hide them again", UnknownRows.toggleText(2, showing = true))
     }
 }

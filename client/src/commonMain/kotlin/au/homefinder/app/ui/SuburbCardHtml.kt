@@ -41,8 +41,6 @@ object CardActions {
     const val CLOSE: String = "close"
     const val RETRY: String = "retry"
     const val REMOVE_RATING: String = "remove-rating"
-    const val SHOW_UNKNOWN: String = "show-unknown"
-    const val HIDE_UNKNOWN: String = "hide-unknown"
 
     /** The NAPLAN controls (ADR 0068): open a school's form, close it, and clear its figure. */
     const val EDIT_NAPLAN: String = "edit-naplan"
@@ -189,7 +187,6 @@ fun FlowContent.suburbCard(
                         }
                     }
                 }
-                unknownRowsNote(UnknownRows.unknownCount(full, customising), showUnknown)
                 // The last section, after every row and the note about hidden ones (ADR 0060): the score you entered (when there is one), the link to the
                 // suburb's reviews on Homely, and the form to edit the score. It is not a row, so Customise does not move it.
                 section("homely") {
@@ -295,7 +292,8 @@ private fun kotlinx.html.DL.cardRow(
     val row = item.row
     // dt and dd are only defined on the list, so call them through it from inside the row's div.
     div(CardRowClasses.row(item.hidden)) {
-        list.dt { +row.label }
+        // The Schools group's own heading already says "Schools", so the list of schools needs no second one (Customise still names the row).
+        if (showValue || customising) list.dt { +row.label }
         val value = row.value
         if (showValue) list.valueCell(value)
         list.provenanceDetails(row)
