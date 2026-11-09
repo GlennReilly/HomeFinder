@@ -23,10 +23,10 @@ layout. The card's rows are built by pure Kotlin in the `client` module (`Suburb
   suburb report route loads it (one shared `loadSuburbReport`, with your Homely score and NAPLAN figures). The answer is `application/pdf`,
   `Content-Disposition: attachment; filename=homefinder-suburbs-YYYY-MM-DD.pdf`, `Cache-Control: no-store`.
 - **Same rows as the card**: the server now depends on the `client` module's JVM build and reuses `SuburbCardRows`, `CardGroups`, `CardLayout` and the
-  card's provenance line, rather than moving them to `shared`: no code moves, and the PDF cannot drift from the card. Every row with data is listed, under
+  card's provenance line, rather than moving them to `shared`: no code moves, and the PDF cannot drift from the card. Every row is listed (a row with no data says "No data"), under
   the card group titles, in your layout's group and row order; rows you hid on the card are **included**, because the export is meant to be the full
-  details. Each row gets a short source line (source, as-of date, confidence; cut to the confidence when longer than 160 characters). Notes are left out.
-  The Schools row lists each zoned school with its share, ICSEA and your NAPLAN figure, labelled "your own figure, typed in". A Homely score you entered
+  details. Each row gets its note (or, for a row with no data, the reason) and its whole source line (source, as-of date, confidence).
+  The Schools row lists each zoned school with its share, ICSEA and your NAPLAN figure. A Homely score you entered
   closes the suburb as a "Homely" group.
 - **PDF library**: Apache PDFBox 3.0.5 (Apache-2.0, pure Java, in the version catalog). It writes text with the standard Type 1 Helvetica, so no font file
   is embedded and nothing is fetched. Helvetica has only the WinAnsi characters, so `PdfText` replaces the rest: stars and diamonds become "*", "≥" ">=",

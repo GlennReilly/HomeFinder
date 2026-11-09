@@ -60,7 +60,7 @@ class SuburbExportTest {
             listOf(
                 "Homes rented: At most 45%",
                 "Violent crime: At most 10 per 1,000",
-                "Zoned schools' NAPLAN: At least -5${SuburbExport.NAPLAN_OWN_FIGURES}",
+                "Zoned schools' NAPLAN: At least -5",
             ),
             lines,
         )

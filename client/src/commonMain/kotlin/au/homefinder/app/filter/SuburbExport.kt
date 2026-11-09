@@ -18,13 +18,10 @@ sealed interface ExportAvailability {
  */
 object SuburbExport {
     const val BUTTON_TEXT: String = "Export PDF"
-    const val READY_HINT: String = "A PDF with each matching suburb's card details and the filters used."
+    const val READY_HINT: String = "A PDF with every detail of each matching suburb and the filters used."
     const val NO_FILTER_HINT: String = "Switch on a filter to export the matching suburbs as a PDF."
     const val NO_MATCH_HINT: String = "No suburb matches, so there is nothing to export."
     const val UNAUTHORIZED_TEXT: String = "Could not make the PDF: the API key was not accepted."
-
-    /** Added to the NAPLAN filter's line: its figures are the ones you typed in, as the cards say (ADR 0068). */
-    const val NAPLAN_OWN_FIGURES: String = " (your own figures, typed in)"
 
     fun availability(result: FilterResult?): ExportAvailability {
         val passing = result?.passingIds ?: return ExportAvailability.NoFilter
@@ -60,8 +57,7 @@ object SuburbExport {
     fun filterLines(data: FilterData, selection: FilterSelection): List<String> =
         FilterCriterion.entries.mapNotNull { criterion ->
             val limit = selection.limits[criterion] ?: return@mapNotNull null
-            val own = if (criterion == FilterCriterion.NAPLAN) NAPLAN_OWN_FIGURES else ""
-            "${criterion.label.substringBefore(" (")}: ${data.limitPrefix(criterion, limit)}${data.limitText(criterion, limit)}$own"
+            "${criterion.label.substringBefore(" (")}: ${data.limitPrefix(criterion, limit)}${data.limitText(criterion, limit)}"
         }
 
     /** The request for the shaded suburbs, sorted by name, or null when the export is not offered (see [availability]). */

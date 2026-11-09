@@ -121,7 +121,7 @@ object SuburbPdf {
         writer.paragraph(document.suburbs.joinToString(", ") { it.name }, writer.regular, BODY_SIZE)
         writer.gap(SECTION_GAP)
         writer.paragraph(
-            "Each value names its source. NAPLAN figures are your own, typed in. Rows without data are left out. ${document.disclaimer}",
+            "Every row of the card is listed with its note and source; a row with no data says so. ${document.disclaimer}",
             writer.regular, SOURCE_SIZE, grey = true,
         )
     }
@@ -209,6 +209,7 @@ object SuburbPdf {
                     val indent = if (sub.startsWith(" ")) SUB_INDENT else 0f
                     wrap(sub.trim(), regular, SUB_SIZE, valueWidth - indent).forEach { add(Piece(it, regular, SUB_SIZE, grey = false, indent = indent)) }
                 }
+                line.note?.let { note -> wrap(note, regular, SUB_SIZE, valueWidth).forEach { add(Piece(it, regular, SUB_SIZE, grey = true)) } }
                 line.source?.let { source -> wrap("Source: $source", regular, SOURCE_SIZE, valueWidth).forEach { add(Piece(it, regular, SOURCE_SIZE, grey = true)) } }
             }
             return labels to values
