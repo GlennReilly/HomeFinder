@@ -29,6 +29,8 @@ data class SuburbFilterRow(
     val propertyPer1000: Double? = null,
     val name: String = "",
     val zonedIcsea: Int? = null,
+    /** The share-weighted average of your NAPLAN figures for the listed zoned schools (ADR 0074); null when none has one. */
+    val zonedNaplan: Int? = null,
 )
 
 /**
@@ -47,4 +49,8 @@ data class SuburbFilterData(
     val crimeAsOf: LocalDate? = null,
     val zonedLoaded: Boolean = false,
     val zonedAsOf: LocalDate? = null,
+    /** True when NAPLAN figures can be typed and averaged (the catchments and the `school_naplan` table exist), even with none typed yet. */
+    val naplanLoaded: Boolean = false,
+    /** The day the last NAPLAN figure was saved, or null when none has been. */
+    val naplanAsOf: LocalDate? = null,
 )

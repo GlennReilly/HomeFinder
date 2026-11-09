@@ -125,6 +125,11 @@ that is. A criterion whose data has not been loaded says so instead of showing i
 (ICSEA), `load-osm.sh` (beach and parks) `load-census.sh` (homes rented) and `load-seifa.sh` (socio-economic advantage, SEIFA decile) and `load-crime.sh` (recorded crime per 1,000 residents, BOCSAR; needs SEIFA's population for the rate, [ADR 0051](docs/adr/0051-bocsar-crime-rates.md)). Transport comes later; see
 [ADR 0035](docs/adr/0035-suburb-filter-panel.md), [ADR 0046](docs/adr/0046-filters-beach-parks-rented.md), [ADR 0048](docs/adr/0048-right-hand-tabs.md) and [ADR 0052](docs/adr/0052-single-slider-filters.md).
 
+The Schools group also has **Zoned schools' NAPLAN (vs national)**, an "at least" filter on the NAPLAN figures you typed on the cards: a suburb's value is the
+average of the figures for the zoned schools its Suburb Card lists, weighted by how much of the suburb each zone covers, and a suburb with no figure for any of
+them never matches. Until a figure is typed the filter is shown disabled ("No NAPLAN figures typed yet"); its help line says how many suburbs have a figure.
+It is worked out on every request (no data load), and saving or clearing a figure reloads the filter values ([ADR 0074](docs/adr/0074-zoned-naplan-filter.md)).
+
 ### Rows without data
 
 A card row whose value is unknown is left off. A muted line under the rows says how many ("3 rows without data are hidden.") with a **Show them** button that reveals them with their source and reason, and **Hide them again**. The choice lasts until the page is reloaded. Customise still lists every row. See [ADR 0058](docs/adr/0058-hide-unknown-card-rows.md).

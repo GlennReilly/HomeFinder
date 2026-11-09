@@ -7,6 +7,8 @@ import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
 import com.microsoft.playwright.Route
 import com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat
+import au.homefinder.shared.model.NaplanScore
+import kotlinx.datetime.LocalDate
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
@@ -401,6 +403,68 @@ class SmokeTest {
         assertThat(page.locator("#filter-beach-on")).isChecked()
         assertThat(page.locator("#filter-summary")).containsText("of 3 suburbs match")
         page.locator("#filter-beach-on").uncheck()
+    }
+
+    @Test
+    fun `the zoned NAPLAN filter counts suburbs as its slider moves, shows in the tab and the group count, and Reset all puts it back`() {
+        // Hamilton: (0.82 x 30 + 0.76 x -10) / 1.58 = +11; Mayfield: school 2 only, -10; Wickham has no zoned school with a figure.
+        app.naplan["1"] = NaplanScore(30, LocalDate(2026, 11, 7))
+        app.naplan["2"] = NaplanScore(-10, LocalDate(2026, 11, 8))
+        openWithKey()
+        openFilterGroups()
+        assertThat(page.locator("#filter-naplan-on")).isEnabled()
+        assertThat(page.locator("#filter-naplan-limit-value")).hasText("-10")
+        assertThat(page.locator("#filter-naplan-limit")).hasAttribute("min", "-10")
+        assertThat(page.locator("#filter-naplan-limit")).hasAttribute("max", "11")
+        assertThat(page.locator("#filter-naplan-unknown")).containsText("1 of 3 suburbs have no NAPLAN figure for a zoned school")
+        assertThat(page.locator("#filters")).containsText("2 of 3 suburbs have at least one.")
+        page.locator("#filter-naplan-on").check()
+        assertThat(page.locator("#filter-summary")).containsText("2 of 3 suburbs match")
+        assertThat(page.locator("#filter-group-schools-count")).hasText("1 on")
+        page.locator("#filter-naplan-limit").fill("0")
+        assertThat(page.locator("#filter-naplan-limit-value")).hasText("0")
+        assertThat(page.locator("#filter-summary")).containsText("1 of 3 suburbs match")
+        assertThat(page.locator("#tab-filters")).hasText("Filters (1 of 3)")
+        page.locator("#filter-naplan-limit").fill("11")
+        assertThat(page.locator("#filter-naplan-limit-value")).hasText("+11")
+        page.locator("#filter-reset").click()
+        assertThat(page.locator("#filter-naplan-on")).not().isChecked()
+        assertThat(page.locator("#filter-naplan-limit")).hasValue("-10")
+        assertThat(page.locator("#filter-group-schools-count")).hasText("")
+        assertThat(page.locator("#filter-summary")).containsText("Switch on a filter")
+        assertThat(page.locator("#tab-filters")).hasText("Filters")
+    }
+
+    @Test
+    fun `with no NAPLAN figure typed the filter cannot be switched on, and saving one on the card brings its slider in`() {
+        openWithKey()
+        openFilterGroups()
+        assertThat(page.locator("#filter-naplan-limit-value")).hasText("No NAPLAN figures typed yet")
+        assertThat(page.locator("#filter-naplan-on")).isDisabled()
+        assertThat(page.locator("#filter-naplan-limit")).isDisabled()
+        assertThat(page.locator("#filters")).containsText("0 of 3 suburbs have at least one.")
+        // Another filter stays switched on across the reload.
+        page.locator("#filter-icsea-limit").fill("1000")
+        assertThat(page.locator("#filter-summary")).containsText("1 of 3 suburbs match")
+        tapSuburb()
+        page.locator("#card details.card-group[data-group='Schools'] > summary").click()
+        page.locator("#naplan-edit-2").click()
+        page.locator("#naplan-score").fill("-41")
+        page.locator("#naplan-save").click()
+        page.waitForFunction("() => document.getElementById('naplan-form') === null")
+        page.waitForFunction("() => { const on = document.getElementById('filter-naplan-on'); return on !== null && !on.disabled }")
+        page.locator("#tab-filters").click()
+        assertThat(page.locator("#filter-naplan-limit-value")).hasText("-41")
+        assertThat(page.locator("#filters")).containsText("2 of 3 suburbs have at least one.")
+        assertThat(page.locator("#filter-icsea-on")).isChecked()
+        assertThat(page.locator("#filter-icsea-limit")).hasValue("1000")
+        assertThat(page.locator("#filter-summary")).containsText("1 of 3 suburbs match")
+        // Clearing it takes the slider away again.
+        page.locator("#tab-suburb").click()
+        page.locator("#naplan-edit-2").click()
+        page.locator("#naplan-clear").click()
+        page.waitForFunction("() => document.getElementById('filter-naplan-on')?.disabled === true")
+        assertTrue(app.naplan.isEmpty())
     }
 
     @Test

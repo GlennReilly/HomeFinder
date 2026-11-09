@@ -179,8 +179,8 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
     /** Three suburbs: one above 1,000 (and near the beach, with parks, mostly rented), one below, one with no values at all. */
     private fun filters() = SuburbFiltersResponse(
         listOf(
-            SuburbFilterValue("9001", 1051, beachKm = 1.5, parkShare = 0.20, rentedShare = 0.45, seifaDecile = 8, violentPer1000 = 4.2, propertyPer1000 = 12.5, name = "HAMILTON", zonedIcsea = 1030),
-            SuburbFilterValue("9002", 960, beachKm = 12.0, parkShare = 0.05, rentedShare = 0.20, seifaDecile = 3, violentPer1000 = 31.0, propertyPer1000 = 90.0, name = "MAYFIELD", zonedIcsea = 990),
+            SuburbFilterValue("9001", 1051, beachKm = 1.5, parkShare = 0.20, rentedShare = 0.45, seifaDecile = 8, violentPer1000 = 4.2, propertyPer1000 = 12.5, name = "HAMILTON", zonedIcsea = 1030, zonedNaplan = zonedNaplan(HAMILTON_ZONES)),
+            SuburbFilterValue("9002", 960, beachKm = 12.0, parkShare = 0.05, rentedShare = 0.20, seifaDecile = 3, violentPer1000 = 31.0, propertyPer1000 = 90.0, name = "MAYFIELD", zonedIcsea = 990, zonedNaplan = zonedNaplan(MAYFIELD_ZONES)),
             SuburbFilterValue("9003", null, name = "WICKHAM"),
         ),
         "Test schools", LocalDate(2026, 10, 2),
@@ -190,7 +190,21 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
         seifa = FilterProvenance("Test SEIFA", LocalDate(2021, 8, 10)),
         crime = FilterProvenance("Test BOCSAR", LocalDate(2026, 6, 30)),
         zoned = FilterProvenance("Test catchments", LocalDate(2026, 11, 5)),
+        naplan = FilterProvenance("Test NAPLAN figures", naplan.values.mapNotNull { it.updatedOn }.maxOrNull()),
     )
+
+    /** The share-weighted average of the figures typed for a suburb's zoned schools (ADR 0074), as the server works it out; null with none. */
+    private fun zonedNaplan(zones: Map<String, Double>): Int? {
+        val counted = zones.mapNotNull { (code, share) -> naplan[code]?.let { share to it.score } }
+        if (counted.isEmpty()) return null
+        return Math.round(counted.sumOf { it.first * it.second } / counted.sumOf { it.first }).toInt()
+    }
+
+    private companion object {
+        /** The zoned schools of the fake suburbs by school code, with their share: Hamilton's two match its card; Mayfield is all in school 2's zone. */
+        val HAMILTON_ZONES: Map<String, Double> = mapOf("1" to 0.82, "2" to 0.76)
+        val MAYFIELD_ZONES: Map<String, Double> = mapOf("2" to 1.0)
+    }
 
     private fun ratings(): List<SuburbRatingPoint> =
         rating?.let { listOf(SuburbRatingPoint("9001", "HAMILTON", it, -32.92, 151.75)) }.orEmpty()

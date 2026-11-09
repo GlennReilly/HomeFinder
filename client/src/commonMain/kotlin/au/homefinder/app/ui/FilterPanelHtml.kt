@@ -108,8 +108,10 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
             "${criterion.label.substringBefore(" (")}: $details"
         }
     }
+    // A criterion whose limits need explaining (NAPLAN, ADR 0074) adds a note once its data is there, even with no values yet.
+    val notes = FilterCriterion.entries.mapNotNull { criterion -> criterion.detailsNote?.takeIf { data.source(criterion) != null } }
     // One closed "Details" section, as on the cards (ADR 0072).
-    detailsFold(emptyList(), sources, FILTER_SOURCES_CLASS, DetailsFold.SOURCE_FOR_PREFIX)
+    detailsFold(notes, sources, FILTER_SOURCES_CLASS, DetailsFold.SOURCE_FOR_PREFIX)
 }
 
 /** The class that marks the filter panel's Details section. */
@@ -117,6 +119,7 @@ const val FILTER_SOURCES_CLASS: String = "filter-sources"
 
 private fun FlowContent.filterCriterion(data: FilterData, criterion: FilterCriterion) {
     val bounds = data.bounds(criterion)
+    if (data.isEmpty(criterion)) return emptyCriterion(data, criterion)
     if (bounds == null) {
         p("filter-status") { +criterion.notLoadedText }
         return
@@ -138,9 +141,43 @@ private fun FlowContent.filterCriterion(data: FilterData, criterion: FilterCrite
             id = FilterIds.unknown(criterion)
             +filterUnknownText(data, criterion)
         }
-        criterion.help?.let { help -> p("hint") { +help } }
+        data.helpText(criterion)?.let { help -> p("hint") { +help } }
     }
 }
+
+/** The class of a criterion drawn but switched off for want of values (ADR 0074). */
+const val FILTER_EMPTY_CLASS: String = "filter-empty"
+
+/**
+ * A criterion whose data is there but has no values yet (no NAPLAN figure typed, ADR 0074): its checkbox and slider are drawn disabled, so it cannot be
+ * switched on, with [FilterCriterion.emptyText] where the limit would be. The ids are the usual ones, so the page needs no special case.
+ */
+private fun FlowContent.emptyCriterion(data: FilterData, criterion: FilterCriterion) {
+    div("filter $FILTER_EMPTY_CLASS") {
+        label {
+            input(InputType.checkBox) { id = FilterIds.on(criterion); disabled = true }
+            +" ${criterion.label}"
+        }
+        div("range") {
+            label {
+                htmlFor = FilterIds.limit(criterion)
+                span { id = FilterIds.limitPrefix(criterion) }
+                span { id = FilterIds.limitOut(criterion); +data.limitText(criterion, EMPTY_SLIDER_POSITION) }
+            }
+            input(InputType.range) {
+                id = FilterIds.limit(criterion)
+                disabled = true
+                attributes["min"] = EMPTY_SLIDER_POSITION.toLong().toString()
+                attributes["max"] = EMPTY_SLIDER_POSITION.toLong().toString()
+                attributes["value"] = EMPTY_SLIDER_POSITION.toLong().toString()
+            }
+        }
+        data.helpText(criterion)?.let { help -> p("hint") { +help } }
+    }
+}
+
+/** Where a disabled, empty slider sits: it has no range, so one position. */
+private const val EMPTY_SLIDER_POSITION: Double = 0.0
 
 private fun FlowContent.rangeInput(id: String, criterion: FilterCriterion, min: Double, max: Double, value: Double) {
     input(InputType.range) {

@@ -130,4 +130,21 @@ class NaplanFlowTest {
         val bare = MapViewModel(SuburbApi(config) { _, _ -> HttpResult.Response(404, "") }, this)
         assertEquals(NaplanOutcome.Failed(MapViewModel.MESSAGE_NAPLAN_UNAVAILABLE), bare.saveNaplan("1234", "512"))
     }
+
+    @Test
+    fun `a saved or cleared figure bumps the NAPLAN version so the filters reload, and a refused or failed one does not`() = runTest {
+        val world = World()
+        val vm = build(world, this).also { it.onMapTap(-32.92, 151.75, 10.0); advanceUntilIdle() }
+        assertEquals(0, vm.naplanVersion.value)
+        vm.saveNaplan("1234", "-1200")
+        vm.saveNaplan("9999", "12")
+        assertEquals(0, vm.naplanVersion.value, "nothing was saved")
+        vm.saveNaplan("1234", "-41")
+        assertEquals(1, vm.naplanVersion.value)
+        vm.removeNaplan("1234")
+        assertEquals(2, vm.naplanVersion.value)
+        world.writeFails = true
+        vm.saveNaplan("1234", "5")
+        assertEquals(2, vm.naplanVersion.value)
+    }
 }

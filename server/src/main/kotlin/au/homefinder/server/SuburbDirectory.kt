@@ -240,28 +240,49 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
             val zonedDate = if (zoned) singleDate(connection, ZONED_AS_OF_SQL) else null
             val crimeDate = if (crime) singleDate(connection, "SELECT max(as_of) FROM suburb_crime") else null
             val osmDate = if (amenity && hasRows(connection, "osm_import")) singleDate(connection, OSM_AS_OF_SQL) else null
+            // Your NAPLAN figures (ADR 0074): averaged over the zoned schools the card lists, read afresh on every request. An empty table is "none typed yet".
+            val naplan = zoned && tableExists(connection, "school_naplan")
+            val naplanDate = if (naplan) singleDate(connection, NAPLAN_AS_OF_SQL) else null
+            val zonedNaplan = if (naplan) zonedNaplan(connection) else emptyMap()
             connection.prepareStatement(filterValuesSql(schools, amenity, census, seifa, crime, zoned)).use { statement ->
                 statement.executeQuery().use { rows ->
                     fun double(column: String): Double? = rows.getDouble(column).takeIf { !rows.wasNull() }
                     val values = buildList {
                         while (rows.next()) {
                             val icsea = rows.getInt("average_icsea").takeIf { !rows.wasNull() }
-                            add(SuburbFilterRow(rows.getString("suburb_id"), icsea, double("beach_km"), double("park_share"), double("rented_share"), rows.getInt("seifa_decile").takeIf { !rows.wasNull() }, double("violent_per_1000"), double("property_per_1000"), rows.getString("name").orEmpty(), rows.getInt("zoned_icsea").takeIf { !rows.wasNull() }))
+                            add(SuburbFilterRow(rows.getString("suburb_id"), icsea, double("beach_km"), double("park_share"), double("rented_share"), rows.getInt("seifa_decile").takeIf { !rows.wasNull() }, double("violent_per_1000"), double("property_per_1000"), rows.getString("name").orEmpty(), rows.getInt("zoned_icsea").takeIf { !rows.wasNull() }, zonedNaplan[rows.getString("suburb_id")]))
                         }
                     }
-                    SuburbFilterData(values, schoolsDate, schoolsLoaded = schools, osmLoaded = amenity, osmAsOf = osmDate, censusLoaded = census, seifaLoaded = seifa, crimeLoaded = crime, crimeAsOf = crimeDate, zonedLoaded = zoned, zonedAsOf = zonedDate)
+                    SuburbFilterData(values, schoolsDate, schoolsLoaded = schools, osmLoaded = amenity, osmAsOf = osmDate, censusLoaded = census, seifaLoaded = seifa, crimeLoaded = crime, crimeAsOf = crimeDate, zonedLoaded = zoned, zonedAsOf = zonedDate, naplanLoaded = naplan, naplanAsOf = naplanDate)
                 }
             }
         }
     }
 
-    /** True when the table exists and has at least one row. Table names are constants of this class, never input. */
-    private fun hasRows(connection: java.sql.Connection, table: String): Boolean {
-        val exists = connection.prepareStatement("SELECT to_regclass(?) IS NOT NULL").use { statement ->
+    /** Every suburb's zone shares with the NAPLAN figure typed for each zone's school, averaged per suburb (ADR 0074). */
+    private fun zonedNaplan(connection: java.sql.Connection): Map<String, Int> =
+        connection.createStatement().use { statement ->
+            statement.executeQuery(ZONED_NAPLAN_SQL).use { rows ->
+                val bySuburb = HashMap<String, MutableList<ZoneNaplanShare>>()
+                while (rows.next()) {
+                    val score = rows.getInt("score").takeIf { !rows.wasNull() }
+                    bySuburb.getOrPut(rows.getString("suburb_id")) { ArrayList() } +=
+                        ZoneNaplanShare(rows.getInt("school_code"), rows.getString("level"), rows.getDouble("lot_share"), score)
+                }
+                ZonedNaplan.bySuburb(bySuburb)
+            }
+        }
+
+    /** True when the table exists, empty or not. Table names are constants of this class, never input. */
+    private fun tableExists(connection: java.sql.Connection, table: String): Boolean =
+        connection.prepareStatement("SELECT to_regclass(?) IS NOT NULL").use { statement ->
             statement.setString(1, "public.$table")
             statement.executeQuery().use { rows -> rows.next() && rows.getBoolean(1) }
         }
-        if (!exists) return false
+
+    /** True when the table exists and has at least one row. Table names are constants of this class, never input. */
+    private fun hasRows(connection: java.sql.Connection, table: String): Boolean {
+        if (!tableExists(connection, table)) return false
         return connection.createStatement().use { statement ->
             statement.executeQuery("SELECT EXISTS (SELECT 1 FROM $table)").use { rows -> rows.next() && rows.getBoolean(1) }
         }
@@ -357,6 +378,13 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
 
         /** The day the zones were loaded, for the filter's as-of date. */
         const val ZONED_AS_OF_SQL: String = "SELECT max(loaded_on) FROM school_catchment"
+
+        /** The day the last NAPLAN figure was saved, for the NAPLAN filter's as-of date. */
+        const val NAPLAN_AS_OF_SQL: String = "SELECT max(updated_at)::date FROM school_naplan"
+
+        /** Every zone share of every suburb with your NAPLAN figure for its school, if any; which of them count is decided by [ZonedNaplan]. */
+        const val ZONED_NAPLAN_SQL: String =
+            "SELECT c.suburb_id, c.school_code, c.level, c.lot_share, n.score FROM suburb_catchment c LEFT JOIN school_naplan n ON n.school_code = c.school_code"
         private const val PER_THOUSAND = 1000.0
 
         val SCHOOLS_LOADED_SQL = "SELECT count(*) AS n, max(extracted_on) AS latest FROM school"
