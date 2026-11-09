@@ -47,6 +47,8 @@ class PostgisSearchIntegrationTest {
                 statement.execute(address("G3", null, "120", "MAIN", "STREET", "HAMILTON", "2303", 151.7510, -32.9210))
                 statement.execute(address("G4", null, "12", "MAINE", "ROAD", "HAMILTON", "2303", 151.7520, -32.9220))
                 statement.execute(address("G5", null, "5", "O''CONNELL", "AVENUE", "BELMONT", "2280", 151.66, -33.03))
+                statement.execute(address("G7", null, "55", "VICTOR", "AVENUE", "VALENTINE", "2280", 151.62, -33.01))
+                statement.execute(address("G8", "3", "12", "VICTOR", "AVENUE", "VALENTINE", "2280", 151.621, -33.011))
                 statement.execute(address("G6", null, "7", "STOCKTON", "STREET", "HAMILTON NORTH", "2292", 151.71, -32.89))
                 statement.execute("INSERT INTO address_lot (gnaf_pid, lot_id, method) VALUES ('G1', '1001', 'legal_parcel_id'), ('G2', '1001', 'legal_parcel_id')")
             }
@@ -92,6 +94,19 @@ class PostgisSearchIntegrationTest {
         assertTrue("12 MAINE ROAD, HAMILTON NSW 2303" in labels, "a prefix also matches Maine: $labels")
         assertEquals(emptyList(), index.find("12 zzz"))
         assertEquals(emptyList(), index.find("main 99"))
+    }
+
+    @Test
+    fun `a full address with commas, state and postcode finds the address`() = withSearch { index ->
+        val expected = listOf("55 VICTOR AVENUE, VALENTINE NSW 2280")
+        assertEquals(expected, index.find("55 Victor Avenue, Valentine, NSW 2280").map { it.label })
+        assertEquals(expected, index.find("55 victor avenue valentine nsw 2280").map { it.label })
+        assertEquals(expected, index.find("55 victor ave valentine").map { it.label })
+        assertEquals(
+            listOf("3/12 VICTOR AVENUE, VALENTINE NSW 2280"),
+            index.find("3/12 Victor Avenue, Valentine, NSW 2280").map { it.label },
+        )
+        assertEquals(emptyList(), index.find("56 Victor Avenue, Valentine, NSW 2280"))
     }
 
     @Test

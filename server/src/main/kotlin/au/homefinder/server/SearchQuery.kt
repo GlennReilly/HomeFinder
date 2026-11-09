@@ -34,6 +34,13 @@ class SearchQuery private constructor(val words: List<String>) {
             "gr" to "grove", "pwy" to "parkway", "sq" to "square",
         )
 
-        fun parse(text: String): SearchQuery = SearchQuery(WORD.findAll(text.lowercase()).map { it.value }.take(MAX_WORDS).toList())
+        /**
+         * Words that appear in a typed full address ("55 Victor Avenue, Valentine, NSW 2280") but not in the stored address
+         * text, which holds no state. Left in, they would fail the AND match, so they are dropped. The data is NSW only.
+         */
+        val IGNORED_WORDS: Set<String> = setOf("nsw", "australia")
+
+        fun parse(text: String): SearchQuery =
+            SearchQuery(WORD.findAll(text.lowercase()).map { it.value }.filterNot { it in IGNORED_WORDS }.take(MAX_WORDS).toList())
     }
 }
