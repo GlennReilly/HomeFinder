@@ -39,7 +39,7 @@ object ListingLinks {
 
 /** The links as a line "Houses for sale: realestate.com.au · domain.com.au", each opening in a new tab without handing over the page. */
 internal fun FlowContent.listingLinksLine(block: ListingBlock) {
-    p("listing-links") {
+    p(ListingLinkClasses.LINKS) {
         +"${block.heading}: "
         block.links.forEachIndexed { i, link ->
             if (i > 0) +" · "
@@ -51,9 +51,9 @@ internal fun FlowContent.listingLinksLine(block: ListingBlock) {
 /** The same links as a row of their own, used where the price or block row itself is left off (no value) but the links are still good. */
 internal fun DL.listingLinksRow(block: ListingBlock) {
     val list = this
-    div("row row-links") {
+    div(ListingLinkClasses.ROW) {
         list.dt { +block.heading }
-        list.dd("value links") {
+        list.dd(ListingLinkClasses.VALUE) {
             block.links.forEachIndexed { i, link ->
                 if (i > 0) +" · "
                 externalLink(link.url, link.site, ListingLinks.title(block, link))

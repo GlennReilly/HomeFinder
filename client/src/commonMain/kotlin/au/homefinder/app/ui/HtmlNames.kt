@@ -32,6 +32,83 @@ object CardRowClasses {
     fun row(hidden: Boolean): String = if (hidden) ROW_HIDDEN else ROW
 }
 
+/** Classes shared by the Suburb Card, the Lot Card and the forms inside them (styles.css names them). */
+object CardClasses {
+    const val SUBURB_CARD: String = "suburb-card"
+    const val LOT_CARD: String = "$SUBURB_CARD lot-card"
+    const val HEADER: String = "card-header"
+    const val SUBTITLE: String = "subtitle"
+    const val SUBTITLE_PARCEL: String = "$SUBTITLE parcel-scroll"
+    const val PARCEL_LINE: String = "parcel-line"
+    const val CLOSE: String = "close"
+    const val RETRY: String = "retry"
+    const val ERROR: String = "error"
+    const val HINT: String = "hint"
+    const val FIELDS: String = "fields"
+    const val BUTTONS: String = "buttons"
+    const val ROWS: String = "rows"
+    const val ADDRESSES: String = "addresses"
+    const val ZONES: String = "zones"
+    const val HOMELY: String = "homely"
+    const val EXTERNAL: String = "external"
+    const val DISCLAIMER: String = "disclaimer"
+    const val SIDE_EMPTY: String = "side-empty"
+}
+
+/** Classes of the Homely rating form (the `details` that hides it and the form itself). */
+object RatingClasses {
+    const val EDIT: String = "rating-edit"
+    const val FORM: String = "rating-form"
+}
+
+/** Classes of the NAPLAN list on the Lot Card and the NAPLAN score form. */
+object NaplanClasses {
+    const val EDIT: String = "naplan-edit"
+    const val FORM: String = "naplan-form"
+    const val SCHOOLS: String = "naplan-schools"
+}
+
+/** Classes of the filter panel. [FILTER_GROUP_CLASS] and the other top-level constants in FilterPanelHtml.kt stay where they are. */
+object FilterClasses {
+    const val STATUS: String = "filter-status"
+    const val HEAD: String = "filter-head"
+    const val RESET_ALL: String = "reset-all"
+    const val GROUP_COUNT: String = "group-count"
+    const val SUMMARY: String = "filter-summary"
+    const val EXPORT: String = "filter-export"
+    const val EXPORT_STATUS: String = "export-status"
+    const val FILTER: String = "filter"
+    const val RANGE: String = "range"
+}
+
+/** Classes of the realestate.com.au and domain.com.au link lines (ADR 0061). */
+object ListingLinkClasses {
+    const val LINKS: String = "listing-links"
+    const val ROW: String = "${CardRowClasses.ROW} row-links"
+    const val VALUE: String = "${CardRowClasses.VALUE} links"
+}
+
+/** Classes of the search suggestion list and its status line. */
+object SearchClasses {
+    const val SUGGESTIONS: String = "suggestions"
+    const val SUGGESTION: String = "suggestion"
+    const val HIGHLIGHTED: String = "highlighted"
+    const val SUGGESTION_HIGHLIGHTED: String = "$SUGGESTION $HIGHLIGHTED"
+    const val KIND: String = "kind"
+    const val LABEL: String = "label"
+    const val DETAIL: String = "detail"
+    const val STATUS: String = "search-status"
+    const val STATUS_ERROR: String = "$STATUS error"
+}
+
+/** Classes of the Customise bar and its row and group controls. */
+object LayoutClasses {
+    const val BAR: String = "layout-bar"
+    const val BUTTON: String = "layout-button"
+    const val ROW_CONTROLS: String = "row-controls"
+    const val GROUP_CONTROLS: String = "group-controls"
+}
+
 /** A row's value, or [SuburbCardRows.UNKNOWN] in the unknown style when there is none (never a silent blank). Call through the list: `dd` is only defined there. */
 internal fun DL.valueCell(value: String?) {
     dd(if (value == null) CardRowClasses.VALUE_UNKNOWN else CardRowClasses.VALUE) { +(value ?: SuburbCardRows.UNKNOWN) }

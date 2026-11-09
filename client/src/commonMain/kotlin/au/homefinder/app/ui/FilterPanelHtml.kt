@@ -76,13 +76,13 @@ fun filterUnknownText(data: FilterData, criterion: FilterCriterion): String =
 fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
     if (!data.hasAnyData) {
         h2 { +"Filter suburbs" }
-        p("filter-status") { +(if (data.total == 0) FILTER_NO_SCHOOLS_TEXT else FILTER_NO_DATA_TEXT) }
+        p(FilterClasses.STATUS) { +(if (data.total == 0) FILTER_NO_SCHOOLS_TEXT else FILTER_NO_DATA_TEXT) }
         return
     }
     // Reset all switches every filter off and puts each slider back to its starting end; off (disabled) while nothing is on.
-    div("filter-head") {
+    div(FilterClasses.HEAD) {
         h2 { +"Filter suburbs" }
-        button(type = ButtonType.button, classes = "reset-all") {
+        button(type = ButtonType.button, classes = FilterClasses.RESET_ALL) {
             id = FilterIds.RESET
             attributes[Aria.LABEL] = filterResetTitle(initial.selection.isActive)
             attributes["title"] = filterResetTitle(initial.selection.isActive)
@@ -98,12 +98,12 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
             if (group.open) attributes["open"] = "open"
             summary {
                 +group.title
-                span("group-count") { id = group.countId; +FilterGroups.onText(group, on) }
+                span(FilterClasses.GROUP_COUNT) { id = group.countId; +FilterGroups.onText(group, on) }
             }
             group.criteria.forEach { criterion -> filterCriterion(data, criterion) }
         }
     }
-    p("filter-summary") {
+    p(FilterClasses.SUMMARY) {
         id = FilterIds.SUMMARY
         attributes[Aria.ROLE] = "status"
         +filterSummaryText(initial)
@@ -130,18 +130,18 @@ const val EXPORT_BUTTON_CLASS: String = "export-pdf"
  */
 fun FlowContent.exportBlock(result: FilterResult) {
     val availability = SuburbExport.availability(result)
-    div("filter-export") {
+    div(FilterClasses.EXPORT) {
         button(type = ButtonType.button, classes = EXPORT_BUTTON_CLASS) {
             id = FilterIds.EXPORT
             attributes[Aria.DESCRIBED_BY] = FilterIds.EXPORT_HINT
             if (availability !is ExportAvailability.Ready) attributes["disabled"] = "disabled"
             +SuburbExport.buttonText(availability)
         }
-        p("hint") {
+        p(CardClasses.HINT) {
             id = FilterIds.EXPORT_HINT
             +SuburbExport.hintText(availability)
         }
-        p("export-status") {
+        p(FilterClasses.EXPORT_STATUS) {
             id = FilterIds.EXPORT_STATUS
             attributes[Aria.ROLE] = "status"
         }
@@ -155,15 +155,15 @@ private fun FlowContent.filterCriterion(data: FilterData, criterion: FilterCrite
     val bounds = data.bounds(criterion)
     if (data.isEmpty(criterion)) return emptyCriterion(data, criterion)
     if (bounds == null) {
-        p("filter-status") { +criterion.notLoadedText }
+        p(FilterClasses.STATUS) { +criterion.notLoadedText }
         return
     }
-    div("filter") {
+    div(FilterClasses.FILTER) {
         label {
             input(InputType.checkBox) { id = FilterIds.on(criterion) }
             +" ${criterion.label}"
         }
-        div("range") {
+        div(FilterClasses.RANGE) {
             label {
                 htmlFor = FilterIds.limit(criterion)
                 span { id = FilterIds.limitPrefix(criterion); +data.limitPrefix(criterion, criterion.startLimit(bounds)) }
@@ -171,11 +171,11 @@ private fun FlowContent.filterCriterion(data: FilterData, criterion: FilterCrite
             }
             rangeInput(FilterIds.limit(criterion), criterion, bounds.min, bounds.max, criterion.startLimit(bounds))
         }
-        p("hint") {
+        p(CardClasses.HINT) {
             id = FilterIds.unknown(criterion)
             +filterUnknownText(data, criterion)
         }
-        data.helpText(criterion)?.let { help -> p("hint") { +help } }
+        data.helpText(criterion)?.let { help -> p(CardClasses.HINT) { +help } }
     }
 }
 
@@ -187,12 +187,12 @@ const val FILTER_EMPTY_CLASS: String = "filter-empty"
  * switched on, with [FilterCriterion.emptyText] where the limit would be. The ids are the usual ones, so the page needs no special case.
  */
 private fun FlowContent.emptyCriterion(data: FilterData, criterion: FilterCriterion) {
-    div("filter $FILTER_EMPTY_CLASS") {
+    div("${FilterClasses.FILTER} $FILTER_EMPTY_CLASS") {
         label {
             input(InputType.checkBox) { id = FilterIds.on(criterion); disabled = true }
             +" ${criterion.label}"
         }
-        div("range") {
+        div(FilterClasses.RANGE) {
             label {
                 htmlFor = FilterIds.limit(criterion)
                 span { id = FilterIds.limitPrefix(criterion) }
@@ -206,7 +206,7 @@ private fun FlowContent.emptyCriterion(data: FilterData, criterion: FilterCriter
                 attributes["value"] = EMPTY_SLIDER_POSITION.toLong().toString()
             }
         }
-        data.helpText(criterion)?.let { help -> p("hint") { +help } }
+        data.helpText(criterion)?.let { help -> p(CardClasses.HINT) { +help } }
     }
 }
 

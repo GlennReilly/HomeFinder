@@ -51,6 +51,8 @@ import au.homefinder.app.selection.SearchViewModel
 import au.homefinder.app.selection.SuburbCardState
 import au.homefinder.app.ui.Aria
 import au.homefinder.app.ui.CardActions
+import au.homefinder.app.ui.CardClasses
+import au.homefinder.app.ui.SearchClasses
 import au.homefinder.app.ui.RatingForm
 import au.homefinder.app.ui.NaplanIds
 import au.homefinder.app.ui.SearchIds
@@ -479,7 +481,7 @@ private fun wireSearch(scope: CoroutineScope, api: SearchApi, map: MapViewModel,
         else input.removeAttribute(Aria.ACTIVE_DESCENDANT)
         results.innerHTML = ""
         results.append { div { searchSuggestions(state) } }
-        results.querySelector(".highlighted")?.scrollIntoView(js("({block: 'nearest'})"))
+        results.querySelector(".${SearchClasses.HIGHLIGHTED}")?.scrollIntoView(js("({block: 'nearest'})"))
     }.launchIn(scope)
 
     input.addEventListener("input", { search.onQueryChanged(input.value) })
@@ -581,7 +583,7 @@ private fun renderCard(container: HTMLElement, suburb: SuburbCardState, lot: Lot
     when (kind) {
         CardKind.LOT -> container.append { div { lotCard(lot, layouts.lot, layouts.customising, layouts.showUnknown, layouts.groupOpen, layouts.naplanOpen) } }
         CardKind.SUBURB -> container.append { div { suburbCard(suburb, layouts.suburb, layouts.customising, layouts.showUnknown, layouts.groupOpen, layouts.naplanOpen) } }
-        CardKind.NONE -> container.append { p("side-empty") { +SIDE_EMPTY_TEXT } }
+        CardKind.NONE -> container.append { p(CardClasses.SIDE_EMPTY) { +SIDE_EMPTY_TEXT } }
     }
     container.scrollTop = plan.restoreTo.toDouble()
 }

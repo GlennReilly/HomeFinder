@@ -37,10 +37,10 @@ const val ALL_HIDDEN_HINT: String = "Every row is hidden. Choose Customise to sh
 
 /** The line above the rows: the Customise button, or while customising the hint with Done and Reset. */
 fun FlowContent.layoutBar(customising: Boolean, isDefault: Boolean) {
-    div("layout-bar") {
+    div(LayoutClasses.BAR) {
         if (customising) {
-            p("hint") { +CUSTOMISE_HINT }
-            div("buttons") {
+            p(CardClasses.HINT) { +CUSTOMISE_HINT }
+            div(CardClasses.BUTTONS) {
                 actionButton(LayoutActions.DONE, "Done")
                 if (!isDefault) actionButton(LayoutActions.RESET, "Reset to default", "Reset to default: this card's rows go back to the standard layout")
             }
@@ -51,7 +51,7 @@ fun FlowContent.layoutBar(customising: Boolean, isDefault: Boolean) {
 }
 
 private fun DIV.actionButton(action: String, text: String, description: String = text) {
-    button(type = ButtonType.button, classes = "layout-button") {
+    button(type = ButtonType.button, classes = LayoutClasses.BUTTON) {
         attributes[CardActions.ATTRIBUTE] = action
         attributes["title"] = description
         attributes[Aria.LABEL] = description
@@ -62,7 +62,7 @@ private fun DIV.actionButton(action: String, text: String, description: String =
 /** A row's controls while customising: up, down (each off at the ends) and Hide or Show. */
 fun DIV.rowControls(item: ArrangedRow, first: Boolean, last: Boolean) {
     val label = item.row.label
-    div("row-controls") {
+    div(LayoutClasses.ROW_CONTROLS) {
         control(LayoutActions.ROW_UP, "↑", "Move $label up", label, disabled = first)
         control(LayoutActions.ROW_DOWN, "↓", "Move $label down", label, disabled = last)
         control(LayoutActions.ROW_TOGGLE, if (item.hidden) "Show" else "Hide", (if (item.hidden) "Show " else "Hide ") + label, label, disabled = false)
@@ -70,7 +70,7 @@ fun DIV.rowControls(item: ArrangedRow, first: Boolean, last: Boolean) {
 }
 
 private fun DIV.control(action: String, text: String, description: String, label: String, disabled: Boolean) {
-    button(type = ButtonType.button, classes = "layout-button") {
+    button(type = ButtonType.button, classes = LayoutClasses.BUTTON) {
         attributes[CardActions.ATTRIBUTE] = action
         attributes[LayoutActions.ROW_ATTRIBUTE] = label
         attributes[Aria.LABEL] = description
@@ -92,7 +92,7 @@ fun FlowContent.cardGroup(title: String, index: Int, count: Int, customising: Bo
         if (open || customising) attributes["open"] = "open"
         summary { +title }
         if (customising) {
-            div("group-controls") {
+            div(LayoutClasses.GROUP_CONTROLS) {
                 groupControl(LayoutActions.GROUP_UP, "↑", "Move the $title group up", title, disabled = index == 0)
                 groupControl(LayoutActions.GROUP_DOWN, "↓", "Move the $title group down", title, disabled = index == count - 1)
             }
@@ -102,7 +102,7 @@ fun FlowContent.cardGroup(title: String, index: Int, count: Int, customising: Bo
 }
 
 private fun DIV.groupControl(action: String, text: String, description: String, title: String, disabled: Boolean) {
-    button(type = ButtonType.button, classes = "layout-button") {
+    button(type = ButtonType.button, classes = LayoutClasses.BUTTON) {
         attributes[CardActions.ATTRIBUTE] = action
         attributes[LayoutActions.GROUP_ATTRIBUTE] = title
         attributes[Aria.LABEL] = description

@@ -117,16 +117,16 @@ fun FlowContent.suburbCard(
     groupOpen: Map<String, Boolean> = emptyMap(),
     naplanOpen: String? = null,
 ) {
-    section("suburb-card") {
+    section(CardClasses.SUBURB_CARD) {
         attributes[Aria.LABEL] = "Suburb card"
         // The name, postcode, close button and Customise bar stay pinned at the top while the rows scroll (ADR 0053).
         div(STICKY_TOP_CLASS) {
-            div("card-header") {
+            div(CardClasses.HEADER) {
                 div {
                     h2 { +cardTitle(card) }
-                    cardSubtitle(card)?.let { p("subtitle") { +it } }
+                    cardSubtitle(card)?.let { p(CardClasses.SUBTITLE) { +it } }
                 }
-                button(type = ButtonType.button, classes = "close") {
+                button(type = ButtonType.button, classes = CardClasses.CLOSE) {
                     attributes[CardActions.ATTRIBUTE] = CardActions.CLOSE
                     attributes[Aria.LABEL] = "Close suburb card"
                     +CLOSE_BUTTON_TEXT
@@ -147,8 +147,8 @@ fun FlowContent.suburbCard(
             SuburbCardState.Hidden -> Unit
             is SuburbCardState.Loading -> progress { attributes[Aria.LABEL] = "Loading suburb" }
             is SuburbCardState.Failed -> {
-                p("error") { +"Could not load this suburb: ${card.reason}." }
-                button(type = ButtonType.button, classes = "retry") {
+                p(CardClasses.ERROR) { +"Could not load this suburb: ${card.reason}." }
+                button(type = ButtonType.button, classes = CardClasses.RETRY) {
                     attributes[CardActions.ATTRIBUTE] = CardActions.RETRY
                     +"Try again"
                 }
@@ -160,14 +160,14 @@ fun FlowContent.suburbCard(
                 val slots = NaplanSlots(naplanOpen)
                 val full = groups.flatMap { it.rows }
                 val arranged = UnknownRows.visible(full, customising, showUnknown)
-                if (arranged.isEmpty() && UnknownRows.unknownCount(full, customising) == 0) p("hint") { +ALL_HIDDEN_HINT }
+                if (arranged.isEmpty() && UnknownRows.unknownCount(full, customising) == 0) p(CardClasses.HINT) { +ALL_HIDDEN_HINT }
                 groups.forEachIndexed { gi, group ->
                     val drawn = UnknownRows.visible(group.rows, customising, showUnknown)
                     // Walk every row, so the for-sale links under a price row are not lost when that row has no value and is left off (ADR 0061).
                     val linkOnly = group.rows.any { r -> drawn.none { it.row.label == r.row.label } && !r.hidden && ListingLinks.forSuburbRow(r.row.label, card.report) != null }
                     if (drawn.isEmpty() && !linkOnly) return@forEachIndexed
                     cardGroup(group.title, gi, groups.size, customising, open = groupOpen[group.title] ?: group.openByDefault) {
-                        dl("rows") {
+                        dl(CardClasses.ROWS) {
                             group.rows.forEach { item ->
                                 val i = drawn.indexOfFirst { it.row.label == item.row.label }
                                 val links = ListingLinks.forSuburbRow(item.row.label, card.report)
@@ -189,16 +189,16 @@ fun FlowContent.suburbCard(
                 }
                 // The last section, after every row and the note about hidden ones (ADR 0060): the score you entered (when there is one), the link to the
                 // suburb's reviews on Homely, and the form to edit the score. It is not a row, so Customise does not move it.
-                section("homely") {
-                    SuburbCardRows.homely(card.report)?.let { homely -> dl("rows") { cardRow(ArrangedRow(homely, hidden = false), 0, 1, customising = false) } }
+                section(CardClasses.HOMELY) {
+                    SuburbCardRows.homely(card.report)?.let { homely -> dl(CardClasses.ROWS) { cardRow(ArrangedRow(homely, hidden = false), 0, 1, customising = false) } }
                     ExternalLinks.homelySuburbProfile(card.report.name, card.report.postcode)?.let { url ->
-                        p("external") {
+                        p(CardClasses.EXTERNAL) {
                             externalLink(url, HOMELY_LINK_TEXT)
                         }
                     }
                     ratingForm(card.report)
                 }
-                p("disclaimer") { +CARD_DISCLAIMER }
+                p(CardClasses.DISCLAIMER) { +CARD_DISCLAIMER }
             }
         }
     }
@@ -224,7 +224,7 @@ object RatingForm {
  */
 fun FlowContent.ratingForm(report: SuburbReport) {
     val current = report.homelyRating.value
-    details("rating-edit") {
+    details(RatingClasses.EDIT) {
         summary { +RATING_EDIT_TEXT }
         ratingFormBody(current)
     }
@@ -232,11 +232,11 @@ fun FlowContent.ratingForm(report: SuburbReport) {
 
 /** The form itself, drawn inside [ratingForm]'s closed `details`, so the boxes exist but stay out of the way until you ask for them. */
 private fun DETAILS.ratingFormBody(current: au.homefinder.shared.model.HomelyRating?) {
-    form(classes = "rating-form") {
+    form(classes = RatingClasses.FORM) {
         attributes[RatingForm.ATTRIBUTE] = "true"
         attributes[Aria.LABEL] = "Your Homely rating"
-        p("hint") { +"Copy the score from the suburb's Homely page by hand. Nothing is fetched from Homely." }
-        div("fields") {
+        p(CardClasses.HINT) { +"Copy the score from the suburb's Homely page by hand. Nothing is fetched from Homely." }
+        div(CardClasses.FIELDS) {
             label {
                 +"Stars (0 to 5)"
                 input(type = InputType.text, name = RatingForm.STARS_FIELD) {
@@ -255,7 +255,7 @@ private fun DETAILS.ratingFormBody(current: au.homefinder.shared.model.HomelyRat
                 }
             }
         }
-        div("buttons") {
+        div(CardClasses.BUTTONS) {
             button(type = ButtonType.submit) { +"Save" }
             if (current != null) {
                 button(type = ButtonType.button) {
@@ -272,7 +272,7 @@ private fun DETAILS.ratingFormBody(current: au.homefinder.shared.model.HomelyRat
 private fun zoneList(report: SuburbReport, slots: NaplanSlots): (kotlinx.html.DIV.() -> Unit)? {
     val zones = report.zonedSchools.value?.zones?.takeIf { it.isNotEmpty() } ?: return null
     return {
-        ul("zones") {
+        ul(CardClasses.ZONES) {
             zones.forEach { zone ->
                 li { schoolEntry(zone.school, SuburbCardRows.zoneDetail(zone), slots) }
             }
