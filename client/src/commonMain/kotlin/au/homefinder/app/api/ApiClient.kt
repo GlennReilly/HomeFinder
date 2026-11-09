@@ -2,6 +2,8 @@ package au.homefinder.app.api
 
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.timeout
+import io.ktor.client.statement.readRawBytes
 import io.ktor.client.request.get
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
@@ -33,6 +35,7 @@ fun interface HttpGet {
 enum class HttpVerb(val wire: String) {
     PUT("PUT"),
     DELETE("DELETE"),
+    POST("POST"),
 }
 
 /** One request that changes something ([HttpVerb]); the body, if any, is JSON. Separate from Ktor so it can be tested without a network. */
@@ -40,8 +43,38 @@ fun interface HttpWrite {
     suspend fun send(method: HttpVerb, url: String, headers: Map<String, String>, body: String?): HttpResult
 }
 
-/** The Ktor client behind both kinds of request. */
-class KtorHttp(private val client: HttpClient = defaultClient()) : HttpGet, HttpWrite {
+/** The answer to a request whose body is a file (the PDF export, ADR 0080), not text. */
+sealed interface BytesResult {
+    /** [bytes] is the body as sent: the file on success, or the JSON error otherwise. */
+    class Response(val status: Int, val bytes: ByteArray) : BytesResult
+
+    data class Failure(val message: String) : BytesResult
+}
+
+/** One request whose answer is a file; the body, if any, is JSON. [timeoutMillis] replaces the usual timeout, for answers that take a while to make. */
+fun interface HttpBytes {
+    suspend fun fetch(method: HttpVerb, url: String, headers: Map<String, String>, body: String?, timeoutMillis: Long): BytesResult
+}
+
+/** The Ktor client behind every kind of request. */
+class KtorHttp(private val client: HttpClient = defaultClient()) : HttpGet, HttpWrite, HttpBytes {
+    override suspend fun fetch(method: HttpVerb, url: String, headers: Map<String, String>, body: String?, timeoutMillis: Long): BytesResult = try {
+        val response = client.request(url) {
+            this.method = HttpMethod.parse(method.wire)
+            timeout { requestTimeoutMillis = timeoutMillis }
+            headers.forEach { (name, value) -> header(name, value) }
+            if (body != null) {
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+        }
+        BytesResult.Response(response.status.value, response.readRawBytes())
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (@Suppress("TooGenericExceptionCaught") failure: Exception) {
+        BytesResult.Failure(failure.message ?: failure::class.simpleName.orEmpty())
+    }
+
     override suspend fun send(method: HttpVerb, url: String, headers: Map<String, String>, body: String?): HttpResult = try {
         val response = client.request(url) {
             this.method = HttpMethod.parse(method.wire)

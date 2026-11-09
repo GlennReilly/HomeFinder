@@ -133,9 +133,20 @@ The same value shows on the map from zoom 11 to 15 as a dark-blue diamond and th
 below its name or its Homely score label. Clicking it opens the suburb's card on its Schools group; the card's "Jump to Schools" button does the same from the
 keyboard. Saving or clearing a figure redraws the labels ([ADR 0076](docs/adr/0076-naplan-map-label.md)).
 
+### Exporting the shaded suburbs as a PDF
+
+Under the match count on the **Filters** tab, **Export PDF (N suburbs)** downloads a PDF of every suburb the switched-on filters shade
+([ADR 0080](docs/adr/0080-pdf-export-of-filtered-suburbs.md)). It is off (dashed) until at least one filter is on and 1 to 200 suburbs match; the line under it
+says why. The PDF opens with the date, the filters used (as the panel words them) and the disclaimer, then
+gives each suburb its full details (the first follows the cover on the same page, the rest start new pages) with its full Suburb Card details: every row, under the card's groups, in your Customise order (rows you
+hid with Customise are left out, and a row with no data says "No data" and why), each with its note and whole source line, then the Homely score you entered. The server
+makes the PDF (`POST /v1/export/suburbs.pdf` with `{"suburbIds": [...], "filters": [...], "cardLayout": "..."}` and the `X-API-Key` header; 400 for an
+empty list or more than 200 suburbs) with Apache PDFBox and the standard Helvetica font, so nothing is fetched from other sites. A status line under the
+button says "Making the PDF…", then the file name it downloaded, or why it failed.
+
 ### Rows without data
 
-A card row whose value is unknown is left off. A muted line under the rows says how many ("3 rows without data are hidden.") with a **Show them** button that reveals them with their source and reason, and **Hide them again**. The choice lasts until the page is reloaded. Customise still lists every row. See [ADR 0058](docs/adr/0058-hide-unknown-card-rows.md).
+A card row whose value is unknown is left off both cards, with no note; **Customise** still lists every row with its source and reason. See [ADR 0058](docs/adr/0058-hide-unknown-card-rows.md) and the later removal of the note.
 
 ### Listing links
 

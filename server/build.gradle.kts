@@ -23,6 +23,9 @@ tasks.named<JavaExec>("run") {
 
 dependencies {
     implementation(project(":shared"))
+    // The Suburb Card's row building (labels, formats, groups, your layout) is reused for the PDF export, so the PDF says what the card says (ADR 0080).
+    implementation(project(":client"))
+    implementation(libs.pdfbox)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
     implementation(libs.ktor.server.content.negotiation)

@@ -38,6 +38,17 @@ object ApiContract {
 
     fun schoolNaplanPath(encodedSchoolCode: String): String = "$SCHOOLS_PATH/$encodedSchoolCode/naplan"
 
+    /**
+     * The PDF export of the suburbs the filters shade (ADR 0080): `POST /v1/export/suburbs.pdf` with a [au.homefinder.shared.model.SuburbExportRequest]
+     * body answers with the PDF as a download. At most [MAX_EXPORT_SUBURBS] suburbs per export.
+     */
+    const val SUBURBS_EXPORT_PDF_PATH: String = "/v1/export/suburbs.pdf"
+    const val MAX_EXPORT_SUBURBS: Int = 200
+    const val PDF_CONTENT_TYPE: String = "application/pdf"
+
+    /** The download's file name: "homefinder-suburbs-2026-11-09.pdf" for [isoDate] "2026-11-09". */
+    fun exportFileName(isoDate: String): String = "homefinder-suburbs-$isoDate.pdf"
+
     /** Search: `GET /v1/search?q=` suggests suburbs and addresses for what has been typed so far (ADR 0026). */
     const val SEARCH_PATH: String = "/v1/search"
     const val QUERY_PARAMETER: String = "q"
@@ -116,5 +127,7 @@ data class ApiError(val error: String) {
         const val INVALID_QUERY: String = "invalid_query"
         const val INVALID_RATING: String = "invalid_rating"
         const val INVALID_NAPLAN: String = "invalid_naplan"
+        const val INVALID_EXPORT: String = "invalid_export"
+        const val TOO_MANY_SUBURBS: String = "too_many_suburbs"
     }
 }

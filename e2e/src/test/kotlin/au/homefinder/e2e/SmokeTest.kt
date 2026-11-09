@@ -405,6 +405,31 @@ class SmokeTest {
     }
 
     @Test
+    fun `the PDF export is off until a filter shades suburbs, then downloads them sorted by name with the filters used`() {
+        app.lastExport = null
+        openWithKey()
+        openFilterGroups()
+        val button = page.locator("#filter-export")
+        assertThat(button).isDisabled()
+        assertThat(button).hasText("Export PDF")
+        assertThat(page.locator("#filter-export-hint")).containsText("Switch on a filter")
+        page.locator("#filter-zoned-on").check()
+        assertThat(button).isEnabled()
+        assertThat(button).hasText("Export PDF (2 suburbs)")
+        val download = page.waitForDownload { button.click() }
+        assertTrue(Regex("""homefinder-suburbs-\d{4}-\d{2}-\d{2}\.pdf""").matches(download.suggestedFilename()), download.suggestedFilename())
+        assertThat(page.locator("#filter-export-status")).containsText("Downloaded homefinder-suburbs-")
+        val sent = requireNotNull(app.lastExport)
+        assertEquals(listOf("9001", "9002"), sent.suburbIds)
+        assertEquals(listOf("Zoned schools' ICSEA: At least 990"), sent.filters)
+        // At 1,030 only HAMILTON passes; Reset all switches the filters off and the export with them.
+        page.locator("#filter-zoned-limit").fill("1030")
+        assertThat(button).hasText("Export PDF (1 suburb)")
+        page.locator("#filter-reset").click()
+        assertThat(button).isDisabled()
+    }
+
+    @Test
     fun `the filter panel counts matching suburbs as the zoned-school ICSEA slider moves`() {
         openWithKey()
         openFilterGroups()
@@ -630,7 +655,8 @@ class SmokeTest {
         ) as Number
         assertTrue(offset.toDouble() in -1.0..1.0, "the pinned block should sit at the top of the card, not $offset px away")
         assertThat(page.locator("#card .card-sticky h2")).isInViewport()
-        assertThat(page.locator("#card .card-sticky button[data-action=customise]")).isInViewport()
+        // In Customise mode (which the test is in to make the card long) the bar holds Done, not Customise.
+        assertThat(page.locator("#card .card-sticky button[data-action=customise-done]")).isInViewport()
         assertThat(page.locator("#card .card-sticky button.close")).isInViewport()
     }
 
@@ -657,7 +683,7 @@ class SmokeTest {
         openWithKey()
         tapSuburb()
         showUnknownRows()
-        page.evaluate("document.getElementById('card').scrollTop = 400")
+        page.evaluate("document.getElementById('card').scrollTop = 200")
         val before = cardScrollTop()
         assertTrue(before > 100, "the card should be long enough to scroll ($before)")
         page.locator("#search-input").fill("may")

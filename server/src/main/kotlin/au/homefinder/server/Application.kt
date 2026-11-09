@@ -74,6 +74,7 @@ fun Application.module(
             ratingRoutes(ratings, suburbs, today)
             naplanRoutes(naplan)
             filterRoutes(suburbs)
+            exportRoutes(suburbs, ratings, naplan, today)
             suburbRoutes(suburbs, ratings, naplan)
             lotRoutes(lots, naplan)
             searchRoutes(search)
