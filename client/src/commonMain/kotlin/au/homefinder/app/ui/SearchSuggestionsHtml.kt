@@ -42,27 +42,27 @@ fun suggestionDetail(result: SearchResult): String? = when (result.kind) {
 fun FlowContent.searchSuggestions(state: SearchUiState) {
     if (!state.isOpen || state.status is SearchStatus.Idle) return
     if (state.results.isNotEmpty()) {
-        ul("suggestions") {
+        ul(SearchClasses.SUGGESTIONS) {
             id = SearchIds.LIST
             attributes[Aria.ROLE] = "listbox"
             attributes[Aria.LABEL] = "Search suggestions"
             state.results.forEachIndexed { index, result ->
-                li(if (index == state.highlighted) "suggestion highlighted" else "suggestion") {
+                li(if (index == state.highlighted) SearchClasses.SUGGESTION_HIGHLIGHTED else SearchClasses.SUGGESTION) {
                     id = SearchIds.option(index)
                     attributes[Aria.ROLE] = "option"
                     attributes[Aria.SELECTED] = (index == state.highlighted).toString()
                     attributes[SearchIds.INDEX_ATTRIBUTE] = index.toString()
-                    span("kind") { +kindLabel(result.kind) }
-                    span("label") { +result.label }
-                    suggestionDetail(result)?.let { span("detail") { +it } }
+                    span(SearchClasses.KIND) { +kindLabel(result.kind) }
+                    span(SearchClasses.LABEL) { +result.label }
+                    suggestionDetail(result)?.let { span(SearchClasses.DETAIL) { +it } }
                 }
             }
         }
     }
     when (val status = state.status) {
-        SearchStatus.Searching -> div("search-status") { attributes[Aria.ROLE] = "status"; +"Searching…" }
-        SearchStatus.NoMatches -> div("search-status") { attributes[Aria.ROLE] = "status"; +"No matches" }
-        is SearchStatus.Failed -> div("search-status error") { attributes[Aria.ROLE] = "alert"; +status.message }
+        SearchStatus.Searching -> div(SearchClasses.STATUS) { attributes[Aria.ROLE] = "status"; +"Searching…" }
+        SearchStatus.NoMatches -> div(SearchClasses.STATUS) { attributes[Aria.ROLE] = "status"; +"No matches" }
+        is SearchStatus.Failed -> div(SearchClasses.STATUS_ERROR) { attributes[Aria.ROLE] = "alert"; +status.message }
         else -> Unit
     }
 }

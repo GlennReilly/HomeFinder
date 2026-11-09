@@ -59,21 +59,21 @@ fun FlowContent.lotCard(
     groupOpen: Map<String, Boolean> = emptyMap(),
     naplanOpen: String? = null,
 ) {
-    section("suburb-card lot-card") {
+    section(CardClasses.LOT_CARD) {
         attributes[Aria.LABEL] = "Lot card"
         div(STICKY_TOP_CLASS) {
-            div("card-header") {
+            div(CardClasses.HEADER) {
                 div {
                     h2 { +lotCardTitle(card) }
                     // On a narrow window the parcel part is hidden here and shown again below the pinned block, so it scrolls away (ADR 0067).
                     val place = lotCardPlace(card)
                     val parcel = lotCardParcel(card)
-                    if (place != null || parcel != null) p("subtitle") {
+                    if (place != null || parcel != null) p(CardClasses.SUBTITLE) {
                         if (place != null) +place
-                        if (parcel != null) span("parcel-line") { +(if (place != null) " · $parcel" else parcel) }
+                        if (parcel != null) span(CardClasses.PARCEL_LINE) { +(if (place != null) " · $parcel" else parcel) }
                     }
                 }
-                button(type = ButtonType.button, classes = "close") {
+                button(type = ButtonType.button, classes = CardClasses.CLOSE) {
                     attributes[CardActions.ATTRIBUTE] = CardActions.CLOSE
                     attributes[Aria.LABEL] = "Close lot card"
                     +CLOSE_BUTTON_TEXT
@@ -81,33 +81,33 @@ fun FlowContent.lotCard(
             }
             if (card is LotCardState.Loaded) layoutBar(customising, layout.isDefault)
         }
-        lotCardParcel(card)?.let { p("subtitle parcel-scroll") { +it } }
+        lotCardParcel(card)?.let { p(CardClasses.SUBTITLE_PARCEL) { +it } }
         when (card) {
             LotCardState.Hidden -> Unit
             is LotCardState.Loading -> progress { attributes[Aria.LABEL] = "Loading lot" }
             is LotCardState.Failed -> {
-                p("error") { +"Could not load this lot: ${card.reason}." }
-                button(type = ButtonType.button, classes = "retry") {
+                p(CardClasses.ERROR) { +"Could not load this lot: ${card.reason}." }
+                button(type = ButtonType.button, classes = CardClasses.RETRY) {
                     attributes[CardActions.ATTRIBUTE] = CardActions.RETRY
                     +"Try again"
                 }
             }
             is LotCardState.Loaded -> {
                 if (card.report.addresses.size > 1) {
-                    ul("addresses") { card.report.addresses.forEach { li { +it } } }
+                    ul(CardClasses.ADDRESSES) { card.report.addresses.forEach { li { +it } } }
                 }
                 val groups = layout.arrangeGroups(LotCardRows.of(card.report), CardGroups.LOT)
                 val slots = NaplanSlots(naplanOpen)
                 val full = groups.flatMap { it.rows }
                 val arranged = UnknownRows.visible(full, customising, showUnknown)
-                if (arranged.isEmpty() && UnknownRows.unknownCount(full, customising) == 0) p("hint") { +ALL_HIDDEN_HINT }
+                if (arranged.isEmpty() && UnknownRows.unknownCount(full, customising) == 0) p(CardClasses.HINT) { +ALL_HIDDEN_HINT }
                 groups.forEachIndexed { gi, group ->
                     val drawn = UnknownRows.visible(group.rows, customising, showUnknown)
                     // Every row is walked so the address links survive a block size row that has no value and is left off (ADR 0061).
                     val linkOnly = group.rows.any { r -> drawn.none { it.row.label == r.row.label } && !r.hidden && ListingLinks.forLotRow(r.row.label, card.report) != null }
                     if (drawn.isEmpty() && !linkOnly) return@forEachIndexed
                     cardGroup(group.title, gi, groups.size, customising, open = groupOpen[group.title] ?: group.openByDefault) {
-                        dl("rows") {
+                        dl(CardClasses.ROWS) {
                             group.rows.forEach { item ->
                                 val i = drawn.indexOfFirst { it.row.label == item.row.label }
                                 val links = ListingLinks.forLotRow(item.row.label, card.report)
@@ -117,7 +117,7 @@ fun FlowContent.lotCard(
                         }
                     }
                 }
-                p("disclaimer") { +CARD_DISCLAIMER }
+                p(CardClasses.DISCLAIMER) { +CARD_DISCLAIMER }
             }
         }
     }
@@ -142,7 +142,7 @@ private fun DL.lotRow(
         links?.let { listingLinksLine(it) }
         // Under the Schools row: each school it names, line by line: name and zone or distance, ICSEA, NAPLAN, links (ADR 0068, 0071).
         if (schools.isNotEmpty()) {
-            ul("naplan-schools") {
+            ul(NaplanClasses.SCHOOLS) {
                 schools.forEach { (school, detail) -> li { schoolEntry(school, detail, slots) } }
             }
         }

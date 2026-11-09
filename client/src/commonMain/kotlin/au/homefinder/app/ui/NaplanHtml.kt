@@ -85,7 +85,7 @@ fun FlowContent.schoolEntry(school: School, detail: String?, slots: NaplanSlots)
     SuburbCardRows.icseaText(school)?.let { div(SchoolLines.ICSEA_LINE) { +it } }
     div(SchoolLines.NAPLAN_LINE) {
         school.naplan?.let { span(SchoolLines.NAPLAN_FIGURE) { +NaplanRules.label(it) } }
-        button(type = ButtonType.button, classes = "naplan-edit") {
+        button(type = ButtonType.button, classes = NaplanClasses.EDIT) {
             id = editId
             attributes[CardActions.ATTRIBUTE] = CardActions.EDIT_NAPLAN
             attributes[NaplanIds.CODE_ATTRIBUTE] = school.id
@@ -108,14 +108,14 @@ fun FlowContent.schoolEntry(school: School, detail: String?, slots: NaplanSlots)
 /** The form (the difference only: no year, no note, ADR 0071, 0073), filled with the figure already kept, if any. Clear is offered only when there is something to clear. The message line starts empty. */
 private fun FlowContent.naplanForm(school: School) {
     val current = school.naplan
-    form(classes = "naplan-form") {
+    form(classes = NaplanClasses.FORM) {
         id = NaplanIds.FORM
         attributes[NaplanIds.CODE_ATTRIBUTE] = school.id
         attributes[Aria.LABEL] = "NAPLAN for ${school.name}"
-        p("hint") {
+        p(CardClasses.HINT) {
             +"Your own figure: how far the school is above (+) or below (-) the national average."
         }
-        div("fields") {
+        div(CardClasses.FIELDS) {
             label {
                 +NAPLAN_SCORE_LABEL
                 // Plain text, not type=number or a numeric keypad: phone number pads often have no minus key, and a number box drops "+25"
@@ -129,7 +129,7 @@ private fun FlowContent.naplanForm(school: School) {
                 }
             }
         }
-        div("buttons") {
+        div(CardClasses.BUTTONS) {
             button(type = ButtonType.submit) {
                 id = NaplanIds.SAVE
                 +"Save"
