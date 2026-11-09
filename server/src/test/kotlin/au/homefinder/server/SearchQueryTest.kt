@@ -14,6 +14,22 @@ class SearchQueryTest {
     }
 
     @Test
+    fun `a typed full address drops the state because the address text holds none`() {
+        val expected = listOf("55", "victor", "avenue", "valentine", "2280")
+        assertEquals(expected, SearchQuery.parse("55 Victor Avenue, Valentine, NSW 2280").words)
+        assertEquals(expected, SearchQuery.parse("55 victor avenue valentine nsw 2280").words)
+        assertEquals(expected, SearchQuery.parse("55 Victor Avenue Valentine 2280").words)
+        assertEquals(listOf("3", "12", "main", "st", "hamilton", "2303"), SearchQuery.parse("3/12 Main St, Hamilton, NSW 2303, Australia").words)
+        assertEquals("55 victor avenue valentine 2280", SearchQuery.parse("55 Victor Avenue, Valentine, NSW 2280").normalised)
+        assertTrue(SearchQuery.parse("NSW").isEmpty)
+    }
+
+    @Test
+    fun `the state does not use up one of the eight words`() {
+        assertEquals(8, SearchQuery.parse("3/12 Very Long Street Name Here, Hamilton North, NSW 2292").words.size)
+    }
+
+    @Test
     fun `punctuation only or empty text has no words`() {
         assertTrue(SearchQuery.parse("").isEmpty)
         assertTrue(SearchQuery.parse("  ' ; -- ").isEmpty)
