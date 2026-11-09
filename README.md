@@ -112,7 +112,9 @@ does not name where you read it; NAPLAN results are published by ACARA on [My Sc
 
 In the app: under each school in the Suburb Card's Schools and Zoned schools rows, or the Lot Card's Schools row, press "Add NAPLAN", type
 the difference from the national average (for example -41) and the year, and press Save. The card then shows "NAPLAN -41 vs national (2025)" beside the school's ICSEA;
-"Edit NAPLAN" changes or clears it. See [ADR 0068](docs/adr/0068-manual-naplan-score-per-school.md) and
+"Edit NAPLAN" changes or clears it. Beside it, a "SchoolRank" link opens the school's [SchoolRank](https://schoolrank.com.au/) page in a new
+tab; its address is built from the school's name and address locality and never fetched or checked, so it may not exist
+([ADR 0070](docs/adr/0070-schoolrank-link-out.md)). See [ADR 0068](docs/adr/0068-manual-naplan-score-per-school.md) and
 [ADR 0069](docs/adr/0069-naplan-difference-from-national-average.md).
 ### Filtering suburbs
 

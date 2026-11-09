@@ -103,4 +103,32 @@ class ExternalLinksTest {
         assertEquals(emptyList(), ExternalLinks.addressLinks("12 MAIN STREET", "HAMILTON", null))
         assertEquals(emptyList(), ExternalLinks.addressLinks("12 MAIN STREET", "", "2303"))
     }
+
+    @Test
+    fun `the user's example school becomes its SchoolRank address, with the locality from its address not its name`() {
+        assertEquals("elermore-vale-public-school-wallsend-nsw", ExternalLinks.schoolRankSlug("Elermore Vale Public School", "Wallsend"))
+        assertEquals("https://schoolrank.com.au/school/elermore-vale-public-school-wallsend-nsw", ExternalLinks.schoolRankPage("Elermore Vale Public School", "Wallsend "))
+    }
+
+    @Test
+    fun `the SchoolRank slug drops apostrophes, turns punctuation and spaces into single hyphens and trims them`() {
+        assertEquals("oconnell-public-school-oconnell-nsw", ExternalLinks.schoolRankSlug("O'Connell Public School", "O\u2019Connell"))
+        assertEquals("st-marys-north-public-school-st-marys-nsw", ExternalLinks.schoolRankSlug("St Marys North Public School", "St. Marys"))
+        assertEquals("hastings-secondary-college-port-macquarie-campus-port-macquarie-nsw", ExternalLinks.schoolRankSlug("Hastings Secondary College, Port Macquarie Campus", "Port Macquarie"))
+        assertEquals("hamilton-public-school-annex-hamilton-nsw", ExternalLinks.schoolRankSlug("  Hamilton  Public School (Annex) ", "-Hamilton-"))
+        assertEquals("arts-and-crafts-school-newcastle-nsw", ExternalLinks.schoolRankSlug("Arts & Crafts School", "Newcastle"), "& as 'and' is a guess")
+    }
+
+    @Test
+    fun `no SchoolRank address without a locality or a usable name`() {
+        assertNull(ExternalLinks.schoolRankSlug("Hamilton Public School", null))
+        assertNull(ExternalLinks.schoolRankSlug("Hamilton Public School", "  "))
+        assertNull(ExternalLinks.schoolRankPage("---", "Hamilton"))
+    }
+
+    @Test
+    fun `a school name cannot add anything to the SchoolRank address`() {
+        val page = ExternalLinks.schoolRankPage("x\"/../<script>?a=1#b", "Hamilton")!!
+        assertEquals("https://schoolrank.com.au/school/x-script-a-1-b-hamilton-nsw", page)
+    }
 }

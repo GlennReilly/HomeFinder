@@ -43,11 +43,7 @@ internal fun FlowContent.listingLinksLine(block: ListingBlock) {
         +"${block.heading}: "
         block.links.forEachIndexed { i, link ->
             if (i > 0) +" · "
-            a(href = link.url, target = "_blank", classes = "external-link") {
-                attributes["rel"] = "noopener noreferrer"
-                attributes["title"] = ListingLinks.title(block, link)
-                +link.site
-            }
+            externalLink(link.url, link.site, ListingLinks.title(block, link))
         }
     }
 }
@@ -60,11 +56,7 @@ internal fun DL.listingLinksRow(block: ListingBlock) {
         list.dd("value links") {
             block.links.forEachIndexed { i, link ->
                 if (i > 0) +" · "
-                a(href = link.url, target = "_blank", classes = "external-link") {
-                    attributes["rel"] = "noopener noreferrer"
-                    attributes["title"] = ListingLinks.title(block, link)
-                    +link.site
-                }
+                externalLink(link.url, link.site, ListingLinks.title(block, link))
             }
         }
     }

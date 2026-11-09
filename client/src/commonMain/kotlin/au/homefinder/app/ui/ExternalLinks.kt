@@ -82,6 +82,32 @@ object ExternalLinks {
     /** My School's home page: a deep link to one school cannot be built from the data, so the card points here and names the schools. */
     const val MY_SCHOOL_HOME: String = "https://www.myschool.edu.au/"
 
+    /** SchoolRank's site and the path its school pages sit under (ADR 0070). */
+    const val SCHOOLRANK_SITE: String = "SchoolRank"
+    const val SCHOOLRANK_HOST: String = "schoolrank.com.au"
+    private const val SCHOOLRANK_SCHOOL_PATH = "/school/"
+    private const val HTTPS = "https://"
+    private const val AMPERSAND = "&"
+    private const val AND_WORD = " and "
+    private const val SLUG_SEPARATOR = "-"
+
+    /**
+     * The slug SchoolRank appears to use for a school (ADR 0070): the school's name, then the locality in its address (the Department's "Town_suburb",
+     * which is not always the suburb in the name), then "nsw", all lowercase, apostrophes dropped, any other run of punctuation or spaces one hyphen.
+     * "Elermore Vale Public School" in Wallsend is `elermore-vale-public-school-wallsend-nsw`, the one example we have. "&" is written "and", which is a
+     * guess. Null when the name or the locality gives no words, so no link is drawn.
+     */
+    fun schoolRankSlug(schoolName: String, locality: String?): String? {
+        val name = words(schoolName.replace(AMPERSAND, AND_WORD))
+        val place = words(locality.orEmpty().replace(AMPERSAND, AND_WORD))
+        if (name.isEmpty() || place.isEmpty()) return null
+        return (name + place + STATE).joinToString(SLUG_SEPARATOR)
+    }
+
+    /** The school's page on SchoolRank as we build it; never fetched or checked, so it may not exist (ADR 0070). */
+    fun schoolRankPage(schoolName: String, locality: String?): String? =
+        schoolRankSlug(schoolName, locality)?.let { HTTPS + SCHOOLRANK_HOST + SCHOOLRANK_SCHOOL_PATH + it }
+
     /** An address that may be linked from a card: http or https only, so a link can never run a script. Null otherwise. */
     fun webAddress(address: String?): String? = address?.trim()?.takeIf { it.startsWith("https://") || it.startsWith("http://") }
 

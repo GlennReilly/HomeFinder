@@ -288,10 +288,10 @@ class PostgisSuburbDirectoryIntegrationTest {
         execute("TRUNCATE school")
         assertNull(directory.schools("9001"), "nothing loaded yet")
         execute(
-            "INSERT INTO school (school_code, name, level_label, icsea, enrolment_fte, website, geom, suburb_id, extracted_on) VALUES " +
-                "(1, 'Hamilton Public School', 'Primary School', 1051, 412.5, 'https://h.example', ST_SetSRID(ST_MakePoint(151.745, -32.915), 7844), '9001', '2026-10-02'), " +
-                "(2, 'Alpha Small School', 'Primary School', NULL, NULL, NULL, ST_SetSRID(ST_MakePoint(151.746, -32.916), 7844), '9001', '2026-10-02'), " +
-                "(3, 'Belmont Public School', 'Primary School', 960, 188, NULL, ST_SetSRID(ST_MakePoint(151.665, -33.035), 7844), '9002', '2026-10-02')",
+            "INSERT INTO school (school_code, name, level_label, icsea, enrolment_fte, website, geom, suburb_id, extracted_on, town_suburb) VALUES " +
+                "(1, 'Hamilton Public School', 'Primary School', 1051, 412.5, 'https://h.example', ST_SetSRID(ST_MakePoint(151.745, -32.915), 7844), '9001', '2026-10-02', 'Hamilton'), " +
+                "(2, 'Alpha Small School', 'Primary School', NULL, NULL, NULL, ST_SetSRID(ST_MakePoint(151.746, -32.916), 7844), '9001', '2026-10-02', NULL), " +
+                "(3, 'Belmont Public School', 'Primary School', 960, 188, NULL, ST_SetSRID(ST_MakePoint(151.665, -33.035), 7844), '9002', '2026-10-02', 'Belmont')",
         )
         val hamilton = assertNotNull(directory.schools("9001"))
         assertEquals(listOf("Alpha Small School", "Hamilton Public School"), hamilton.schools.map { it.name }, "by name")
@@ -299,6 +299,8 @@ class PostgisSuburbDirectoryIntegrationTest {
         assertEquals(1051, big.icsea)
         assertEquals(412, big.enrolments)
         assertEquals("https://h.example", big.website)
+        assertEquals("Hamilton", big.townSuburb, "the address locality, for the SchoolRank link (ADR 0070)")
+        assertNull(hamilton.schools.first().townSuburb)
         assertNull(hamilton.schools.first().icsea)
         assertNull(hamilton.schools.first().enrolments)
         assertEquals(kotlinx.datetime.LocalDate(2026, 10, 2), hamilton.extractedOn)

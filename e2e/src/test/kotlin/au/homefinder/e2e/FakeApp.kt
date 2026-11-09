@@ -81,7 +81,7 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
         blockSize = Attribute(BlockSizeSpread(560.0, 300.0, 900.0), Confidence.HIGH, "Test cadastre"), floodShare = unknown(), brickShare = unknown(), beach = unknown(),
         schools = Attribute(
             SuburbSchools(
-                listOf(School("1", "Hamilton Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, 1051, 412, "https://hamilton-p.schools.nsw.gov.au", "Primary School", naplan["1"])),
+                listOf(School("1", "Hamilton Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, 1051, 412, "https://hamilton-p.schools.nsw.gov.au", "Primary School", naplan["1"], locality = "Hamilton")),
                 emptyList(), 1051,
             ),
             Confidence.HIGH, "Test schools", LocalDate(2026, 10, 2), "ICSEA is not a quality score",

@@ -10,6 +10,8 @@ data class SchoolRecord(
     val icsea: Int?,
     val enrolments: Int?,
     val website: String?,
+    /** The Department's "Town_suburb": the locality in the school's address, which can differ from the suburb it sits in. */
+    val townSuburb: String? = null,
 )
 
 /** The public schools inside one suburb and the date the school data was extracted; [schools] may be empty. */

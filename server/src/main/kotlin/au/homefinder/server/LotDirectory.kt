@@ -106,7 +106,7 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
                             val enrolment = rows.getDouble("enrolment_fte").takeIf { !rows.wasNull() }?.roundToInt()
                             val icsea = rows.getInt("icsea").takeIf { !rows.wasNull() }
                             candidates += NearSchool(
-                                SchoolRecord(rows.getInt("school_code"), rows.getString("name"), rows.getString("level_label"), icsea, enrolment, rows.getString("website")),
+                                SchoolRecord(rows.getInt("school_code"), rows.getString("name"), rows.getString("level_label"), icsea, enrolment, rows.getString("website"), rows.getString("town_suburb")),
                                 rows.getDouble("distance_m"),
                             )
                         }
@@ -137,6 +137,7 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
                                 SchoolRecord(
                                     code, it, rows.getString("level_label"), rows.getInt("icsea").takeIf { !rows.wasNull() },
                                     rows.getDouble("enrolment_fte").takeIf { !rows.wasNull() }?.roundToInt(), rows.getString("website"),
+                                    rows.getString("town_suburb"),
                                 )
                             }
                             zones += CatchmentZone(
@@ -276,7 +277,7 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
 
         /** The candidates are the schools nearest the lot by the index (degrees), then put in true metre order from the lot's edge. */
         val SCHOOLS_NEAR_SQL = """
-            SELECT (SELECT max(extracted_on) FROM school) AS extracted_on, s.school_code, s.name, s.level_label, s.icsea, s.enrolment_fte, s.website,
+            SELECT (SELECT max(extracted_on) FROM school) AS extracted_on, s.school_code, s.name, s.level_label, s.icsea, s.enrolment_fte, s.website, s.town_suburb,
                    ST_Distance(ST_Transform(s.geom, 7856), l.geom_mga) AS distance_m
             FROM lot l
             CROSS JOIN LATERAL (SELECT * FROM school ORDER BY geom <-> ST_PointOnSurface(l.geom) LIMIT $SCHOOL_CANDIDATES) s
@@ -290,7 +291,7 @@ class PostgisLotDirectory(private val dataSource: DataSource) : LotDirectory {
          */
         val CATCHMENTS_SQL = """
             SELECT (SELECT EXISTS (SELECT 1 FROM school_catchment)) AS loaded, c.school_code, c.level, c.catch_type, c.name, c.years, c.enrolment_year,
-                   s.name AS school_name, s.level_label, s.icsea, s.enrolment_fte, s.website
+                   s.name AS school_name, s.level_label, s.icsea, s.enrolment_fte, s.website, s.town_suburb
             FROM (SELECT 1) one
             LEFT JOIN lot l ON l.lot_id = ?
             LEFT JOIN school_catchment c ON ST_Covers(c.geom, ST_PointOnSurface(l.geom))

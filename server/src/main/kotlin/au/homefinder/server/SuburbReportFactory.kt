@@ -249,7 +249,7 @@ object SuburbReportFactory {
         val schools = data.schools.map {
             School(
                 id = it.code.toString(), name = it.name, sector = SchoolSector.PUBLIC, level = schoolLevel(it.levelLabel), icsea = it.icsea,
-                enrolments = it.enrolments, website = safeWebsite(it.website), levelLabel = it.levelLabel,
+                enrolments = it.enrolments, website = safeWebsite(it.website), levelLabel = it.levelLabel, locality = it.townSuburb,
             )
         }
         val average = schools.mapNotNull { it.icsea }.takeIf { it.isNotEmpty() }?.let { it.average().roundToInt() }

@@ -231,7 +231,7 @@ class LotReportFactoryTest {
         val both = LotCatchmentData(
             listOf(
                 zone(20, "HIGH", "HIGH_COED", "Newcastle HS", "7-12", SchoolRecord(20, "Newcastle High School", "Secondary School", 1030, 800, "https://nh.schools.nsw.gov.au")),
-                zone(10, "PRIMARY", "PRIMARY", "Hamilton PS", "K-6", SchoolRecord(10, "Hamilton Public School", "Primary School", 1051, 412, null)),
+                zone(10, "PRIMARY", "PRIMARY", "Hamilton PS", "K-6", SchoolRecord(10, "Hamilton Public School", "Primary School", 1051, 412, null, "Hamilton")),
             ),
         )
         val report = LotReportFactory.build(lot, schools = nearby, catchments = both)
@@ -240,6 +240,7 @@ class LotReportFactoryTest {
         assertEquals(listOf("primary, K-6", "high, 7-12"), info.zoned.map { it.levelLabel })
         assertEquals(listOf(SchoolLevel.PRIMARY, SchoolLevel.HIGH), info.zoned.map { it.level })
         assertEquals(1051, info.zoned.first().icsea)
+        assertEquals(listOf("Hamilton", null), info.zoned.map { it.locality }, "the address locality where the school data has one")
         assertTrue(info.zonesChecked)
         assertTrue(info.nearest.isEmpty(), "both levels have a zone, so no nearest school is added")
         assertEquals(LotReportFactory.CATCHMENTS_SOURCE, report.schools.source)

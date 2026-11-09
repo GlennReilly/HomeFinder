@@ -71,3 +71,4 @@
 | [0067](0067-narrow-bottom-sheet-layout.md) | Narrow windows: half-height sheet, compact lot header, fold chevron | Accepted |
 | [0068](0068-manual-naplan-score-per-school.md) | A NAPLAN score per school, typed in by hand from My School | Partly superseded by 0069 |
 | [0069](0069-naplan-difference-from-national-average.md) | The NAPLAN figure is a signed difference from the national average | Accepted |
+| [0070](0070-schoolrank-link-out.md) | A SchoolRank link beside each school (link out only) | Accepted |

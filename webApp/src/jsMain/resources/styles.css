@@ -142,7 +142,9 @@ progress { width: 100%; margin: 16px 0; }
 
 /* The NAPLAN score you type in for a school (ADR 0068): a link-styled button under the school with a full 44 px tap box. Its top part overlaps
    the plain text line above (not visible space, as for Details/Source); its bottom part stays clear of the next school's link. */
-.naplan-line { display: flex; margin-top: calc(-1 * var(--summary-overlap)); }
+.naplan-line { display: flex; align-items: center; column-gap: 16px; flex-wrap: wrap; margin-top: calc(-1 * var(--summary-overlap)); }
+/* The SchoolRank link beside the NAPLAN button (ADR 0070): the same full-height tap box as the listing links. */
+.naplan-line .external-link { display: inline-flex; align-items: center; min-height: var(--tap-target); font-size: .85rem; }
 .naplan-edit { font: inherit; font-size: .85rem; padding: 0; min-height: var(--tap-target); border: 0; background: none; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .naplan-edit:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
 .naplan-form { padding: 4px 0 8px; }
