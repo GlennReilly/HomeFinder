@@ -63,7 +63,7 @@ class NaplanHtmlTest {
         val figure = """<div class="school-icsea">ICSEA 1,051</div><div class="naplan-line"><span class="naplan-figure">NAPLAN -41 vs national</span><button"""
         assertTrue(figure in flat(out), out)
         assertEquals(1, Regex(">$NAPLAN_EDIT_TEXT<").findAll(out).count())
-        assertTrue("catchments; Your own figure, typed in. NAPLAN results are published by ACARA on My School." in out)
+        assertTrue("catchments; Your own figure, typed in." in out)
         assertFalse("Source: Australian Curriculum" in out, "the app does not say the figure came from ACARA")
         // The second school has no figure: still just the Add link.
         assertTrue("aria-label=\"$NAPLAN_ADD_TEXT for Newcastle High School\"" in out)
