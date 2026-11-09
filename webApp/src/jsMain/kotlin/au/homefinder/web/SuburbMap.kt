@@ -5,6 +5,7 @@ import au.homefinder.shared.api.TileContract
 import au.homefinder.app.map.Box
 import au.homefinder.app.map.LabelPlacement
 import au.homefinder.app.map.LonLat
+import au.homefinder.app.map.NaplanLabel
 import au.homefinder.app.map.OutlinePiece
 import au.homefinder.shared.model.GeoBounds
 import au.homefinder.shared.model.SuburbRatingPoint
@@ -45,10 +46,15 @@ object MapDefaults {
 }
 
 /**
- * The MapLibre map: OpenFreeMap base, our suburb tiles above it, taps reported to [onTap]. Tile requests to our own
- * API carry the key as a header (ADR 0019), so the key never appears in a URL.
+ * The MapLibre map: OpenFreeMap base, our suburb tiles above it, taps reported to [onTap]. A click on a suburb's NAPLAN label goes to [onNaplanLabel]
+ * instead, never to both (ADR 0076). Tile requests to our own API carry the key as a header (ADR 0019), so the key never appears in a URL.
  */
-class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude: Double, longitude: Double, zoom: Double) -> Unit) {
+class SuburbMap(
+    apiOrigin: String,
+    apiKey: String,
+    private val onTap: (latitude: Double, longitude: Double, zoom: Double) -> Unit,
+    private val onNaplanLabel: (suburbId: String) -> Unit = {},
+) {
     private val map = createMap(apiOrigin, apiKey).also {
         // A hook for the browser tests, which read the map's layers and filters; nothing in the app uses it.
         window.asDynamic()[MapDefaults.TEST_HOOK] = it
@@ -78,6 +84,7 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
     private var pendingLot: String? = null
     private var pendingRatings: List<SuburbRatingPoint> = emptyList()
     private var pendingPassing: Set<String>? = null
+    private var pendingNaplan: List<NaplanLabel> = emptyList()
 
     init {
         // maplibreCss is read so webpack keeps the stylesheet import.
@@ -93,17 +100,39 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
             map.addLayer(RatingStyle.farNameLayer())
             map.addSource(RatingStyle.SOURCE_ID, RatingStyle.emptySource())
             map.addLayer(RatingStyle.layer())
+            map.addImage(NaplanStyle.ICON_ID, NaplanStyle.icon(), NaplanStyle.iconOptions())
+            map.addSource(NaplanStyle.SOURCE_ID, NaplanStyle.emptySource())
+            map.addLayer(NaplanStyle.layer())
             loaded = true
             showSelection(pendingSuburb, pendingLot)
             showRatings(pendingRatings)
             showFilter(pendingPassing)
         }
-        // Settled (after a move, or once tiles have loaded): put each rated suburb's label where it can be seen.
-        map.on("moveend") { placeRatingLabels() }
-        map.on("idle") { placeRatingLabels() }
+        // Settled (after a move, or once tiles have loaded): put each score label where it can be seen.
+        map.on("moveend") { placeLabels() }
+        map.on("idle") { placeLabels() }
         map.on("click") { event ->
-            onTap(event.lngLat.lat as Double, event.lngLat.lng as Double, map.getZoom())
+            val label = naplanLabelAt(event.point)
+            if (label != null) onNaplanLabel(label) else onTap(event.lngLat.lat as Double, event.lngLat.lng as Double, map.getZoom())
         }
+        // A NAPLAN label can be clicked, so the pointer says so.
+        map.on("mouseenter", NaplanStyle.LAYER_ID) { map.getCanvas().style.cursor = NaplanStyle.POINTER_CURSOR }
+        map.on("mouseleave", NaplanStyle.LAYER_ID) { map.getCanvas().style.cursor = "" }
+    }
+
+    /** The suburb whose NAPLAN label is under a click, or null. The layer stops at the lot zoom, so in lot mode there is none to hit. */
+    private fun naplanLabelAt(point: dynamic): String? {
+        if (!loaded || map.getLayer(NaplanStyle.LAYER_ID) == undefined) return null
+        val features = map.queryRenderedFeatures(point, jsObject("layers" to arrayOf(NaplanStyle.LAYER_ID)))
+        if ((features.length as Int) == 0) return null
+        return features[0].properties[NaplanStyle.SUBURB_ID] as? String
+    }
+
+    /** Shows each suburb's NAPLAN average (ADR 0076); an empty list removes them all. */
+    fun showNaplan(labels: List<NaplanLabel>) {
+        pendingNaplan = labels
+        naplanKey = null
+        placeLabels()
     }
 
     /** Highlights the selected suburb (tint and outline, nothing else changes) or lot (the other lots are dimmed); null clears each. */
@@ -132,31 +161,44 @@ class SuburbMap(apiOrigin: String, apiKey: String, private val onTap: (latitude:
         if (!loaded) return
         map.setFilter(SuburbStyle.NAME_LAYER, RatingStyle.unratedFilter(points))
         map.setFilter(RatingStyle.FAR_NAME_LAYER, RatingStyle.ratedFilter(points))
-        placeRatingLabels()
+        naplanKey = null
+        placeLabels()
     }
 
     private var placedKey: String? = null
+    private var naplanKey: String? = null
 
     /**
-     * One label per rated suburb, inside the suburb and in view: its usual label point while that is on screen, otherwise
+     * One label per rated suburb, and one per suburb with a NAPLAN average, inside the suburb and in view: its usual label point while that is on screen, otherwise
      * the visible part of the suburb nearest the middle of the view (au.homefinder.app.map.LabelPlacement). Does nothing
      * when nothing changed since the last time, so the repeated "idle" events cost almost nothing.
      */
-    private fun placeRatingLabels() {
+    private fun placeLabels() {
         if (!loaded) return
         val bounds = map.getBounds()
         val view = Box(bounds.getWest() as Double, bounds.getSouth() as Double, bounds.getEast() as Double, bounds.getNorth() as Double)
-        val labels = pendingRatings.mapNotNull { point ->
+        // A suburb with both labels is placed once, so its NAPLAN label sits exactly under its Homely label.
+        val placed = HashMap<String, LonLat?>()
+        fun place(suburbId: String, preferred: LonLat): LonLat? = placed.getOrPut(suburbId) {
             val features = map.querySourceFeatures(
                 SuburbStyle.SOURCE_ID,
-                jsObject("sourceLayer" to TileContract.SUBURB_POLYGON_LAYER, "filter" to jsArray("==", jsArray("get", "suburb_id"), point.suburbId)),
+                jsObject("sourceLayer" to TileContract.SUBURB_POLYGON_LAYER, "filter" to jsArray("==", jsArray("get", "suburb_id"), suburbId)),
             )
-            LabelPlacement.place(outlinePieces(features), view, LonLat(point.longitude, point.latitude))?.let { point to it }
+            LabelPlacement.place(outlinePieces(features), view, preferred)
         }
+        val labels = pendingRatings.mapNotNull { point -> place(point.suburbId, LonLat(point.longitude, point.latitude))?.let { point to it } }
         val key = labels.joinToString("|") { (point, at) -> "${point.suburbId}:${point.rating.stars}:${at.longitude}:${at.latitude}" }
-        if (key == placedKey) return
-        placedKey = key
-        map.getSource(RatingStyle.SOURCE_ID).setData(RatingStyle.featureCollection(labels))
+        if (key != placedKey) {
+            placedKey = key
+            map.getSource(RatingStyle.SOURCE_ID).setData(RatingStyle.featureCollection(labels))
+        }
+        val rated = pendingRatings.mapTo(HashSet()) { it.suburbId }
+        val naplan = pendingNaplan.mapNotNull { label -> place(label.suburbId, label.at)?.let { Triple(label, it, label.suburbId in rated) } }
+        val naplanText = naplan.joinToString("|") { (label, at, isRated) -> "${label.suburbId}:${label.text}:$isRated:${at.longitude}:${at.latitude}" }
+        if (naplanText != naplanKey) {
+            naplanKey = naplanText
+            map.getSource(NaplanStyle.SOURCE_ID).setData(NaplanStyle.featureCollection(naplan))
+        }
     }
 
     /** The outline pieces in the GeoJSON features MapLibre returns (a polygon, or each polygon of a multipolygon). */

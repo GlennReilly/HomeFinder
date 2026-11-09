@@ -23,6 +23,11 @@ import au.homefinder.app.selection.CardKind
 import au.homefinder.app.selection.CardGroups
 import au.homefinder.app.selection.CardLayout
 import au.homefinder.app.selection.CardScroll
+import au.homefinder.app.selection.SchoolsJump
+import au.homefinder.app.map.NaplanLabels
+import au.homefinder.app.ui.CARD_GROUP_CLASS
+import au.homefinder.app.ui.STICKY_TOP_CLASS
+import au.homefinder.shared.model.SuburbFiltersResponse
 import au.homefinder.app.selection.CardRow
 import au.homefinder.app.selection.LotCardRows
 import au.homefinder.app.selection.LotCardState
@@ -118,7 +123,9 @@ private fun start(apiKey: String) {
     val http = KtorHttp()
     val ratingApi = RatingApi(config, http, http)
     val viewModel = MapViewModel(SuburbApi(config, http), scope, LotApi(config, http), ratingApi, NaplanApi(config, http))
-    val map = SuburbMap(origin, apiKey, viewModel::onMapTap)
+    // A click on a NAPLAN label is wired once the card is (below); until then it does nothing.
+    var onNaplanLabel: (String) -> Unit = {}
+    val map = SuburbMap(origin, apiKey, viewModel::onMapTap) { suburbId -> onNaplanLabel(suburbId) }
 
     val card = element("card")
     val notice = element("notice")
@@ -132,7 +139,11 @@ private fun start(apiKey: String) {
 
     wireSearch(scope, SearchApi(config, http), viewModel, map, ::showNotice)
     val side = wireSidePanel()
-    val reloadFilters = wireFilters(scope, FilterApi(config, http), map) { result -> side.setFiltersLabel(filtersTabLabel(result)) }
+    // The filter values also carry each suburb's NAPLAN average, so every load (and the reload after a NAPLAN save or clear) redraws the map's NAPLAN labels (ADR 0076).
+    val reloadFilters = wireFilters(
+        scope, FilterApi(config, http), map,
+        onValues = { values -> map.showNaplan(NaplanLabels.from(values.suburbs)) },
+    ) { result -> side.setFiltersLabel(filtersTabLabel(result)) }
     // A saved or cleared NAPLAN figure changes the NAPLAN filter's values (ADR 0074), so the panel reloads them, keeping what is switched on.
     viewModel.naplanVersion.drop(1).onEach { reloadFilters() }.launchIn(scope)
 
@@ -147,6 +158,29 @@ private fun start(apiKey: String) {
     val scrollMemory = CardScrollMemory()
     fun redraw() = renderCard(card, latest.card, latest.lotCard, layouts, scrollMemory)
 
+    // A click on a suburb's NAPLAN label, or the card's "Jump to Schools" button (ADR 0076): show the suburb's card, open its Schools group and scroll
+    // it in under the pinned header, once the card has loaded.
+    var jump = SchoolsJump()
+    fun scrollToSchools() {
+        if (!layouts.customising) layouts.groupOpen.putAll(SchoolsJump.opened(layouts.groupOpen))
+        redraw()
+        val group = card.querySelector("details.$CARD_GROUP_CLASS[${LayoutActions.GROUP_ATTRIBUTE}='${SchoolsJump.GROUP_TITLE}']") as? HTMLElement ?: return
+        val sticky = card.querySelector(".$STICKY_TOP_CLASS") as? HTMLElement
+        val offset = group.getBoundingClientRect().top - card.getBoundingClientRect().top
+        card.scrollTop = SchoolsJump.scrollTop(card.scrollTop.toInt(), offset.toInt(), sticky?.getBoundingClientRect()?.height?.toInt() ?: 0).toDouble()
+        scrollMemory.value = scrollMemory.value.copy(remembered = card.scrollTop.toInt())
+        // Keyboard users land on the group's heading; focusing must not scroll again.
+        group.querySelector("summary")?.asDynamic()?.focus(jsObject("preventScroll" to true))
+    }
+    fun jumpToSchools(suburbId: String) {
+        side.cardOpened()
+        viewModel.select(suburbId)
+        val decision = jump.requested(suburbId, latest)
+        jump = decision.next
+        if (decision.go) scrollToSchools()
+    }
+    onNaplanLabel = ::jumpToSchools
+
     viewModel.state.onEach { state ->
         map.showSelection(state.selectedSuburbId, state.selectedLotId)
         if (state.selectedSuburbId != latest.selectedSuburbId || state.selectedLotId != latest.selectedLotId) {
@@ -157,6 +191,9 @@ private fun start(apiKey: String) {
         latest = state
         side.setFirstTabLabel(firstTabLabel(lotShown = state.lotCard !is LotCardState.Hidden))
         redraw()
+        val decision = jump.onState(state)
+        jump = decision.next
+        if (decision.go) scrollToSchools()
         if (state.notice != shownNotice) {
             val text = state.notice
             shownNotice = text
@@ -170,6 +207,7 @@ private fun start(apiKey: String) {
         when (val action = target?.getAttribute(CardActions.ATTRIBUTE)) {
             CardActions.CLOSE -> viewModel.clear()
             CardActions.RETRY -> viewModel.retry()
+            CardActions.JUMP_SCHOOLS -> latest.selectedSuburbId?.let(::jumpToSchools)
             CardActions.SHOW_UNKNOWN -> { layouts.showUnknown = true; redraw() }
             CardActions.HIDE_UNKNOWN -> { layouts.showUnknown = false; redraw() }
             CardActions.REMOVE_RATING -> scope.launch { announce(viewModel.removeRating(), card, ::showNotice) }
@@ -264,7 +302,13 @@ private fun wireSidePanel(): SidePanel = SidePanel(narrow = window.innerWidth < 
  * The filter panel (ADR 0035): the values load once, the inputs are drawn once, and moving a slider (one per criterion, ADR 0052) only recomputes which
  * suburbs pass and restyles the map, with no request.
  */
-private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap, onResult: (FilterResult?) -> Unit): () -> Unit {
+private fun wireFilters(
+    scope: CoroutineScope,
+    api: FilterApi,
+    view: SuburbMap,
+    onValues: (SuburbFiltersResponse) -> Unit,
+    onResult: (FilterResult?) -> Unit,
+): () -> Unit {
     val panel = element("filters")
     var data: FilterData? = null
     var loading: Job? = null
@@ -327,6 +371,7 @@ private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap, 
         loading = scope.launch {
             when (val result = api.values()) {
                 is LookupResult.Found -> {
+                    onValues(result.value)
                     val loaded = FilterData.from(result.value)
                     val kept = if (first) FilterSelection() else selection().carriedTo(loaded)
                     val openGroups = panel.querySelectorAll("details.$FILTER_GROUP_CLASS[open]").asList().mapNotNull { (it as? HTMLElement)?.id }

@@ -105,6 +105,9 @@ data class SuburbFilterValue(
      * zone covers, in points from the national average (ADR 0074); null when none of those schools has a figure.
      */
     val zonedNaplan: Int? = null,
+    /** Where the suburb's name is drawn on the map (GDA2020 degrees), the point the ratings list uses too; the map puts the NAPLAN label there (ADR 0076). */
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 /** Where one criterion's figures come from, as on the card. */

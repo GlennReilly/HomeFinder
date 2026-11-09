@@ -111,7 +111,8 @@ enum class FilterCriterion(
         detailsNote = "Zoned schools' NAPLAN: your own figures, typed in one school at a time on the cards (a school's difference from the national " +
             "average in points, from My School). A suburb's value is the average over the zoned schools the Suburb Card lists that have a figure, " +
             "weighted by how much of the suburb each zone covers; schools you have not typed a figure for are left out, so a value may rest on one " +
-            "school. A suburb with no figure for any zoned school has no value and never matches while this filter is on.",
+            "school. A suburb with no figure for any zoned school has no value and never matches while this filter is on. " +
+            "On the map, from zoom 12, a dark-blue diamond with this value (for example +12) sits under each suburb that has one; click it to open that suburb's Schools.",
         signed = true,
     );
 

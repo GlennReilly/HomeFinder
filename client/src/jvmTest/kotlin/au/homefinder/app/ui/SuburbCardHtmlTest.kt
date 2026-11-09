@@ -289,6 +289,26 @@ class SuburbCardHtmlTest {
     }
 
     @Test
+    fun `with a Schools group on the card a Jump to Schools button sits in the pinned block, labelled, and not while customising`() {
+        val card = SuburbCardState.Loaded(withSchools(school("Hamilton Public School", 1051, null)))
+        val out = html(card, showUnknown = false)
+        val pinned = out.substringAfter("""class="$STICKY_TOP_CLASS"""").substringBefore("""<dl class="rows">""")
+        assertTrue("""data-action="${CardActions.JUMP_SCHOOLS}"""" in pinned, pinned)
+        assertTrue(""">$JUMP_TO_SCHOOLS_TEXT</button>""" in pinned)
+        assertTrue("""aria-label="$JUMP_TO_SCHOOLS_LABEL"""" in pinned)
+        assertTrue("""class="$JUMP_TO_SCHOOLS_CLASS"""" in pinned, "it is a 44 px layout button")
+        assertFalse(CardActions.JUMP_SCHOOLS in createHTML().div { suburbCard(card, customising = true) })
+    }
+
+    @Test
+    fun `with no Schools group to go to there is no Jump to Schools button`() {
+        assertFalse(CardActions.JUMP_SCHOOLS in html(SuburbCardState.Loaded(report), showUnknown = false), "unknown Schools row left off")
+        val hidden = CardLayout().toggle(SuburbCardRows.SCHOOLS_LABEL)
+        assertFalse(CardActions.JUMP_SCHOOLS in createHTML().div { suburbCard(SuburbCardState.Loaded(withSchools(school("A", 1000, null))), hidden) })
+        assertFalse(CardActions.JUMP_SCHOOLS in html(SuburbCardState.Loading("9001", null)))
+    }
+
+    @Test
     fun `rows without data are left off, with a note that counts them and offers to show them`() {
         val out = html(SuburbCardState.Loaded(report), showUnknown = false)
         assertEquals(listOf("Houses for sale", "Units for sale"), labelsIn(out), "every row of this report is unknown; only the for-sale links (ADR 0061) are left")

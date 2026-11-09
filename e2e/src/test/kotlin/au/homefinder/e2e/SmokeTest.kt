@@ -277,6 +277,60 @@ class SmokeTest {
         assertTrue(app.naplan.isEmpty())
     }
 
+    /** The NAPLAN label features the map holds now, as "suburb:text" (ADR 0076). */
+    private fun naplanLabels(): String =
+        "[...new Set(window.homefinderMap.querySourceFeatures('suburb-naplan').map(f => f.properties.suburb_id + ':' + f.properties.label))].sort().join(',')"
+
+    @Test
+    fun `each suburb with a NAPLAN average gets a blue diamond label that opens its Schools group, and saving a figure redraws the labels`() {
+        // Hamilton: (0.82 x 30 + 0.76 x -10) / 1.58 = 10.8, so +11; Mayfield is all in school 2's zone, so -10; Wickham has no figure and no label.
+        app.naplan["1"] = NaplanScore(30, LocalDate(2026, 11, 7))
+        app.naplan["2"] = NaplanScore(-10, LocalDate(2026, 11, 8))
+        openWithKey()
+        page.waitForFunction("() => window.homefinderMap && window.homefinderMap.getLayer('suburb-naplan-label') && window.homefinderMap.getLayer('suburb-rated-label')")
+        // Its own colour and a diamond icon, unlike the Homely label's brown stars; shown from the Homely label's zoom until lots take over.
+        val map = "window.homefinderMap"
+        assertEquals("\"#0d47a1\"", page.evaluate("JSON.stringify($map.getPaintProperty('suburb-naplan-label', 'text-color'))").toString())
+        assertTrue("#8a4b00" in page.evaluate("JSON.stringify($map.getLayoutProperty('suburb-rated-label', 'text-field'))").toString())
+        assertEquals("\"naplan-diamond\"", page.evaluate("JSON.stringify($map.getLayoutProperty('suburb-naplan-label', 'icon-image'))").toString())
+        assertEquals("undefined", page.evaluate("String($map.getLayoutProperty('suburb-rated-label', 'icon-image'))").toString())
+        assertEquals("true", page.evaluate("String($map.hasImage('naplan-diamond'))").toString())
+        assertEquals("12,16", page.evaluate("[$map.getLayer('suburb-naplan-label').minzoom, $map.getLayer('suburb-naplan-label').maxzoom].join(',')").toString())
+
+        page.evaluate("() => { $map.jumpTo({center: [151.75, -32.92], zoom: 13}); }")
+        page.waitForFunction("() => (${naplanLabels()}) === '9001:+11,9002:-10'")
+        // The diamond ends 2 px left of the label point, 17 px below it (under a one-line name); click its middle with the real mouse.
+        val at = "(() => { const p = $map.project([151.75, -32.92]); return [p.x - 2 - 6, p.y + 17]; })()"
+        page.waitForFunction("() => { const [x, y] = $at; return $map.queryRenderedFeatures([x, y], {layers: ['suburb-naplan-label']}).length > 0 }")
+        @Suppress("UNCHECKED_CAST")
+        val point = page.evaluate(at) as List<Number>
+        val box = requireNotNull(page.locator("#map canvas").boundingBox())
+        page.mouse().click(box.x + point[0].toDouble(), box.y + point[1].toDouble())
+        assertThat(page.locator("#card h2")).hasText("HAMILTON")
+        assertThat(page.locator("#tab-suburb")).hasAttribute("aria-selected", "true")
+        val schools = page.locator("#card details.card-group[data-group='Schools']")
+        assertThat(schools).hasAttribute("open", "open")
+        // Scrolled in just under the pinned header.
+        page.waitForFunction(
+            "() => { const card = document.getElementById('card'); const g = card.querySelector(\"details.card-group[data-group='Schools']\"); " +
+                "const sticky = card.querySelector('.card-sticky').getBoundingClientRect(); const top = g.getBoundingClientRect().top; " +
+                "return top >= sticky.bottom - 1 && top <= sticky.bottom + 40 }",
+        )
+
+        // The keyboard way: the card's Jump to Schools button does the same after the group is shut and the card scrolled back up.
+        page.evaluate("document.querySelector(\"#card details.card-group[data-group='Schools']\").open = false; document.getElementById('card').scrollTop = 0")
+        assertThat(schools).not().hasAttribute("open", "open")
+        page.locator("#card button[data-action=jump-schools]").focus()
+        page.keyboard().press("Enter")
+        assertThat(schools).hasAttribute("open", "open")
+        page.waitForFunction("() => document.getElementById('card').scrollTop > 0")
+
+        // Clearing school 2's figure on the card redraws the labels without a reload: Hamilton rests on school 1 alone, Mayfield has none.
+        page.locator("#naplan-edit-2").click()
+        page.locator("#naplan-clear").click()
+        page.waitForFunction("() => (${naplanLabels()}) === '9001:+30'")
+    }
+
     @Test
     fun `a wrong key shows a failed card instead of crashing`() {
         context.addInitScript("window.localStorage.setItem('homefinder.apiKey', 'not-the-key-0123456789')")

@@ -117,6 +117,16 @@ class FilterRoutesTest {
     }
 
     @Test
+    fun `each suburb carries the point its name is drawn at, for the map's NAPLAN label`() = api(
+        FakeDirectory(SuburbFilterData(listOf(SuburbFilterRow("9001", null, zonedNaplan = 27, latitude = -32.92, longitude = 151.75), SuburbFilterRow("9002", null)), day)),
+    ) {
+        val body = ApiJson.decodeFromString<SuburbFiltersResponse>(get(ApiContract.SUBURB_FILTERS_PATH) { header(ApiContract.API_KEY_HEADER, key) }.bodyAsText())
+        assertEquals(-32.92, body.suburbs.first().latitude)
+        assertEquals(151.75, body.suburbs.first().longitude)
+        assertNull(body.suburbs.last().latitude)
+    }
+
+    @Test
     fun `without the catchments there is no NAPLAN provenance`() = api(FakeDirectory(SuburbFilterData(listOf(SuburbFilterRow("9001", 1032)), day))) {
         val body = ApiJson.decodeFromString<SuburbFiltersResponse>(get(ApiContract.SUBURB_FILTERS_PATH) { header(ApiContract.API_KEY_HEADER, key) }.bodyAsText())
         assertNull(body.naplan)
