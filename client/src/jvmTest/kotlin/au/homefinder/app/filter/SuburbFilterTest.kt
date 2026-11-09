@@ -243,4 +243,75 @@ class SuburbFilterTest {
         assertEquals(setOf("hi"), result.passingIds, "an average below the limit fails, and a suburb with no zoned ICSEA never passes")
         assertTrue(FilterCriterion.ZONED !in FilterData.from(SuburbFiltersResponse(listOf(SuburbFilterValue("a", 1000)), "S", day)).let { d -> FilterCriterion.entries.filter(d::hasData) })
     }
+
+    private fun naplan(vararg values: Pair<String, Int?>, loaded: Boolean = true) = FilterData.from(
+        SuburbFiltersResponse(
+            values.map { SuburbFilterValue(it.first, zonedNaplan = it.second) }, "Schools", day,
+            naplan = if (loaded) FilterProvenance("Your own figures", day) else null,
+        ),
+    )
+
+    @Test
+    fun `the zoned NAPLAN filter is at least, spans the actual values in whole points, starts at the lowest and shows signed values`() {
+        val data = naplan("up" to 23, "down" to -41, "flat" to 0, "none" to null)
+        assertEquals("naplan", FilterCriterion.NAPLAN.key)
+        assertEquals("Zoned schools' NAPLAN (vs national)", FilterCriterion.NAPLAN.label)
+        assertEquals(Direction.AT_LEAST, FilterCriterion.NAPLAN.direction)
+        assertEquals(FilterRange(-41.0, 23.0), data.bounds(FilterCriterion.NAPLAN))
+        assertEquals(-41.0, FilterCriterion.NAPLAN.startLimit(data.bounds(FilterCriterion.NAPLAN)!!))
+        assertEquals("+23", data.limitText(FilterCriterion.NAPLAN, 23.0))
+        assertEquals("-41", data.limitText(FilterCriterion.NAPLAN, -41.0))
+        assertEquals("0", data.limitText(FilterCriterion.NAPLAN, 0.0))
+        assertEquals("At least ", data.limitPrefix(FilterCriterion.NAPLAN, 0.0))
+        assertFalse(data.isEmpty(FilterCriterion.NAPLAN))
+    }
+
+    @Test
+    fun `at the start every suburb with a figure passes, a higher limit drops the lower ones and a suburb with none never passes`() {
+        val data = naplan("up" to 23, "down" to -41, "flat" to 0, "none" to null)
+        assertEquals(1, data.unknown(FilterCriterion.NAPLAN))
+        assertEquals(1, data.apply(FilterSelection()).unknown[FilterCriterion.NAPLAN])
+        assertEquals(setOf("up", "down", "flat"), data.apply(FilterSelection(mapOf(FilterCriterion.NAPLAN to -41.0))).passingIds)
+        assertEquals(setOf("up", "flat"), data.apply(FilterSelection(mapOf(FilterCriterion.NAPLAN to 0.0))).passingIds)
+        assertEquals(setOf("up"), data.apply(FilterSelection(mapOf(FilterCriterion.NAPLAN to 1.0))).passingIds)
+    }
+
+    @Test
+    fun `all-negative NAPLAN values still give a range below zero`() {
+        val data = naplan("a" to -12, "b" to -80)
+        assertEquals(FilterRange(-80.0, -12.0), data.bounds(FilterCriterion.NAPLAN))
+        assertEquals(setOf("a"), data.apply(FilterSelection(mapOf(FilterCriterion.NAPLAN to -50.0))).passingIds)
+    }
+
+    @Test
+    fun `with no figure typed the NAPLAN filter is empty, says so and has no prefix, but only once the catchments are there`() {
+        val empty = naplan("a" to null, "b" to null)
+        assertTrue(empty.isEmpty(FilterCriterion.NAPLAN))
+        assertFalse(empty.hasData(FilterCriterion.NAPLAN))
+        assertEquals("No NAPLAN figures typed yet", empty.limitText(FilterCriterion.NAPLAN, 0.0))
+        assertEquals("", empty.limitPrefix(FilterCriterion.NAPLAN, 0.0))
+        assertEquals(2, empty.unknown(FilterCriterion.NAPLAN))
+        assertFalse(naplan("a" to null, loaded = false).isEmpty(FilterCriterion.NAPLAN), "no catchments: the not-loaded text instead")
+        assertFalse(empty.isEmpty(FilterCriterion.ICSEA), "only a criterion with an empty text can be empty")
+    }
+
+    @Test
+    fun `the NAPLAN help line says how many suburbs have a figure, other help lines are as they were`() {
+        val data = naplan("a" to 5, "b" to null, "c" to null)
+        assertEquals(
+            "Average of the NAPLAN figures you typed for the zoned schools, weighted by how much of the suburb each zone covers; 1 of 3 suburbs have at least one.",
+            data.helpText(FilterCriterion.NAPLAN),
+        )
+        assertEquals(FilterCriterion.ICSEA.help, data.helpText(FilterCriterion.ICSEA))
+        assertEquals(1, data.known(FilterCriterion.NAPLAN))
+    }
+
+    @Test
+    fun `a selection carried to reloaded values keeps its limits, clamps them into the new range and drops a criterion with no values`() {
+        val reloaded = naplan("a" to 10, "b" to 30)
+        val carried = FilterSelection(mapOf(FilterCriterion.NAPLAN to -20.0, FilterCriterion.ICSEA to 1000.0)).carriedTo(reloaded)
+        assertEquals(mapOf(FilterCriterion.NAPLAN to 10.0), carried.limits)
+        assertEquals(mapOf(FilterCriterion.NAPLAN to 20.0), FilterSelection(mapOf(FilterCriterion.NAPLAN to 20.0)).carriedTo(reloaded).limits)
+        assertFalse(FilterSelection(mapOf(FilterCriterion.NAPLAN to 20.0)).carriedTo(naplan("a" to null)).isActive)
+    }
 }

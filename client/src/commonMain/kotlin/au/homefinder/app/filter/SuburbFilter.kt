@@ -1,16 +1,21 @@
 package au.homefinder.app.filter
 
 import au.homefinder.app.selection.Formats
+import au.homefinder.shared.model.NaplanRules
 import au.homefinder.shared.model.SuburbFiltersResponse
 import kotlinx.datetime.LocalDate
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.roundToInt
 
 /** Crime rates have a long tail (a few nightlife and retail suburbs run at several times the median), so their sliders span the lowest 90% of suburbs. */
 const val CRIME_CAP_PERCENTILE: Double = 0.90
 
 /** What the label says when the slider is on its last position and applies no limit (ADR 0055). */
 const val NO_LIMIT_TEXT: String = "No limit"
+
+/** What the NAPLAN filter says until a figure has been typed for a zoned school (ADR 0074). */
+const val NAPLAN_EMPTY_TEXT: String = "No NAPLAN figures typed yet"
 
 /** Which side of its limit a suburb must be on to pass a criterion (ADR 0052). */
 enum class Direction(val word: String) {
@@ -42,6 +47,17 @@ enum class FilterCriterion(
      * suburbs do not squeeze the rest into one corner. The slider then has one more position past it, "No limit" (ADR 0055). Null: no cap.
      */
     val capPercentile: Double? = null,
+    /**
+     * What the panel says, beside a slider that cannot be switched on, when the data is there but no suburb has a value yet (the NAPLAN figures are
+     * yours to type, ADR 0074). Null: such a criterion shows [notLoadedText] like one whose data is missing.
+     */
+    val emptyText: String? = null,
+    /** Whether the help line ends with how many suburbs have a value ("N of M suburbs have at least one"), for a criterion with partial coverage. */
+    val countsCoverage: Boolean = false,
+    /** A longer explanation for the panel's Details section (ADR 0072), for a criterion whose limits need more than the help line. */
+    val detailsNote: String? = null,
+    /** Whether a value is a difference that always shows its sign ("+12", "-30", "0"), like a NAPLAN figure. */
+    val signed: Boolean = false,
 ) {
     ICSEA(
         "icsea", "School ICSEA (average of public schools in the suburb)", "", Direction.AT_LEAST, 10.0, "ICSEA",
@@ -85,9 +101,21 @@ enum class FilterCriterion(
         "The ICSEA of the public primary and high schools whose catchments cover at least a quarter of the suburb's lots, averaged and weighted by how much of the suburb each covers. " +
             "Catchments change, and ICSEA is not a measure of school quality.",
         "School catchments (and the schools data they are matched to) have not been loaded yet, so there is nothing to filter on.",
+    ),
+    NAPLAN(
+        "naplan", "Zoned schools' NAPLAN (vs national)", "", Direction.AT_LEAST, 1.0, "NAPLAN figure for a zoned school",
+        "Average of the NAPLAN figures you typed for the zoned schools, weighted by how much of the suburb each zone covers",
+        "School catchments (and the schools data they are matched to) have not been loaded yet, so there is no NAPLAN figure to filter on.",
+        emptyText = NAPLAN_EMPTY_TEXT,
+        countsCoverage = true,
+        detailsNote = "Zoned schools' NAPLAN: your own figures, typed in one school at a time on the cards (a school's difference from the national " +
+            "average in points, from My School). A suburb's value is the average over the zoned schools the Suburb Card lists that have a figure, " +
+            "weighted by how much of the suburb each zone covers; schools you have not typed a figure for are left out, so a value may rest on one " +
+            "school. A suburb with no figure for any zoned school has no value and never matches while this filter is on.",
+        signed = true,
     );
 
-    fun format(value: Double): String = Formats.decimal(value, 0) + unit
+    fun format(value: Double): String = (if (signed) NaplanRules.signed(value.roundToInt()) else Formats.decimal(value, 0)) + unit
 
     /** The end of the slider that every suburb with a value passes, where it starts: the lowest value for "at least", the highest for "at most". */
     fun startLimit(bounds: FilterRange): Double = if (direction == Direction.AT_LEAST) bounds.min else bounds.max
@@ -105,6 +133,14 @@ data class FilterRange(val min: Double, val max: Double) {
 /** What the panel has switched on: each criterion's limit, read in its own [FilterCriterion.direction] (ADR 0052). Nothing is on at first, so nothing is dimmed. */
 data class FilterSelection(val limits: Map<FilterCriterion, Double> = emptyMap()) {
     val isActive: Boolean get() = limits.isNotEmpty()
+
+    /**
+     * This selection carried over to freshly loaded values (after a NAPLAN figure is saved, ADR 0074): a criterion that now has no values is switched
+     * off, and a limit outside the new range is moved to its nearest end.
+     */
+    fun carriedTo(data: FilterData): FilterSelection = FilterSelection(
+        limits.mapNotNull { (criterion, limit) -> data.bounds(criterion)?.let { criterion to limit.coerceIn(it.min, it.max) } }.toMap(),
+    )
 }
 
 /**
@@ -167,15 +203,32 @@ class FilterData(
     private fun isNoLimit(criterion: FilterCriterion, limit: Double): Boolean = noLimitPosition(criterion)?.let { limit >= it } == true
 
     /** The words before the number on a slider's label: "At most ", or nothing at "No limit". */
-    fun limitPrefix(criterion: FilterCriterion, limit: Double): String = if (isNoLimit(criterion, limit)) "" else "${criterion.direction.word} "
+    fun limitPrefix(criterion: FilterCriterion, limit: Double): String =
+        if (isEmpty(criterion) || isNoLimit(criterion, limit)) "" else "${criterion.direction.word} "
 
-    /** The number on a slider's label: "40 per 1,000", or "No limit" at the last position of a capped slider. */
-    fun limitText(criterion: FilterCriterion, limit: Double): String = if (isNoLimit(criterion, limit)) NO_LIMIT_TEXT else criterion.format(limit)
+    /** The number on a slider's label: "40 per 1,000", "No limit" at the last position of a capped slider, or the empty text when there are no values. */
+    fun limitText(criterion: FilterCriterion, limit: Double): String = when {
+        isEmpty(criterion) -> criterion.emptyText.orEmpty()
+        isNoLimit(criterion, limit) -> NO_LIMIT_TEXT
+        else -> criterion.format(limit)
+    }
 
     fun hasData(criterion: FilterCriterion): Boolean = bounds(criterion) != null
     val hasAnyData: Boolean get() = FilterCriterion.entries.any(::hasData)
 
     fun source(criterion: FilterCriterion): FilterSource? = sources[criterion]
+
+    /** True when the criterion's data is there but no suburb has a value yet, so its slider is shown disabled with [FilterCriterion.emptyText]. */
+    fun isEmpty(criterion: FilterCriterion): Boolean = criterion.emptyText != null && sources[criterion] != null && !hasData(criterion)
+
+    /** How many suburbs have a value for the criterion. */
+    fun known(criterion: FilterCriterion): Int = total - unknown(criterion)
+
+    /** The line under the slider: the criterion's help, ending with its coverage when it [FilterCriterion.countsCoverage]. */
+    fun helpText(criterion: FilterCriterion): String? {
+        val help = criterion.help ?: return null
+        return if (criterion.countsCoverage) "$help; ${known(criterion)} of $total suburbs have at least one." else help
+    }
 
     fun name(suburbId: String): String = names[suburbId]?.takeIf { it.isNotBlank() } ?: suburbId
 
@@ -206,6 +259,7 @@ class FilterData(
                 FilterCriterion.VIOLENT to response.suburbs.associate { it.suburbId to it.violentPer1000 },
                 FilterCriterion.PROPERTY to response.suburbs.associate { it.suburbId to it.propertyPer1000 },
                 FilterCriterion.ZONED to response.suburbs.associate { it.suburbId to it.zonedIcsea?.toDouble() },
+                FilterCriterion.NAPLAN to response.suburbs.associate { it.suburbId to it.zonedNaplan?.toDouble() },
             )
             val sources = buildMap {
                 put(FilterCriterion.ICSEA, FilterSource(response.icseaSource, response.icseaAsOf))
@@ -214,6 +268,7 @@ class FilterData(
                 response.rented?.let { put(FilterCriterion.RENTED, FilterSource(it.source, it.asOf)) }
                 response.seifa?.let { put(FilterCriterion.SEIFA, FilterSource(it.source, it.asOf)) }
                 response.zoned?.let { put(FilterCriterion.ZONED, FilterSource(it.source, it.asOf)) }
+                response.naplan?.let { put(FilterCriterion.NAPLAN, FilterSource(it.source, it.asOf)) }
                 response.crime?.let {
                     put(FilterCriterion.VIOLENT, FilterSource(it.source, it.asOf))
                     put(FilterCriterion.PROPERTY, FilterSource(it.source, it.asOf))

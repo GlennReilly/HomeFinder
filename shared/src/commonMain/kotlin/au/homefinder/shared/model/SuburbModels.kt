@@ -100,6 +100,11 @@ data class SuburbFilterValue(
     val name: String = "",
     /** The average ICSEA of the schools whose catchments cover the suburb, weighted by how much of it each covers (ADR 0062); null when none has one. */
     val zonedIcsea: Int? = null,
+    /**
+     * The average of the NAPLAN figures you typed (ADR 0068, 0069) for the zoned schools the Suburb Card lists, weighted by how much of the suburb each
+     * zone covers, in points from the national average (ADR 0074); null when none of those schools has a figure.
+     */
+    val zonedNaplan: Int? = null,
 )
 
 /** Where one criterion's figures come from, as on the card. */
@@ -122,6 +127,8 @@ data class SuburbFiltersResponse(
     val seifa: FilterProvenance? = null,
     val crime: FilterProvenance? = null,
     val zoned: FilterProvenance? = null,
+    /** Present once the catchments are loaded and figures can be typed in, even before any is (ADR 0074); its date is the last figure saved. */
+    val naplan: FilterProvenance? = null,
 )
 
 /** The same factors as a property, rolled up to suburb level. Every statistic carries its own provenance. */

@@ -9,6 +9,7 @@ import au.homefinder.shared.model.SocioEconomic
 import au.homefinder.shared.model.SuburbZone
 import au.homefinder.shared.model.SuburbZonedSchools
 import au.homefinder.shared.model.HomelyRating
+import au.homefinder.shared.model.NaplanScore
 import au.homefinder.shared.model.School
 import au.homefinder.shared.model.SchoolLevel
 import au.homefinder.shared.model.SchoolSector
@@ -122,6 +123,10 @@ object SuburbReportFactory {
     const val ZONED_FILTER_SOURCE: String =
         "NSW Department of Education school catchments and public schools master dataset (CC BY 3.0 Australia); ICSEA from ACARA"
 
+    /** Where the NAPLAN filter's figures come from (ADR 0074): your own, typed in, over the zones from the catchments data. */
+    const val NAPLAN_FILTER_SOURCE: String =
+        "${NaplanScore.SOURCE} Zones from NSW Department of Education school catchments (CC BY 3.0 Australia)"
+
     /** A zone covering at least this share of a suburb's lots is listed on the card and counted in the filter (ADR 0062). */
     const val ZONE_LISTED_MIN_SHARE: Double = 0.25
     private const val ZONED_NOTE =
@@ -133,10 +138,19 @@ object SuburbReportFactory {
      * The zones to list: per level (primary, then high) every zone covering at least [ZONE_LISTED_MIN_SHARE] of the suburb, largest first; a level with none that
      * big still lists its biggest zone, so a suburb split three ways is not left blank.
      */
-    fun listedZones(shares: List<SuburbZoneShare>): List<SuburbZoneShare> =
-        listOf("PRIMARY", "HIGH").flatMap { level ->
-            val atLevel = shares.filter { it.zone.level == level }.sortedWith(compareByDescending<SuburbZoneShare> { it.lotShare }.thenBy { it.zone.schoolCode })
-            val big = atLevel.filter { it.lotShare >= ZONE_LISTED_MIN_SHARE }
+    fun listedZones(shares: List<SuburbZoneShare>): List<SuburbZoneShare> = listed(shares, { it.zone.level }, { it.lotShare }, { it.zone.schoolCode })
+
+    /** The catchment levels the card lists, in its order. */
+    val LISTED_LEVELS: List<String> = listOf("PRIMARY", "HIGH")
+
+    /**
+     * The rule behind [listedZones] for any kind of zone share, so the NAPLAN filter (ADR 0074) averages exactly the schools the card lists: per level
+     * every item covering at least [ZONE_LISTED_MIN_SHARE], largest first (ties by school code), else the level's biggest one.
+     */
+    fun <T> listed(items: List<T>, level: (T) -> String, share: (T) -> Double, code: (T) -> Int): List<T> =
+        LISTED_LEVELS.flatMap { wanted ->
+            val atLevel = items.filter { level(it) == wanted }.sortedWith(compareByDescending<T> { share(it) }.thenBy { code(it) })
+            val big = atLevel.filter { share(it) >= ZONE_LISTED_MIN_SHARE }
             big.ifEmpty { atLevel.take(1) }
         }
 

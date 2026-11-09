@@ -75,3 +75,4 @@
 | [0071](0071-naplan-year-optional.md) | The NAPLAN year is optional and the note is removed | Partly superseded by 0073 |
 | [0072](0072-one-details-fold-per-row.md) | One closed Details section per row holds the note and the source | Accepted |
 | [0073](0073-no-naplan-year-and-one-zoned-schools-row.md) | No NAPLAN year, and one Schools row on the Suburb Card that lists only the zoned schools | Accepted |
+| [0074](0074-zoned-naplan-filter.md) | A suburb filter on the NAPLAN figures you typed for the zoned schools | Accepted |

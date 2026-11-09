@@ -66,10 +66,11 @@ class FilterPanelHtmlTest {
 
     private val full = FilterData.from(
         SuburbFiltersResponse(
-            listOf(SuburbFilterValue("a", 1000, 1.5, 0.2, 0.45, 8, 4.2, 12.5, zonedIcsea = 1040), SuburbFilterValue("b", 1100, 12.0, null, 0.2, 3, 30.0, 40.0, zonedIcsea = 1010)),
+            listOf(SuburbFilterValue("a", 1000, 1.5, 0.2, 0.45, 8, 4.2, 12.5, zonedIcsea = 1040, zonedNaplan = -12), SuburbFilterValue("b", 1100, 12.0, null, 0.2, 3, 30.0, 40.0, zonedIcsea = 1010)),
             "NSW schools", LocalDate(2026, 10, 2),
             beach = FilterProvenance("OpenStreetMap", LocalDate(2026, 10, 29)), parks = FilterProvenance("OpenStreetMap", LocalDate(2026, 10, 29)),
             rented = FilterProvenance("ABS Census", LocalDate(2021, 8, 10)), seifa = FilterProvenance("ABS SEIFA", LocalDate(2021, 8, 10)), crime = FilterProvenance("BOCSAR", LocalDate(2026, 6, 30)), zoned = FilterProvenance("NSW DoE catchments", LocalDate(2026, 11, 5)),
+            naplan = FilterProvenance("Your own figures", LocalDate(2026, 11, 8)),
         ),
     )
 
@@ -145,5 +146,47 @@ class FilterPanelHtmlTest {
         val schools = out.substringAfter("""id="filter-group-schools"""").substringBefore("</details>")
         assertTrue("""id="filter-icsea-on"""" in schools && """id="filter-icsea-limit"""" in schools)
         assertTrue("""id="${FilterIds.RESET}"""" in out && """id="${FilterIds.SUMMARY}"""" in out)
+    }
+
+    private fun naplanData(vararg values: Int?) = FilterData.from(
+        SuburbFiltersResponse(
+            values.mapIndexed { i, v -> SuburbFilterValue("s$i", 1000, zonedNaplan = v) }, "NSW schools", LocalDate(2026, 10, 2),
+            zoned = FilterProvenance("NSW DoE catchments", LocalDate(2026, 11, 5)), naplan = FilterProvenance("Your own figures", LocalDate(2026, 11, 8)),
+        ),
+    )
+
+    @Test
+    fun `the zoned NAPLAN slider spans the values in whole points, starts at the lowest, and its help says how many suburbs have a figure`() {
+        val out = html(naplanData(-30, 14, null))
+        val slider = Regex("""<input[^>]*id="filter-naplan-limit"[^>]*>""").find(out)?.value.orEmpty()
+        assertTrue("""min="-30"""" in slider && """max="14"""" in slider && """step="1"""" in slider && """value="-30"""" in slider, slider)
+        assertFalse("disabled" in slider)
+        assertTrue("""<span id="filter-naplan-limit-prefix">At least </span><span id="filter-naplan-limit-value">-30</span>""" in out, out)
+        assertTrue("Zoned schools&#39; NAPLAN (vs national)" in out || "Zoned schools' NAPLAN (vs national)" in out, out)
+        assertTrue("weighted by how much of the suburb each zone covers; 2 of 3 suburbs have at least one." in out, out)
+        assertTrue("1 of 3 suburbs have no NAPLAN figure for a zoned school and never match." in out, out)
+        assertTrue("Zoned schools&#39; NAPLAN: Your own figures · as of 2026-11-08" in out || "Zoned schools' NAPLAN: Your own figures · as of 2026-11-08" in out, out)
+    }
+
+    @Test
+    fun `with no NAPLAN figure typed the filter is drawn disabled, says so, and its Details note explains the limits`() {
+        val out = html(naplanData(null, null))
+        val box = Regex("""<input[^>]*id="filter-naplan-on"[^>]*>""").find(out)?.value.orEmpty()
+        val slider = Regex("""<input[^>]*id="filter-naplan-limit"[^>]*>""").find(out)?.value.orEmpty()
+        assertTrue("disabled" in box && "disabled" in slider, out)
+        assertTrue("""<span id="filter-naplan-limit-prefix"></span><span id="filter-naplan-limit-value">No NAPLAN figures typed yet</span>""" in out, out)
+        assertTrue(FILTER_EMPTY_CLASS in out)
+        assertTrue("0 of 2 suburbs have at least one." in out, out)
+        assertTrue("your own figures, typed in one school at a time" in out, out)
+        assertTrue("never matches while this filter is on" in out)
+        assertFalse(FilterCriterion.NAPLAN.notLoadedText in out)
+    }
+
+    @Test
+    fun `without the catchments the NAPLAN filter says they are not loaded and has no slider or note`() {
+        val out = html(data(1000, 1100))
+        assertTrue(FilterCriterion.NAPLAN.notLoadedText in out)
+        assertFalse(FilterIds.limit(FilterCriterion.NAPLAN) in out)
+        assertFalse("your own figures, typed in one school at a time" in out)
     }
 }

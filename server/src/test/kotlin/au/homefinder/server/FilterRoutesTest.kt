@@ -10,6 +10,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
 import kotlinx.datetime.LocalDate
@@ -96,6 +97,29 @@ class FilterRoutesTest {
         assertEquals(1042, body.suburbs.first().zonedIcsea)
         assertNull(body.suburbs.last().zonedIcsea)
         assertEquals(FilterProvenance(SuburbReportFactory.ZONED_FILTER_SOURCE, day), body.zoned)
+    }
+
+    @Test
+    fun `the zoned NAPLAN value and its provenance come once figures can be typed, even with none typed yet, and the response is never cached`() = api(
+        FakeDirectory(
+            SuburbFilterData(
+                listOf(SuburbFilterRow("9001", null, zonedNaplan = -23), SuburbFilterRow("9002", null)), day,
+                zonedLoaded = true, zonedAsOf = day, naplanLoaded = true, naplanAsOf = LocalDate(2026, 11, 8),
+            ),
+        ),
+    ) {
+        val response = get(ApiContract.SUBURB_FILTERS_PATH) { header(ApiContract.API_KEY_HEADER, key) }
+        assertEquals(FILTERS_CACHE_CONTROL, response.headers[HttpHeaders.CacheControl])
+        val body = ApiJson.decodeFromString<SuburbFiltersResponse>(response.bodyAsText())
+        assertEquals(-23, body.suburbs.first().zonedNaplan)
+        assertNull(body.suburbs.last().zonedNaplan)
+        assertEquals(FilterProvenance(SuburbReportFactory.NAPLAN_FILTER_SOURCE, LocalDate(2026, 11, 8)), body.naplan)
+    }
+
+    @Test
+    fun `without the catchments there is no NAPLAN provenance`() = api(FakeDirectory(SuburbFilterData(listOf(SuburbFilterRow("9001", 1032)), day))) {
+        val body = ApiJson.decodeFromString<SuburbFiltersResponse>(get(ApiContract.SUBURB_FILTERS_PATH) { header(ApiContract.API_KEY_HEADER, key) }.bodyAsText())
+        assertNull(body.naplan)
     }
 
     @Test

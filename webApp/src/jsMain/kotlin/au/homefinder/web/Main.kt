@@ -6,6 +6,7 @@ import au.homefinder.app.filter.FilterCriterion
 import au.homefinder.app.filter.FilterData
 import au.homefinder.app.filter.FilterGroups
 import au.homefinder.app.filter.FilterSelection
+import au.homefinder.app.ui.FILTER_GROUP_CLASS
 import au.homefinder.app.ui.FILTER_LOADING_TEXT
 import au.homefinder.app.ui.FILTER_UNAVAILABLE_TEXT
 import au.homefinder.app.ui.FilterIds
@@ -54,7 +55,9 @@ import kotlinx.browser.localStorage
 import kotlinx.browser.window
 import au.homefinder.app.selection.SearchStatus
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.onEach
@@ -62,6 +65,7 @@ import kotlinx.html.div
 import kotlinx.html.p
 import kotlinx.html.dom.append
 import org.w3c.dom.HTMLButtonElement
+import org.w3c.dom.asList
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLFormElement
 import org.w3c.dom.HTMLInputElement
@@ -128,7 +132,9 @@ private fun start(apiKey: String) {
 
     wireSearch(scope, SearchApi(config, http), viewModel, map, ::showNotice)
     val side = wireSidePanel()
-    wireFilters(scope, FilterApi(config, http), map) { result -> side.setFiltersLabel(filtersTabLabel(result)) }
+    val reloadFilters = wireFilters(scope, FilterApi(config, http), map) { result -> side.setFiltersLabel(filtersTabLabel(result)) }
+    // A saved or cleared NAPLAN figure changes the NAPLAN filter's values (ADR 0074), so the panel reloads them, keeping what is switched on.
+    viewModel.naplanVersion.drop(1).onEach { reloadFilters() }.launchIn(scope)
 
     // The star scores under suburb names: loaded at the start and again whenever one is saved or removed.
     suspend fun refreshRatings() {
@@ -258,9 +264,10 @@ private fun wireSidePanel(): SidePanel = SidePanel(narrow = window.innerWidth < 
  * The filter panel (ADR 0035): the values load once, the inputs are drawn once, and moving a slider (one per criterion, ADR 0052) only recomputes which
  * suburbs pass and restyles the map, with no request.
  */
-private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap, onResult: (FilterResult?) -> Unit) {
+private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap, onResult: (FilterResult?) -> Unit): () -> Unit {
     val panel = element("filters")
     var data: FilterData? = null
+    var loading: Job? = null
 
     fun input(id: String) = document.getElementById(id) as? HTMLInputElement
 
@@ -311,19 +318,44 @@ private fun wireFilters(scope: CoroutineScope, api: FilterApi, view: SuburbMap, 
         refresh()
     })
 
-    panel.textContent = FILTER_LOADING_TEXT
-    scope.launch {
-        when (val result = api.values()) {
-            is LookupResult.Found -> {
-                val loaded = FilterData.from(result.value)
-                data = loaded
-                panel.innerHTML = ""
-                panel.append { div { filterPanel(loaded, loaded.apply(FilterSelection())) } }
+    // Draws the panel from fresh values. A reload (data already shown) keeps the switched-on filters, their limits and the open groups; a failed reload
+    // leaves the panel as it was.
+    fun load() {
+        loading?.cancel()
+        val first = data == null
+        if (first) panel.textContent = FILTER_LOADING_TEXT
+        loading = scope.launch {
+            when (val result = api.values()) {
+                is LookupResult.Found -> {
+                    val loaded = FilterData.from(result.value)
+                    val kept = if (first) FilterSelection() else selection().carriedTo(loaded)
+                    val openGroups = panel.querySelectorAll("details.$FILTER_GROUP_CLASS[open]").asList().mapNotNull { (it as? HTMLElement)?.id }
+                    data = loaded
+                    panel.innerHTML = ""
+                    panel.append { div { filterPanel(loaded, loaded.apply(kept)) } }
+                    if (!first) {
+                        panel.querySelectorAll("details.$FILTER_GROUP_CLASS").asList().forEach { node ->
+                            val group = node as? HTMLElement ?: return@forEach
+                            if (group.id in openGroups) group.setAttribute(HTML_OPEN, HTML_OPEN) else group.removeAttribute(HTML_OPEN)
+                        }
+                    }
+                    kept.limits.forEach { (criterion, limit) ->
+                        input(FilterIds.on(criterion))?.checked = true
+                        input(FilterIds.limit(criterion))?.value = limit.toLong().toString()
+                    }
+                    if (!first) refresh()
+                }
+                else -> if (first) panel.textContent = FILTER_UNAVAILABLE_TEXT
             }
-            else -> panel.textContent = FILTER_UNAVAILABLE_TEXT
         }
     }
+
+    load()
+    return ::load
 }
+
+/** The attribute (and its value) that shows a `details` open. */
+private const val HTML_OPEN: String = "open"
 
 /** The search box: typing, the keyboard, a click on a suggestion, and what each kind of result does to the map. */
 private fun wireSearch(scope: CoroutineScope, api: SearchApi, map: MapViewModel, view: SuburbMap, showNotice: (String) -> Unit) {

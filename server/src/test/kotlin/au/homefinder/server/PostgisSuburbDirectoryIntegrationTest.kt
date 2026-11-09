@@ -230,6 +230,46 @@ class PostgisSuburbDirectoryIntegrationTest {
     }
 
     @Test
+    fun `the NAPLAN filter averages your figures over the zones the card lists, weighted by share, and is read afresh each time`() = withDirectory { directory ->
+        execute("TRUNCATE suburb_catchment", "TRUNCATE school", "TRUNCATE school_naplan")
+        execute(
+            "INSERT INTO school (school_code, name, level_label, icsea, geom) VALUES " +
+                "(10, 'Hamilton Public School', 'Primary School', 1000, ST_SetSRID(ST_MakePoint(151.75, -32.92), 7844)), " +
+                "(20, 'Newcastle High School', 'Secondary School', 1100, ST_SetSRID(ST_MakePoint(151.75, -32.93), 7844)), " +
+                "(30, 'No Figure High', 'Secondary School', NULL, ST_SetSRID(ST_MakePoint(151.75, -32.94), 7844))",
+            "INSERT INTO suburb_catchment (suburb_id, school_code, level, catch_type, name, years, lots, lot_share, enrolment_year) VALUES " +
+                "('9001', 10, 'PRIMARY', 'PRIMARY', 'Hamilton PS', 'K-6', 80, 0.80, 2026), ('9001', 20, 'HIGH', 'HIGH_COED', 'Newcastle HS', '7-12', 40, 0.40, 2026), " +
+                "('9001', 30, 'HIGH', 'HIGH_COED', 'Other HS', '7-12', 50, 0.50, 2026), ('9001', 99, 'PRIMARY', 'PRIMARY', 'Small PS', 'K-6', 10, 0.10, 2026), " +
+                "('9002', 20, 'HIGH', 'HIGH_COED', 'Newcastle HS', '7-12', 100, 1.00, 2026)",
+        )
+        val none = assertNotNull(directory.filterValues())
+        assertTrue(none.naplanLoaded, "the table is there, so figures can be typed")
+        assertNull(none.naplanAsOf)
+        assertTrue(none.suburbs.all { it.zonedNaplan == null }, "no figure typed yet")
+        execute(
+            "INSERT INTO school_naplan (school_code, score, updated_at) VALUES (10, -30, '2026-11-07T10:00:00Z'), (20, 40, '2026-11-08T10:00:00Z'), " +
+                "(99, 500, '2026-11-06T10:00:00Z')",
+        )
+        val data = assertNotNull(directory.filterValues())
+        val byId = data.suburbs.associateBy { it.suburbId }
+        // Listed: primary 10 (0.80; 99 is under a quarter), high 30 (0.50, no figure, left out) and 20 (0.40): (0.8 x -30 + 0.4 x 40) / 1.2 = -6.7.
+        assertEquals(-7, byId.getValue("9001").zonedNaplan)
+        assertEquals(40, byId.getValue("9002").zonedNaplan)
+        assertNull(byId.getValue("9003").zonedNaplan, "no zone, no value")
+        assertEquals(LocalDate(2026, 11, 8), data.naplanAsOf)
+        execute("DELETE FROM school_naplan WHERE school_code = 20")
+        assertEquals(-30, assertNotNull(directory.filterValues()).suburbs.first { it.suburbId == "9001" }.zonedNaplan, "a cleared figure counts at once")
+        execute("ALTER TABLE school_naplan RENAME TO school_naplan_hidden")
+        try {
+            val missing = assertNotNull(directory.filterValues())
+            assertTrue(!missing.naplanLoaded && missing.suburbs.all { it.zonedNaplan == null }, "no table: no NAPLAN filter, not an error")
+        } finally {
+            execute("ALTER TABLE school_naplan_hidden RENAME TO school_naplan")
+        }
+        execute("TRUNCATE suburb_catchment", "TRUNCATE school", "TRUNCATE school_naplan")
+    }
+
+    @Test
     fun `a database without the suburb catchment table has no zones rather than an error`() = withDirectory { directory ->
         execute("ALTER TABLE suburb_catchment RENAME TO suburb_catchment_hidden")
         try {

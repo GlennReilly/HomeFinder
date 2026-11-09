@@ -50,4 +50,12 @@ class FilterGroupsTest {
         assertEquals("filter-group-people-and-area-count", people.countId)
         assertTrue(FilterGroups.idOf("More") == "filter-group-more")
     }
+
+    @Test
+    fun `the zoned NAPLAN filter sits in the Schools group after the ICSEA filters and counts in its N on`() {
+        val schools = FilterGroups.arrange().first { it.title == "Schools" }
+        assertEquals(listOf(FilterCriterion.ICSEA, FilterCriterion.ZONED, FilterCriterion.NAPLAN), schools.criteria)
+        assertEquals("1 on", FilterGroups.onText(schools, setOf(FilterCriterion.NAPLAN)))
+        assertTrue(FilterGroups.arrange(setOf(FilterCriterion.NAPLAN)).first { it.title == "Schools" }.open)
+    }
 }

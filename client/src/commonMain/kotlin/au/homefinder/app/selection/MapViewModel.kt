@@ -83,6 +83,11 @@ class MapViewModel(
     /** Goes up each time a Homely score is saved or removed, so the map's score labels know to reload. */
     val ratingsVersion: StateFlow<Int> = mutableRatingsVersion.asStateFlow()
 
+    private val mutableNaplanVersion = MutableStateFlow(0)
+
+    /** Goes up each time a NAPLAN figure is saved or cleared, so the filter panel knows to reload its values (ADR 0074). */
+    val naplanVersion: StateFlow<Int> = mutableNaplanVersion.asStateFlow()
+
     private val mutableState = MutableStateFlow(MapUiState())
     val state: StateFlow<MapUiState> = mutableState.asStateFlow()
 
@@ -155,7 +160,7 @@ class MapViewModel(
             is ParsedNaplan.Valid -> input.entry
         }
         return when (val result = api.save(schoolCode, entry)) {
-            is LookupResult.Found -> NaplanOutcome.Saved.also { refreshShownCard() }
+            is LookupResult.Found -> NaplanOutcome.Saved.also { refreshShownCard(); mutableNaplanVersion.update { it + 1 } }
             LookupResult.Unauthorized -> NaplanOutcome.Failed(NOTICE_KEY_REJECTED)
             LookupResult.NotFound -> NaplanOutcome.Failed(MESSAGE_SCHOOL_UNKNOWN)
             is LookupResult.Failed -> NaplanOutcome.Failed(result.reason)
@@ -166,7 +171,7 @@ class MapViewModel(
     suspend fun removeNaplan(schoolCode: String): NaplanOutcome {
         val api = naplan ?: return NaplanOutcome.Failed(MESSAGE_NAPLAN_UNAVAILABLE)
         return when (val result = api.remove(schoolCode)) {
-            is LookupResult.Found -> NaplanOutcome.Removed.also { refreshShownCard() }
+            is LookupResult.Found -> NaplanOutcome.Removed.also { refreshShownCard(); mutableNaplanVersion.update { it + 1 } }
             LookupResult.Unauthorized -> NaplanOutcome.Failed(NOTICE_KEY_REJECTED)
             LookupResult.NotFound -> NaplanOutcome.Failed(MESSAGE_SCHOOL_UNKNOWN)
             is LookupResult.Failed -> NaplanOutcome.Failed(result.reason)
