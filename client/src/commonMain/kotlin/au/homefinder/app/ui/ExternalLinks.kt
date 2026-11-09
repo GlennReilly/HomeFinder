@@ -104,9 +104,9 @@ object ExternalLinks {
         return (name + place + STATE).joinToString(SLUG_SEPARATOR)
     }
 
-    /** The school's page on SchoolRank as we build it; never fetched or checked, so it may not exist (ADR 0070). */
-    fun schoolRankPage(schoolName: String, locality: String?): String? =
-        schoolRankSlug(schoolName, locality)?.let { HTTPS + SCHOOLRANK_HOST + SCHOOLRANK_SCHOOL_PATH + it }
+    /** The school's page on SchoolRank: the listed override for its code if any (ADR 0075), else as we build it; never fetched or checked, so it may not exist (ADR 0070). */
+    fun schoolRankPage(schoolCode: String?, schoolName: String, locality: String?): String? =
+        (SchoolRankOverrides.slugFor(schoolCode) ?: schoolRankSlug(schoolName, locality))?.let { HTTPS + SCHOOLRANK_HOST + SCHOOLRANK_SCHOOL_PATH + it }
 
     /** An address that may be linked from a card: http or https only, so a link can never run a script. Null otherwise. */
     fun webAddress(address: String?): String? = address?.trim()?.takeIf { it.startsWith("https://") || it.startsWith("http://") }

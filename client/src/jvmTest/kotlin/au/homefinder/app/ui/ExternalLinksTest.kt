@@ -107,7 +107,7 @@ class ExternalLinksTest {
     @Test
     fun `the user's example school becomes its SchoolRank address, with the locality from its address not its name`() {
         assertEquals("elermore-vale-public-school-wallsend-nsw", ExternalLinks.schoolRankSlug("Elermore Vale Public School", "Wallsend"))
-        assertEquals("https://schoolrank.com.au/school/elermore-vale-public-school-wallsend-nsw", ExternalLinks.schoolRankPage("Elermore Vale Public School", "Wallsend "))
+        assertEquals("https://schoolrank.com.au/school/elermore-vale-public-school-wallsend-nsw", ExternalLinks.schoolRankPage(null, "Elermore Vale Public School", "Wallsend "))
     }
 
     @Test
@@ -123,12 +123,29 @@ class ExternalLinksTest {
     fun `no SchoolRank address without a locality or a usable name`() {
         assertNull(ExternalLinks.schoolRankSlug("Hamilton Public School", null))
         assertNull(ExternalLinks.schoolRankSlug("Hamilton Public School", "  "))
-        assertNull(ExternalLinks.schoolRankPage("---", "Hamilton"))
+        assertNull(ExternalLinks.schoolRankPage(null, "---", "Hamilton"))
     }
 
     @Test
     fun `a school name cannot add anything to the SchoolRank address`() {
-        val page = ExternalLinks.schoolRankPage("x\"/../<script>?a=1#b", "Hamilton")!!
+        val page = ExternalLinks.schoolRankPage(null, "x\"/../<script>?a=1#b", "Hamilton")!!
         assertEquals("https://schoolrank.com.au/school/x-script-a-1-b-hamilton-nsw", page)
+    }
+
+    @Test
+    fun `Kotara South gets its listed SchoolRank address, an unlisted school is unchanged`() {
+        val kotara = "https://schoolrank.com.au/school/kotara-south-public-school-kotara-nsw"
+        assertEquals(kotara, ExternalLinks.schoolRankPage("4203", "Kotara South Public School", "Kotara South"))
+        assertEquals("https://schoolrank.com.au/school/kotara-south-public-school-kotara-south-nsw", ExternalLinks.schoolRankPage(null, "Kotara South Public School", "Kotara South"))
+        assertEquals("https://schoolrank.com.au/school/elermore-vale-public-school-wallsend-nsw", ExternalLinks.schoolRankPage("9999", "Elermore Vale Public School", "Wallsend"))
+    }
+
+    @Test
+    fun `a listed school's override wins over its locality, and works with no locality`() {
+        assertEquals("kotara-south-public-school-kotara-nsw", SchoolRankOverrides.slugFor(" 4203 "))
+        assertNull(SchoolRankOverrides.slugFor("1"))
+        assertNull(SchoolRankOverrides.slugFor(null))
+        assertEquals("https://schoolrank.com.au/school/kotara-south-public-school-kotara-nsw", ExternalLinks.schoolRankPage("4203", "Anything", "Somewhere Else"))
+        assertEquals("https://schoolrank.com.au/school/kotara-south-public-school-kotara-nsw", ExternalLinks.schoolRankPage("4203", "Kotara South Public School", null))
     }
 }
