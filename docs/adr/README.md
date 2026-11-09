@@ -32,7 +32,7 @@
 | [0028](0028-manual-homely-rating.md) | A Homely star score you enter by hand | Accepted |
 | [0029](0029-rated-suburb-labels-follow-the-view.md) | Rated suburb labels follow the view | Accepted |
 | [0030](0030-homely-rating-under-price-change.md) | The Homely score sits under the price change | Superseded by 0043 |
-| [0031](0031-rated-label-after-two-zoom-taps.md) | The score label waits until you have zoomed in two taps | Accepted |
+| [0031](0031-rated-label-after-two-zoom-taps.md) | The score label waits until you have zoomed in two taps | Partly superseded by 0079 |
 | [0032](0032-browser-smoke-tests.md) | Browser smoke tests | Accepted |
 | [0033](0033-suburb-osm-rollup.md) | Suburb roll-up of the OpenStreetMap features | Accepted |
 | [0034](0034-suburb-schools-and-icsea.md) | Suburb schools and ICSEA | Accepted |
@@ -80,3 +80,4 @@
 | [0076](0076-naplan-map-label.md) | Each suburb's NAPLAN average as a clickable map label | Accepted |
 | [0077](0077-smaller-buttons-same-touch-area.md) | Buttons drawn smaller, with the same 44 px touch area | Accepted |
 | [0078](0078-remove-in-suburb-icsea-filter.md) | Remove the in-suburb ICSEA filter; NAPLAN first in Schools | Accepted |
+| [0079](0079-labels-from-zoom-11.md) | The Homely and NAPLAN map labels show from zoom 11 | Accepted |
