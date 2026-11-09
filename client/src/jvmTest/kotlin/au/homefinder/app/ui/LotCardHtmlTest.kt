@@ -106,16 +106,15 @@ class LotCardHtmlTest {
     }
 
     @Test
-    fun `lot rows without data are left off with a count and a way to show them`() {
+    fun `lot rows without data are left off, with no note about them`() {
         val loaded = LotCardState.Loaded(report(listOf("12 MAIN STREET, HAMILTON NSW 2303")))
         val hidden = html(loaded, showUnknown = false)
         val shown = html(loaded, showUnknown = true)
         val unknownRows = Regex("""class="value unknown"""").findAll(shown).count()
         assertTrue(unknownRows > 0)
         assertEquals(0, Regex("""class="value unknown"""").findAll(hidden).count())
-        assertTrue("$unknownRows rows without data are hidden." in hidden || "1 row without data is hidden." in hidden, hidden)
+        assertFalse("without data" in hidden || "show-unknown" in hidden, hidden)
         assertTrue("Block size" in hidden, "a row with a value stays")
-        assertTrue(">Show them<" in hidden || ">Show it<" in hidden)
     }
 
     @Test

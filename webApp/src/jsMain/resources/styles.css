@@ -196,8 +196,6 @@ button.reset-all:disabled { opacity: .75; color: var(--muted); border-style: das
 .layout-bar { margin: 8px 0; }
 .layout-bar .hint { margin: 0 0 6px; font-size: .85rem; color: var(--muted); }
 .layout-bar .buttons { display: flex; gap: 8px; }
-.unknown-note { margin: 10px 0 0; font-size: .85rem; color: var(--muted); }
-.unknown-toggle { font: inherit; font-size: .85rem; padding: 0; min-height: var(--tap-target); border: 0; background: none; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .layout-button { font-size: .8rem; padding: 4px 10px; min-height: var(--tap-target); cursor: pointer; }
 .layout-button:disabled { opacity: .4; cursor: default; }
 .row-controls { display: flex; gap: 6px; margin-top: 6px; }

@@ -201,8 +201,8 @@ class SuburbCardHtmlTest {
         assertTrue("""<div class="school-links"><a href="https://hamilton-p.schools.nsw.gov.au" target="_blank" class="external-link" rel="noopener noreferrer" title="Hamilton Public School: school website (opens in a new tab)">School website</a>""" in flat, flat)
         assertTrue("""<div class="school-line"><span class="school-name">Small School</span><span class="detail"> · Primary School · 100% of the suburb's lots</span></div><div class="naplan-line">""" in flat, "no ICSEA line without an ICSEA: $flat")
         assertFalse("Look these schools up" in out || "myschool.edu.au" in out, "the My School line is gone; only the NAPLAN form links there")
-        val row = out.indexOf("Schools</dt>")
-        assertTrue(row in 0 until out.indexOf("Hamilton Public School"), "the list sits inside the Schools row")
+        assertFalse("Schools</dt>" in out, "the group heading says Schools; the list has no second heading")
+        assertTrue(out.indexOf("Schools</summary>") in 0 until out.indexOf("Hamilton Public School"), "the list sits inside the Schools group")
     }
 
     @Test
@@ -309,21 +309,20 @@ class SuburbCardHtmlTest {
     }
 
     @Test
-    fun `rows without data are left off, with a note that counts them and offers to show them`() {
+    fun `rows without data are left off, with no note about them`() {
         val out = html(SuburbCardState.Loaded(report), showUnknown = false)
         assertEquals(listOf("Houses for sale", "Units for sale"), labelsIn(out), "every row of this report is unknown; only the for-sale links (ADR 0061) are left")
         assertEquals(0, Regex("""class="value unknown"""").findAll(out).count())
-        assertTrue("17 rows without data are hidden." in out, out)
-        assertTrue("""data-action="show-unknown"""" in out && ">Show them<" in out)
+        assertFalse("without data" in out || "show-unknown" in out || "Show them" in out, out)
         assertTrue(CARD_DISCLAIMER in out && "<h2>HAMILTON</h2>" in out)
         assertFalse(ALL_HIDDEN_HINT in out, "rows are left off because they are unknown, not because you hid them all")
     }
 
     @Test
-    fun `showing the unknown rows draws them with their reasons and offers to hide them again`() {
+    fun `showing the unknown rows draws them with their reasons`() {
         val out = html(SuburbCardState.Loaded(report), showUnknown = true)
         assertEquals(17, labelsIn(out).size)
-        assertTrue("Showing 17 rows without data." in out && """data-action="hide-unknown"""" in out && ">Hide them again<" in out)
+        assertFalse("without data" in out || "hide-unknown" in out, out)
     }
 
     @Test
@@ -332,13 +331,12 @@ class SuburbCardHtmlTest {
         assertEquals(17, labelsIn(customising).size)
         assertFalse("without data" in customising)
         val oneHidden = createHTML().div { suburbCard(SuburbCardState.Loaded(report), CardLayout(hidden = setOf("Parks")), customising = false, showUnknown = false) }
-        assertTrue("16 rows without data are hidden." in oneHidden, oneHidden)
+        assertFalse("without data" in oneHidden, oneHidden)
     }
 
     @Test
-    fun `the Homely block comes after the note about hidden rows and before the disclaimer`() {
+    fun `the Homely block comes after the rows and before the disclaimer`() {
         val out = html(SuburbCardState.Loaded(report), showUnknown = false)
-        assertTrue(out.indexOf("unknown-note") in 0 until out.indexOf("""class="homely""""), out)
         assertTrue(out.indexOf("""class="homely"""") < out.indexOf(CARD_DISCLAIMER), "the disclaimer stays last")
         val revealed = html(SuburbCardState.Loaded(report), showUnknown = true)
         assertTrue(revealed.indexOf("Transport") in 0 until revealed.indexOf("""class="homely""""), "revealed rows are above the block too")
@@ -399,7 +397,7 @@ class SuburbCardHtmlTest {
             2026,
         )
         val out = html(SuburbCardState.Loaded(report.copy(zonedSchools = Attribute(zoned, Confidence.MEDIUM, "NSW DoE", null, "A note"))))
-        assertTrue("<dt>Schools</dt>" in out && "Zoned schools</dt>" !in out && "Hamilton Public School (primary), Newcastle High School (high)" !in out, out)
+        assertTrue("<dt>Schools</dt>" !in out && "Zoned schools</dt>" !in out && "Hamilton Public School (primary), Newcastle High School (high)" !in out, out)
         assertTrue("""href="https://hamilton-p.schools.nsw.gov.au"""" in out && " · primary, K-6 · 82% of the suburb's lots</span></div><div class=\"school-icsea\">ICSEA 1,041</div>" in flat(out), out)
         assertTrue("Newcastle High School</span>" in out && ">ICSEA 1,017<" in out, out)
     }
