@@ -24,11 +24,13 @@ class SuburbExportContentTest {
     }
 
     @Test
-    fun `your layout orders the groups and rows, and rows you hid are still exported`() {
+    fun `your layout orders the groups and rows, and rows you hid are left out`() {
         val layout = CardLayout(order = listOf("Shopping", "Parks"), hidden = setOf("Parks"), groupOrder = listOf("Location"))
         val suburb = SuburbExportContent.suburb(ExportSamples.report(), layout)
         assertEquals("Location", suburb.groups.first().title)
-        assertEquals(listOf("Shopping", "Parks"), suburb.groups.first().lines.map { it.label }.take(2))
+        val labels = suburb.groups.first().lines.map { it.label }
+        assertEquals("Shopping", labels.first())
+        assertTrue("Parks" !in labels, "a hidden row is not exported: $labels")
     }
 
     @Test

@@ -655,7 +655,8 @@ class SmokeTest {
         ) as Number
         assertTrue(offset.toDouble() in -1.0..1.0, "the pinned block should sit at the top of the card, not $offset px away")
         assertThat(page.locator("#card .card-sticky h2")).isInViewport()
-        assertThat(page.locator("#card .card-sticky button[data-action=customise]")).isInViewport()
+        // In Customise mode (which the test is in to make the card long) the bar holds Done, not Customise.
+        assertThat(page.locator("#card .card-sticky button[data-action=customise-done]")).isInViewport()
         assertThat(page.locator("#card .card-sticky button.close")).isInViewport()
     }
 
@@ -682,7 +683,7 @@ class SmokeTest {
         openWithKey()
         tapSuburb()
         showUnknownRows()
-        page.evaluate("document.getElementById('card').scrollTop = 400")
+        page.evaluate("document.getElementById('card').scrollTop = 200")
         val before = cardScrollTop()
         assertTrue(before > 100, "the card should be long enough to scroll ($before)")
         page.locator("#search-input").fill("may")

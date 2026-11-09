@@ -30,8 +30,8 @@ data class ExportDocument(
 
 /**
  * Turns suburb reports into the PDF's sections with the Suburb Card's own row building ([SuburbCardRows], [CardGroups]) and your card layout, so the
- * PDF says what the card says (ADR 0080, 0081). The export is the full details: every row is kept, including rows you hid on the card and rows with no
- * data (shown as "No data" with the reason), each with its note and its whole source line.
+ * PDF says what the card says (ADR 0080). Every row is listed, with its note and whole source line, and a row with no data says "No data" and why.
+ * Rows you hid with Customise are left out, as on the card.
  */
 object SuburbExportContent {
     /** The title of the last group, which holds the Homely score you entered (on the card it sits in its own block at the end, ADR 0060). */
@@ -42,7 +42,7 @@ object SuburbExportContent {
 
     fun suburb(report: SuburbReport, layout: CardLayout): ExportSuburb {
         val groups = layout.arrangeGroups(SuburbCardRows.of(report), CardGroups.SUBURB).mapNotNull { group ->
-            val lines = group.rows.map { it.row }.map { line(it, report) }
+            val lines = group.rows.filterNot { it.hidden }.map { line(it.row, report) }
             lines.takeIf { it.isNotEmpty() }?.let { ExportGroup(group.title, it) }
         }
         val homely = SuburbCardRows.homely(report)?.let { ExportGroup(HOMELY_TITLE, listOf(line(it, report))) }

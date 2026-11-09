@@ -24,8 +24,7 @@ layout. The card's rows are built by pure Kotlin in the `client` module (`Suburb
   `Content-Disposition: attachment; filename=homefinder-suburbs-YYYY-MM-DD.pdf`, `Cache-Control: no-store`.
 - **Same rows as the card**: the server now depends on the `client` module's JVM build and reuses `SuburbCardRows`, `CardGroups`, `CardLayout` and the
   card's provenance line, rather than moving them to `shared`: no code moves, and the PDF cannot drift from the card. Every row is listed (a row with no data says "No data"), under
-  the card group titles, in your layout's group and row order; rows you hid on the card are **included**, because the export is meant to be the full
-  details. Each row gets its note (or, for a row with no data, the reason) and its whole source line (source, as-of date, confidence).
+  the card group titles, in your layout's group and row order; rows you hid with Customise are **left out**, as on the card. Each row gets its note (or, for a row with no data, the reason) and its whole source line (source, as-of date, confidence).
   The Schools row lists each zoned school with its share, ICSEA and your NAPLAN figure. A Homely score you entered
   closes the suburb as a "Homely" group.
 - **PDF library**: Apache PDFBox 3.0.5 (Apache-2.0, pure Java, in the version catalog). It writes text with the standard Type 1 Helvetica, so no font file
@@ -44,5 +43,5 @@ layout. The card's rows are built by pure Kotlin in the `client` module (`Suburb
   prices (ADR 0018).
 - Characters outside WinAnsi (for example a suburb or school name in another script) print as "?". An embedded Unicode font would fix that at the cost of a
   font file in the repository.
-- Rows hidden on the card appear in the PDF; if that turns out to be unwanted, sending only the visible rows is a small change to `SuburbExportContent`.
+- Rows hidden on the card are left out of the PDF (your choice, 9 Nov 2026); rows with no data are listed as "No data" with their reason.
 - The file name uses the browser's date; the server's `Content-Disposition` uses the server's date. They differ only across midnight.
