@@ -63,6 +63,16 @@ class NaplanSlots(private val open: String?) {
     fun isOpen(editId: String): Boolean = editId == open
 }
 
+/** The link text, and the longer title that says the address is ours and may lead nowhere (ADR 0070). No SchoolRank data is shown. */
+const val SCHOOLRANK_LINK_TEXT: String = ExternalLinks.SCHOOLRANK_SITE
+
+fun schoolRankTitle(schoolName: String): String = "SchoolRank page for $schoolName (opens in a new tab; address built by us, may not exist)"
+
+/** The SchoolRank link for a school, or nothing when its page address cannot be built (no locality in the data). */
+fun FlowContent.schoolRankLink(school: School) {
+    ExternalLinks.schoolRankPage(school.name, school.locality)?.let { externalLink(it, SCHOOLRANK_LINK_TEXT, schoolRankTitle(school.name)) }
+}
+
 /**
  * The "Add NAPLAN" / "Edit NAPLAN" link for one listing of a school and, when it is the open one, the small form under it (ADR 0068). The figure
  * itself is shown in the school's line beside its ICSEA.
@@ -71,6 +81,8 @@ fun FlowContent.naplanControls(school: School, slots: NaplanSlots) {
     val editId = slots.next(school.id)
     val open = slots.isOpen(editId)
     div("naplan-line") {
+        // The school's SchoolRank page (ADR 0070), on the same line as the NAPLAN button so the two 44 px tap areas sit side by side.
+        schoolRankLink(school)
         button(type = ButtonType.button, classes = "naplan-edit") {
             id = editId
             attributes[CardActions.ATTRIBUTE] = CardActions.EDIT_NAPLAN
@@ -92,10 +104,7 @@ private fun FlowContent.naplanForm(school: School) {
         attributes[Aria.LABEL] = "NAPLAN for ${school.name}"
         p("hint") {
             +"Your own figure, typed in by hand: how far the school is above (+) or below (-) the national average, for your own use. Nothing is fetched. NAPLAN results are published by ACARA on "
-            a(href = ExternalLinks.MY_SCHOOL_HOME, target = "_blank", classes = "external-link") {
-                attributes["rel"] = "noopener noreferrer"
-                +NAPLAN_MY_SCHOOL_TEXT
-            }
+            externalLink(ExternalLinks.MY_SCHOOL_HOME, NAPLAN_MY_SCHOOL_TEXT)
             +"."
         }
         div("fields") {

@@ -121,6 +121,8 @@ data class School(
     val levelLabel: String? = null,
     /** The NAPLAN difference from the national average you typed in (ADR 0068, 0069), or null when you have not. */
     val naplan: NaplanScore? = null,
+    /** The locality in the school's address (the Department's "Town_suburb", for example "Wallsend"), or null where the data has none. */
+    val locality: String? = null,
 )
 
 @Serializable

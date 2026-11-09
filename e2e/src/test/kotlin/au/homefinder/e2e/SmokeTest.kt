@@ -192,15 +192,23 @@ class SmokeTest {
     }
 
     @Test
-    fun `the Schools row lists the public schools with their ICSEA and own website, and links to My School`() {
+    fun `the Schools row lists the public schools with their ICSEA and own website, and links to My School and SchoolRank`() {
         openWithKey()
         tapSuburb()
         val row = page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Schools"))
         assertThat(row.first()).containsText("1 public school, average ICSEA 1,051 (1,000 is average)")
-        assertThat(page.locator("#card ul.schools a")).hasAttribute("href", "https://hamilton-p.schools.nsw.gov.au")
+        assertThat(page.locator("#card ul.schools li > a")).hasAttribute("href", "https://hamilton-p.schools.nsw.gov.au")
         assertThat(page.locator("#card ul.schools")).containsText("ICSEA 1,051 · 412 students")
         page.locator("#card details.card-group[data-group='Schools'] > summary").click()
         assertThat(page.locator("#card a[href='https://www.myschool.edu.au/']")).isVisible()
+        // A SchoolRank link built from the school's name and locality (ADR 0070); never fetched. The zoned school without a locality gets none.
+        page.waitForFunction("() => document.querySelectorAll('#card a[href^=\"https://schoolrank.com.au/school/\"]').length > 0")
+        val rank = page.locator("#card ul.schools a[href='https://schoolrank.com.au/school/hamilton-public-school-hamilton-nsw']")
+        assertThat(rank).hasText("SchoolRank")
+        assertThat(rank).hasAttribute("target", "_blank")
+        assertThat(rank).hasAttribute("rel", "noopener noreferrer")
+        assertThat(rank).isVisible()
+        assertThat(page.locator("#card ul.zones a", Page.LocatorOptions().setHasText("SchoolRank"))).hasCount(0)
     }
 
     @Test

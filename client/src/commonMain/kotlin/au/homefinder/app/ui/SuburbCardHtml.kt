@@ -197,10 +197,7 @@ fun FlowContent.suburbCard(
                     SuburbCardRows.homely(card.report)?.let { homely -> dl("rows") { cardRow(ArrangedRow(homely, hidden = false), 0, 1, customising = false) } }
                     ExternalLinks.homelySuburbProfile(card.report.name, card.report.postcode)?.let { url ->
                         p("external") {
-                            a(href = url, target = "_blank", classes = "external-link") {
-                                attributes["rel"] = "noopener noreferrer"
-                                +HOMELY_LINK_TEXT
-                            }
+                            externalLink(url, HOMELY_LINK_TEXT)
                         }
                     }
                     ratingForm(card.report)
@@ -278,10 +275,7 @@ private fun zoneList(report: SuburbReport, slots: NaplanSlots): (kotlinx.html.DI
                 li {
                     val address = ExternalLinks.webAddress(zone.school.website)
                     if (address != null) {
-                        a(href = address, target = "_blank", classes = "external-link") {
-                            attributes["rel"] = "noopener noreferrer"
-                            +zone.school.name
-                        }
+                        externalLink(address, zone.school.name)
                     } else {
                         span("school-name") { +zone.school.name }
                     }
@@ -302,10 +296,7 @@ private fun schoolList(report: SuburbReport, slots: NaplanSlots): (kotlinx.html.
                 li {
                     val address = ExternalLinks.webAddress(school.website)
                     if (address != null) {
-                        a(href = address, target = "_blank", classes = "external-link") {
-                            attributes["rel"] = "noopener noreferrer"
-                            +school.name
-                        }
+                        externalLink(address, school.name)
                     } else {
                         span("school-name") { +school.name }
                     }
@@ -315,10 +306,7 @@ private fun schoolList(report: SuburbReport, slots: NaplanSlots): (kotlinx.html.
             }
         }
         p("hint") {
-            a(href = ExternalLinks.MY_SCHOOL_HOME, target = "_blank", classes = "external-link") {
-                attributes["rel"] = "noopener noreferrer"
-                +MY_SCHOOL_LINK_TEXT
-            }
+            externalLink(ExternalLinks.MY_SCHOOL_HOME, MY_SCHOOL_LINK_TEXT)
         }
     }
 }

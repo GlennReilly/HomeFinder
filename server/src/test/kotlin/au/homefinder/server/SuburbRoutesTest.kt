@@ -183,13 +183,14 @@ class SuburbRoutesTest {
 
     @Test
     fun `a report lists the suburb's public schools with their ICSEA when school data is loaded`() {
-        val data = SuburbSchoolData(listOf(SchoolRecord(1, "Hamilton Public School", "Primary School", 1051, 412, "https://hamilton-p.schools.nsw.gov.au")), LocalDate(2026, 10, 2))
+        val data = SuburbSchoolData(listOf(SchoolRecord(1, "Hamilton Public School", "Primary School", 1051, 412, "https://hamilton-p.schools.nsw.gov.au", "Hamilton")), LocalDate(2026, 10, 2))
         api(FakeDirectory(byId = mapOf("9001" to hamilton), schools = mapOf("9001" to data))) {
             val report = ApiJson.decodeFromString<SuburbReport>(get("${ApiContract.SUBURBS_PATH}/9001").bodyAsText())
             val schools = assertNotNull(report.schools.value)
             assertEquals("Hamilton Public School", schools.publicSchoolsInside.single().name)
             assertEquals(1051, schools.averageIcsea)
             assertEquals("https://hamilton-p.schools.nsw.gov.au", schools.publicSchoolsInside.single().website)
+            assertEquals("Hamilton", schools.publicSchoolsInside.single().locality, "the address locality, for the SchoolRank link (ADR 0070)")
         }
         api(FakeDirectory(byId = mapOf("9001" to hamilton))) {
             val report = ApiJson.decodeFromString<SuburbReport>(get("${ApiContract.SUBURBS_PATH}/9001").bodyAsText())

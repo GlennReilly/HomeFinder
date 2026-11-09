@@ -184,6 +184,7 @@ object LotReportFactory {
             id = zone.schoolCode.toString(), name = record?.name ?: zone.name, sector = SchoolSector.PUBLIC,
             level = if (zone.level == "HIGH") SchoolLevel.HIGH else SchoolLevel.PRIMARY,
             icsea = record?.icsea, enrolments = record?.enrolments, website = SuburbReportFactory.safeWebsite(record?.website), levelLabel = label,
+            locality = record?.townSuburb,
         )
     }
 
@@ -194,6 +195,7 @@ object LotReportFactory {
             School(
                 id = record.code.toString(), name = record.name, sector = SchoolSector.PUBLIC, level = SuburbReportFactory.schoolLevel(record.levelLabel),
                 icsea = record.icsea, enrolments = record.enrolments, website = SuburbReportFactory.safeWebsite(record.website), levelLabel = record.levelLabel,
+                locality = record.townSuburb,
             ),
             distanceM = metres, walkingMinutes = walkingMinutes(metres),
         )

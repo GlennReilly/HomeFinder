@@ -2,6 +2,8 @@ package au.homefinder.app.ui
 
 import au.homefinder.app.selection.SuburbCardRows
 import kotlinx.html.DL
+import kotlinx.html.FlowContent
+import kotlinx.html.a
 import kotlinx.html.dd
 
 /**
@@ -29,4 +31,22 @@ object CardRowClasses {
 /** A row's value, or [SuburbCardRows.UNKNOWN] in the unknown style when there is none (never a silent blank). Call through the list: `dd` is only defined there. */
 internal fun DL.valueCell(value: String?) {
     dd(if (value == null) CardRowClasses.VALUE_UNKNOWN else CardRowClasses.VALUE) { +(value ?: SuburbCardRows.UNKNOWN) }
+}
+
+/** The attributes of a link that leaves the app (ADR 0061): a new tab, and the page opened gets neither this window nor the address it came from. */
+object ExternalLinkAttributes {
+    const val CLASS: String = "external-link"
+    const val NEW_TAB: String = "_blank"
+    const val REL: String = "rel"
+    const val REL_VALUE: String = "noopener noreferrer"
+    const val TITLE: String = "title"
+}
+
+/** One link out of the app with [ExternalLinkAttributes]; [title] (the tooltip and longer name) is optional. */
+internal fun FlowContent.externalLink(href: String, text: String, title: String? = null) {
+    a(href = href, target = ExternalLinkAttributes.NEW_TAB, classes = ExternalLinkAttributes.CLASS) {
+        attributes[ExternalLinkAttributes.REL] = ExternalLinkAttributes.REL_VALUE
+        title?.let { attributes[ExternalLinkAttributes.TITLE] = it }
+        +text
+    }
 }

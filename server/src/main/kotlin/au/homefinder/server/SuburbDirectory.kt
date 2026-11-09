@@ -170,6 +170,7 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
                                 SchoolRecord(
                                     code, it, rows.getString("level_label"), rows.getInt("icsea").takeIf { !rows.wasNull() },
                                     rows.getDouble("enrolment_fte").takeIf { !rows.wasNull() }?.let { fte -> Math.round(fte).toInt() }, rows.getString("website"),
+                                    rows.getString("town_suburb"),
                                 )
                             }
                             val zone = CatchmentZone(
@@ -209,6 +210,7 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
                                     SchoolRecord(
                                         code = rows.getInt("school_code"), name = rows.getString("name"), levelLabel = rows.getString("level_label"),
                                         icsea = int("icsea"), enrolments = rows.getBigDecimal("enrolment_fte")?.toInt(), website = rows.getString("website"),
+                                        townSuburb = rows.getString("town_suburb"),
                                     ),
                                 )
                             }
@@ -343,7 +345,7 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
         /** The zones covering a suburb's lots with the school's own record where its code is in the schools data (ADR 0062). */
         val ZONES_SQL = """
             SELECT c.school_code, c.level, c.catch_type, c.name, c.years, c.lot_share, c.enrolment_year,
-                   s.name AS school_name, s.level_label, s.icsea, s.enrolment_fte, s.website
+                   s.name AS school_name, s.level_label, s.icsea, s.enrolment_fte, s.website, s.town_suburb
             FROM suburb_catchment c LEFT JOIN school s ON s.school_code = c.school_code
             WHERE c.suburb_id = ? ORDER BY c.level DESC, c.lot_share DESC, c.school_code
         """.trimIndent()
@@ -360,7 +362,7 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
         val SCHOOLS_LOADED_SQL = "SELECT count(*) AS n, max(extracted_on) AS latest FROM school"
 
         val SCHOOLS_SQL = """
-            SELECT school_code, name, level_label, icsea, enrolment_fte, website FROM school WHERE suburb_id = ? ORDER BY name
+            SELECT school_code, name, level_label, icsea, enrolment_fte, website, town_suburb FROM school WHERE suburb_id = ? ORDER BY name
         """.trimIndent()
 
         /** The average is over schools that have an ICSEA, rounded half up like the card's average. */
