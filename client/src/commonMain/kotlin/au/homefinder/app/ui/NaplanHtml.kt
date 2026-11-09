@@ -40,7 +40,7 @@ const val NAPLAN_ADD_TEXT: String = "Add NAPLAN"
 const val NAPLAN_EDIT_TEXT: String = "Edit NAPLAN"
 
 /** What the score box asks for: a signed difference from the national average (ADR 0069). */
-const val NAPLAN_SCORE_LABEL: String = "Difference from national average (points, may be negative, e.g. -41)"
+const val NAPLAN_SCORE_LABEL: String = "Difference from national average (points, may be negative)"
 const val NAPLAN_SCORE_PLACEHOLDER: String = "-41"
 
 /**
