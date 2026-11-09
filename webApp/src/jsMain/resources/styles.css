@@ -125,19 +125,28 @@ progress { width: 100%; margin: 16px 0; }
 .rating-edit { padding: 0 0 12px; }
 .rating-edit summary { cursor: pointer; width: fit-content; min-height: var(--tap-target); display: flex; align-items: center; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .rating-edit summary:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
-.rating-form { margin: 0; padding: 10px 0 0; }
-.rating-form .hint { margin: 0 0 10px; font-size: .8rem; color: var(--muted); }
-.rating-form .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.rating-form label { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); }
-.rating-form input { font: inherit; padding: 7px 8px; border: 1px solid rgba(128, 128, 128, .6); border-radius: 6px; background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
-.rating-form .buttons { display: flex; gap: 8px; margin-top: 10px; }
-.rating-form .buttons button[type="submit"] { background: var(--purple); color: #fff; }
-.rating-message { min-height: 1.2em; margin: 8px 0 0; font-size: .85rem; color: var(--error); }
+.rating-form, .naplan-form { margin: 0; padding: 10px 0 0; }
+.rating-form .hint, .naplan-form .hint { margin: 0 0 10px; font-size: .8rem; color: var(--muted); }
+.rating-form .fields, .naplan-form .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rating-form label, .naplan-form label { display: grid; gap: 4px; font-size: .8rem; color: var(--muted); }
+.rating-form input, .naplan-form input { font: inherit; padding: 7px 8px; border: 1px solid rgba(128, 128, 128, .6); border-radius: 6px; background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+.rating-form .buttons, .naplan-form .buttons { display: flex; gap: 8px; margin-top: 10px; }
+.rating-form .buttons button[type="submit"], .naplan-form .buttons button[type="submit"] { background: var(--purple); color: #fff; }
+.naplan-form .buttons button { min-height: var(--tap-target); }
+.rating-message, .naplan-message { min-height: 1.2em; margin: 8px 0 0; font-size: .85rem; color: var(--error); }
 
 /* The public schools listed under the Schools row. */
-.schools, .zones { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
-.schools li, .zones li { display: grid; gap: 1px; }
+.schools, .zones, .naplan-schools { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.schools li, .zones li, .naplan-schools li { display: grid; gap: 1px; }
 .schools .detail, .zones .detail { font-size: .8rem; color: var(--muted); }
+
+/* The NAPLAN score you type in for a school (ADR 0068): a link-styled button under the school with a full 44 px tap box. Its top part overlaps
+   the plain text line above (not visible space, as for Details/Source); its bottom part stays clear of the next school's link. */
+.naplan-line { display: flex; margin-top: calc(-1 * var(--summary-overlap)); }
+.naplan-edit { font: inherit; font-size: .85rem; padding: 0; min-height: var(--tap-target); border: 0; background: none; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.naplan-edit:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
+.naplan-form { padding: 4px 0 8px; }
+.naplan-form .note-field { grid-column: 1 / -1; }
 .listing-links { margin: 0; font-size: .85rem; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; }
 /* Each link has a full-height tap area; the label sits on the same line, flush with the first link. */
 .listing-links .external-link, .row-links .external-link { display: inline-flex; align-items: center; min-height: var(--tap-target); }

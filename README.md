@@ -33,7 +33,7 @@ Requires JDK 17. Gradle downloads Node and the npm packages for the web build.
 ```
 
 Builds the web app, serves it with a small fake of the API and drives the installed Chrome through it: the key prompt, a tap on the map,
-search, and saving and removing a Homely score. Needs Google Chrome (set `E2E_BROWSER_CHANNEL` to use another, for example `msedge`).
+search, saving and removing a Homely score, and adding and clearing a school's NAPLAN score. Needs Google Chrome (set `E2E_BROWSER_CHANNEL` to use another, for example `msedge`).
 They are not part of `./gradlew build`; CI runs them as their own job. See [ADR 0032](docs/adr/0032-browser-smoke-tests.md).
 
 ## Run it locally
@@ -103,6 +103,17 @@ In the app: open a suburb's card, press "Edit the Homely rating" in the Homely b
 The card then shows a "Homely rating" row under the area, and a "★ 2.1" label appears under the suburb's name on the map. Remove clears both. See
 [ADR 0028](docs/adr/0028-manual-homely-rating.md).
 
+
+### Your NAPLAN scores
+
+`GET /v1/schools/naplan` lists the NAPLAN scores you have typed in (`?codes=` for some schools), and `PUT` / `DELETE /v1/schools/{code}/naplan`
+set and remove one (one overall score from 0 to 1000, the year it is from, 2008 to this year, and an optional note). Nothing is fetched from
+[My School](https://www.myschool.edu.au/): its terms allow personal, non-commercial use with the credit "Source: Australian Curriculum,
+Assessment and Reporting Authority (ACARA)". They need migration V25.
+
+In the app: under each school in the Suburb Card's Schools and Zoned schools rows, or the Lot Card's Schools row, press "Add NAPLAN", type
+the score and year from the school's My School page and press Save. The card then shows "NAPLAN 512 (2025)" beside the school's ICSEA;
+"Edit NAPLAN" changes or clears it. See [ADR 0068](docs/adr/0068-manual-naplan-score-per-school.md).
 ### Filtering suburbs
 
 `GET /v1/suburbs/filters` gives every suburb's values for seven criteria, each with its source and date, in one response: average school ICSEA,

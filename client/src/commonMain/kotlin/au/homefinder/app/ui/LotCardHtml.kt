@@ -5,12 +5,13 @@ import au.homefinder.app.selection.CardGroups
 import au.homefinder.app.selection.CardLayout
 import au.homefinder.app.selection.LotCardRows
 import au.homefinder.app.selection.LotCardState
+import au.homefinder.app.selection.SuburbCardRows
+import au.homefinder.shared.model.School
 import au.homefinder.app.selection.UnknownRows
 import kotlinx.html.ButtonType
 import kotlinx.html.DL
 import kotlinx.html.FlowContent
 import kotlinx.html.button
-import kotlinx.html.dd
 import kotlinx.html.div
 import kotlinx.html.dl
 import kotlinx.html.dt
@@ -56,9 +57,10 @@ fun FlowContent.lotCard(
     customising: Boolean = false,
     showUnknown: Boolean = false,
     groupOpen: Map<String, Boolean> = emptyMap(),
+    naplanOpen: String? = null,
 ) {
     section("suburb-card lot-card") {
-        attributes["aria-label"] = "Lot card"
+        attributes[Aria.LABEL] = "Lot card"
         div(STICKY_TOP_CLASS) {
             div("card-header") {
                 div {
@@ -73,7 +75,7 @@ fun FlowContent.lotCard(
                 }
                 button(type = ButtonType.button, classes = "close") {
                     attributes[CardActions.ATTRIBUTE] = CardActions.CLOSE
-                    attributes["aria-label"] = "Close lot card"
+                    attributes[Aria.LABEL] = "Close lot card"
                     +CLOSE_BUTTON_TEXT
                 }
             }
@@ -82,7 +84,7 @@ fun FlowContent.lotCard(
         lotCardParcel(card)?.let { p("subtitle parcel-scroll") { +it } }
         when (card) {
             LotCardState.Hidden -> Unit
-            is LotCardState.Loading -> progress { attributes["aria-label"] = "Loading lot" }
+            is LotCardState.Loading -> progress { attributes[Aria.LABEL] = "Loading lot" }
             is LotCardState.Failed -> {
                 p("error") { +"Could not load this lot: ${card.reason}." }
                 button(type = ButtonType.button, classes = "retry") {
@@ -95,6 +97,7 @@ fun FlowContent.lotCard(
                     ul("addresses") { card.report.addresses.forEach { li { +it } } }
                 }
                 val groups = layout.arrangeGroups(LotCardRows.of(card.report), CardGroups.LOT)
+                val slots = NaplanSlots(naplanOpen)
                 val full = groups.flatMap { it.rows }
                 val arranged = UnknownRows.visible(full, customising, showUnknown)
                 if (arranged.isEmpty() && UnknownRows.unknownCount(full, customising) == 0) p("hint") { +ALL_HIDDEN_HINT }
@@ -108,7 +111,8 @@ fun FlowContent.lotCard(
                             group.rows.forEach { item ->
                                 val i = drawn.indexOfFirst { it.row.label == item.row.label }
                                 val links = ListingLinks.forLotRow(item.row.label, card.report)
-                                if (i >= 0) lotRow(item, i, drawn.size, customising, links) else if (links != null && !item.hidden) listingLinksRow(links)
+                                val schools = if (item.row.label == SuburbCardRows.SCHOOLS_LABEL) LotCardRows.listedSchools(card.report) else emptyList()
+                                if (i >= 0) lotRow(item, i, drawn.size, customising, links, schools, slots) else if (links != null && !item.hidden) listingLinksRow(links)
                             }
                         }
                     }
@@ -120,15 +124,34 @@ fun FlowContent.lotCard(
     }
 }
 
-private fun DL.lotRow(item: ArrangedRow, index: Int, count: Int, customising: Boolean, links: ListingBlock? = null) {
+private fun DL.lotRow(
+    item: ArrangedRow,
+    index: Int,
+    count: Int,
+    customising: Boolean,
+    links: ListingBlock? = null,
+    schools: List<School> = emptyList(),
+    slots: NaplanSlots = NaplanSlots(null),
+) {
     val list = this
     val row = item.row
-    div(if (item.hidden) "row row-hidden" else "row") {
+    div(CardRowClasses.row(item.hidden)) {
         list.dt { +row.label }
         val value = row.value
-        list.dd(if (value == null) "value unknown" else "value") { +(value ?: "Unknown") }
+        list.valueCell(value)
         list.provenanceDetails(row)
         links?.let { listingLinksLine(it) }
+        // Under the Schools row: each school it names, with the link to add or edit your NAPLAN figure for it (ADR 0068).
+        if (schools.isNotEmpty()) {
+            ul("naplan-schools") {
+                schools.forEach { school ->
+                    li {
+                        span("school-name") { +school.name }
+                        naplanControls(school, slots)
+                    }
+                }
+            }
+        }
         if (customising) rowControls(item, first = index == 0, last = index == count - 1)
     }
 }

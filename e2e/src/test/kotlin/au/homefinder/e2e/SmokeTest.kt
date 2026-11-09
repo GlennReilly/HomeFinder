@@ -55,6 +55,7 @@ class SmokeTest {
     fun newPage() {
         app.rating = null
         app.failSavingRatings = false
+        app.naplan.clear()
         pageErrors.clear()
         context = browser.newContext(Browser.NewContextOptions().setViewportSize(1100, 750))
         // The basemap style comes from a public service; stand in a plain background with no sources.
@@ -214,6 +215,46 @@ class SmokeTest {
     }
 
     @Test
+    fun `a NAPLAN score can be added to a school, shows beside its ICSEA and can be cleared`() {
+        openWithKey()
+        tapSuburb()
+        page.locator("#card details.card-group[data-group='Schools'] > summary").click()
+        val edit = page.locator("#naplan-edit-2")
+        assertThat(edit).hasText("Add NAPLAN")
+        assertThat(page.locator("#naplan-form")).hasCount(0)
+        edit.click()
+        // The form opens under Newcastle High School, the second zone, and only there.
+        assertThat(page.locator("#card ul.zones li", Page.LocatorOptions().setHasText("Newcastle High School")).locator("#naplan-form")).isVisible()
+        assertThat(page.locator("#naplan-clear")).hasCount(0)
+        page.locator("#naplan-score").fill("1200")
+        page.locator("#naplan-year").fill("2025")
+        page.locator("#naplan-save").click()
+        assertThat(page.locator("#naplan-message")).hasText("The score must be a whole number from 0 to 1000")
+        assertTrue(app.naplan.isEmpty())
+        page.locator("#naplan-score").fill("512")
+        page.locator("#naplan-note").fill("Year 9 reading")
+        page.locator("#naplan-save").click()
+        page.waitForFunction("() => document.getElementById('naplan-form') === null && document.querySelector('#card ul.zones')?.textContent.includes('NAPLAN 512 (2025)')")
+        assertThat(page.locator("#card ul.zones")).containsText("high, 7-12 · 76% of the suburb's lots · ICSEA 1,017 · NAPLAN 512 (2025)")
+        assertEquals(512, app.naplan["2"]?.score)
+        assertThat(page.locator("#naplan-edit-2")).hasText("Edit NAPLAN")
+        // The row's Source names ACARA, as My School's terms ask.
+        assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Zoned schools")).first()).containsText("Australian Curriculum, Assessment and Reporting Authority (ACARA)")
+
+        // Opening it again fills the boxes; Cancel closes it without a change; Clear removes the score.
+        page.locator("#naplan-edit-2").click()
+        assertThat(page.locator("#naplan-score")).hasValue("512")
+        assertThat(page.locator("#naplan-note")).hasValue("Year 9 reading")
+        page.locator("#naplan-cancel").click()
+        assertThat(page.locator("#naplan-form")).hasCount(0)
+        page.locator("#naplan-edit-2").click()
+        page.locator("#naplan-clear").click()
+        page.waitForFunction("() => document.getElementById('naplan-form') === null && !document.querySelector('#card ul.zones')?.textContent.includes('NAPLAN 512')")
+        assertThat(page.locator("#naplan-edit-2")).hasText("Add NAPLAN")
+        assertTrue(app.naplan.isEmpty())
+    }
+
+    @Test
     fun `a wrong key shows a failed card instead of crashing`() {
         context.addInitScript("window.localStorage.setItem('homefinder.apiKey', 'not-the-key-0123456789')")
         page.navigate(app.origin + "/")
@@ -257,13 +298,21 @@ class SmokeTest {
     }
 
     /** Folds every filter group open (ADR 0066: only the first starts open) so the criteria can be reached. */
+    /** The filter panel is drawn only once its values arrive from the API; anything that reads or opens its groups must wait for that first. */
+    private fun waitForFilterPanel() {
+        page.waitForFunction("() => document.querySelectorAll('#filters details.filter-group').length > 0")
+    }
+
     private fun openFilterGroups() {
+        waitForFilterPanel()
         page.evaluate("document.querySelectorAll('#filters details.filter-group').forEach(d => d.open = true)")
+        page.waitForFunction("() => [...document.querySelectorAll('#filters details.filter-group')].every(d => d.open)")
     }
 
     @Test
     fun `filter groups fold, the first starts open, and a group counts its switched-on filters`() {
         openWithKey()
+        waitForFilterPanel()
         assertTrue(page.evaluate("document.getElementById('filter-group-people-and-area').open") == true)
         assertTrue(page.evaluate("document.getElementById('filter-group-schools').open") == false)
         assertThat(page.locator("#filter-icsea-on")).not().isVisible()

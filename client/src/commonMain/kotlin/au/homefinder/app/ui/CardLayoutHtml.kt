@@ -54,7 +54,7 @@ private fun DIV.actionButton(action: String, text: String, description: String =
     button(type = ButtonType.button, classes = "layout-button") {
         attributes[CardActions.ATTRIBUTE] = action
         attributes["title"] = description
-        attributes["aria-label"] = description
+        attributes[Aria.LABEL] = description
         +text
     }
 }
@@ -73,7 +73,7 @@ private fun DIV.control(action: String, text: String, description: String, label
     button(type = ButtonType.button, classes = "layout-button") {
         attributes[CardActions.ATTRIBUTE] = action
         attributes[LayoutActions.ROW_ATTRIBUTE] = label
-        attributes["aria-label"] = description
+        attributes[Aria.LABEL] = description
         if (disabled) attributes["disabled"] = "disabled"
         +text
     }
@@ -120,7 +120,7 @@ private fun DIV.groupControl(action: String, text: String, description: String, 
     button(type = ButtonType.button, classes = "layout-button") {
         attributes[CardActions.ATTRIBUTE] = action
         attributes[LayoutActions.GROUP_ATTRIBUTE] = title
-        attributes["aria-label"] = description
+        attributes[Aria.LABEL] = description
         if (disabled) attributes["disabled"] = "disabled"
         +text
     }

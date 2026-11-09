@@ -18,7 +18,7 @@ class RatingApi(private val config: ApiConfig, private val reads: HttpGet, priva
 
     /** Saves a score; the server rounds the stars to one decimal and answers with what it kept. */
     suspend fun save(suburbId: String, rating: HomelyRating): LookupResult<HomelyRating> {
-        val answer = writes.send("PUT", ratingUrl(suburbId), headers(), ApiJson.encodeToString(rating))
+        val answer = writes.send(HttpVerb.PUT, ratingUrl(suburbId), headers(), ApiJson.encodeToString(rating))
         return when (answer) {
             is HttpResult.Failure -> LookupResult.Failed(answer.message)
             is HttpResult.Response -> when (answer.status) {
@@ -33,7 +33,7 @@ class RatingApi(private val config: ApiConfig, private val reads: HttpGet, priva
     }
 
     /** Removes a score. Removing one that is not there is fine. */
-    suspend fun remove(suburbId: String): LookupResult<Unit> = when (val answer = writes.send("DELETE", ratingUrl(suburbId), headers(), null)) {
+    suspend fun remove(suburbId: String): LookupResult<Unit> = when (val answer = writes.send(HttpVerb.DELETE, ratingUrl(suburbId), headers(), null)) {
         is HttpResult.Failure -> LookupResult.Failed(answer.message)
         is HttpResult.Response -> when (answer.status) {
             HTTP_NO_CONTENT, HTTP_OK -> LookupResult.Found(Unit)

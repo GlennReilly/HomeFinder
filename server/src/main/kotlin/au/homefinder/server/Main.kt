@@ -37,7 +37,8 @@ fun main() {
             val lots = dataSource?.let { PostgisLotDirectory(it) }
             val search = dataSource?.let { PostgisSearchIndex(it) }
             val ratings = writable?.let { PostgisRatingStore(it) }
-            embeddedServer(Netty, host = config.host, port = config.port) { module(config, tiles, suburbs, lotTiles, lots, search, ratings) }.start(wait = true)
+            val naplan = writable?.let { PostgisNaplanStore(it) }
+            embeddedServer(Netty, host = config.host, port = config.port) { module(config, tiles, suburbs, lotTiles, lots, search, ratings, naplan) }.start(wait = true)
         }
     }
 }

@@ -2,6 +2,7 @@ package au.homefinder.app.selection
 
 import au.homefinder.app.api.LookupResult
 import au.homefinder.app.api.LotApi
+import au.homefinder.app.api.NaplanApi
 import au.homefinder.app.api.RatingApi
 import au.homefinder.app.api.SuburbApi
 import au.homefinder.shared.api.SuburbRef
@@ -15,6 +16,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
+import kotlin.time.Clock
 
 /** What the Suburb Card shows. */
 sealed interface SuburbCardState {
@@ -60,11 +64,26 @@ sealed interface RatingOutcome {
     data class Failed(val message: String) : RatingOutcome
 }
 
+/** How saving or removing a school's NAPLAN figure went (ADR 0068), in words the form can show. */
+sealed interface NaplanOutcome {
+    data object Saved : NaplanOutcome
+    data object Removed : NaplanOutcome
+
+    /** The input was not acceptable; nothing was sent. */
+    data class Rejected(val message: String) : NaplanOutcome
+    data class Failed(val message: String) : NaplanOutcome
+}
+
+/** This year on this device: a NAPLAN figure cannot be from a later one. */
+fun currentYear(): Int = Clock.System.todayIn(TimeZone.currentSystemDefault()).year
+
 class MapViewModel(
     private val api: SuburbApi,
     private val scope: CoroutineScope,
     private val lots: LotApi? = null,
     private val ratings: RatingApi? = null,
+    private val naplan: NaplanApi? = null,
+    private val thisYear: () -> Int = ::currentYear,
 ) {
     private val mutableRatingsVersion = MutableStateFlow(0)
 
@@ -135,6 +154,44 @@ class MapViewModel(
         mutableRatingsVersion.update { it + 1 }
     }
 
+    /** Saves the NAPLAN figure typed in for one school, then reloads the card on show (suburb or lot) so every listing of the school shows it. */
+    suspend fun saveNaplan(schoolCode: String, scoreText: String, yearText: String, noteText: String): NaplanOutcome {
+        val api = naplan ?: return NaplanOutcome.Failed(MESSAGE_NAPLAN_UNAVAILABLE)
+        val entry = when (val input = NaplanInput.parse(scoreText, yearText, noteText, thisYear())) {
+            is ParsedNaplan.Invalid -> return NaplanOutcome.Rejected(input.message)
+            is ParsedNaplan.Valid -> input.entry
+        }
+        return when (val result = api.save(schoolCode, entry)) {
+            is LookupResult.Found -> NaplanOutcome.Saved.also { refreshShownCard() }
+            LookupResult.Unauthorized -> NaplanOutcome.Failed(NOTICE_KEY_REJECTED)
+            LookupResult.NotFound -> NaplanOutcome.Failed(MESSAGE_SCHOOL_UNKNOWN)
+            is LookupResult.Failed -> NaplanOutcome.Failed(result.reason)
+        }
+    }
+
+    /** Removes one school's NAPLAN figure and reloads the card on show. */
+    suspend fun removeNaplan(schoolCode: String): NaplanOutcome {
+        val api = naplan ?: return NaplanOutcome.Failed(MESSAGE_NAPLAN_UNAVAILABLE)
+        return when (val result = api.remove(schoolCode)) {
+            is LookupResult.Found -> NaplanOutcome.Removed.also { refreshShownCard() }
+            LookupResult.Unauthorized -> NaplanOutcome.Failed(NOTICE_KEY_REJECTED)
+            LookupResult.NotFound -> NaplanOutcome.Failed(MESSAGE_SCHOOL_UNKNOWN)
+            is LookupResult.Failed -> NaplanOutcome.Failed(result.reason)
+        }
+    }
+
+    /** Reloads the lot or suburb card in place (no loading flash) if it is still the one selected. */
+    private suspend fun refreshShownCard() {
+        mutableState.value.selectedLotId?.let { lotId ->
+            val report = lots?.report(lotId)
+            if (report is LookupResult.Found && mutableState.value.selectedLotId == lotId) mutableState.update { it.copy(lotCard = LotCardState.Loaded(report.value)) }
+            return
+        }
+        val suburbId = mutableState.value.selectedSuburbId ?: return
+        val report = api.report(suburbId)
+        if (report is LookupResult.Found && mutableState.value.selectedSuburbId == suburbId) mutableState.update { it.copy(card = SuburbCardState.Loaded(report.value)) }
+    }
+
     /** Selects a lot by id: the entry point for a search result that names a lot, as [select] is for a suburb. */
     fun selectLot(lotId: String) {
         val lotApi = lots ?: return
@@ -195,5 +252,7 @@ class MapViewModel(
         const val MESSAGE_RATINGS_UNAVAILABLE: String = "Ratings are not available"
         const val MESSAGE_SELECT_FIRST: String = "Select a suburb first"
         const val MESSAGE_SUBURB_GONE: String = "That suburb no longer exists"
+        const val MESSAGE_NAPLAN_UNAVAILABLE: String = "NAPLAN figures are not available"
+        const val MESSAGE_SCHOOL_UNKNOWN: String = "That school is not in the school list"
     }
 }

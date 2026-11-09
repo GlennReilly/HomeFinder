@@ -43,6 +43,11 @@ object CardActions {
     const val REMOVE_RATING: String = "remove-rating"
     const val SHOW_UNKNOWN: String = "show-unknown"
     const val HIDE_UNKNOWN: String = "hide-unknown"
+
+    /** The NAPLAN controls (ADR 0068): open a school's form, close it, and clear its figure. */
+    const val EDIT_NAPLAN: String = "edit-naplan"
+    const val CANCEL_NAPLAN: String = "cancel-naplan"
+    const val CLEAR_NAPLAN: String = "clear-naplan"
 }
 
 /** The close button shows a cross; its aria-label carries the words. */
@@ -123,9 +128,10 @@ fun FlowContent.suburbCard(
     customising: Boolean = false,
     showUnknown: Boolean = false,
     groupOpen: Map<String, Boolean> = emptyMap(),
+    naplanOpen: String? = null,
 ) {
     section("suburb-card") {
-        attributes["aria-label"] = "Suburb card"
+        attributes[Aria.LABEL] = "Suburb card"
         // The name, postcode, close button and Customise bar stay pinned at the top while the rows scroll (ADR 0053).
         div(STICKY_TOP_CLASS) {
             div("card-header") {
@@ -135,7 +141,7 @@ fun FlowContent.suburbCard(
                 }
                 button(type = ButtonType.button, classes = "close") {
                     attributes[CardActions.ATTRIBUTE] = CardActions.CLOSE
-                    attributes["aria-label"] = "Close suburb card"
+                    attributes[Aria.LABEL] = "Close suburb card"
                     +CLOSE_BUTTON_TEXT
                 }
             }
@@ -143,7 +149,7 @@ fun FlowContent.suburbCard(
         }
         when (card) {
             SuburbCardState.Hidden -> Unit
-            is SuburbCardState.Loading -> progress { attributes["aria-label"] = "Loading suburb" }
+            is SuburbCardState.Loading -> progress { attributes[Aria.LABEL] = "Loading suburb" }
             is SuburbCardState.Failed -> {
                 p("error") { +"Could not load this suburb: ${card.reason}." }
                 button(type = ButtonType.button, classes = "retry") {
@@ -155,6 +161,7 @@ fun FlowContent.suburbCard(
                 // Customising shows every row (hidden ones dimmed) with its controls; otherwise only the rows not hidden, and not the unknown ones
                 // unless you asked to see them (ADR 0058).
                 val groups = layout.arrangeGroups(SuburbCardRows.of(card.report), CardGroups.SUBURB)
+                val slots = NaplanSlots(naplanOpen)
                 val full = groups.flatMap { it.rows }
                 val arranged = UnknownRows.visible(full, customising, showUnknown)
                 if (arranged.isEmpty() && UnknownRows.unknownCount(full, customising) == 0) p("hint") { +ALL_HIDDEN_HINT }
@@ -170,8 +177,8 @@ fun FlowContent.suburbCard(
                                 val links = ListingLinks.forSuburbRow(item.row.label, card.report)
                                 if (i >= 0) {
                                     val extra: (kotlinx.html.DIV.() -> Unit)? = when {
-                                        item.row.label == SuburbCardRows.SCHOOLS_LABEL -> schoolList(card.report)
-                                        item.row.label == SuburbCardRows.ZONED_LABEL -> zoneList(card.report)
+                                        item.row.label == SuburbCardRows.SCHOOLS_LABEL -> schoolList(card.report, slots)
+                                        item.row.label == SuburbCardRows.ZONED_LABEL -> zoneList(card.report, slots)
                                         links != null -> ({ listingLinksLine(links) })
                                         else -> null
                                     }
@@ -228,7 +235,7 @@ fun FlowContent.ratingForm(report: SuburbReport) {
 private fun DETAILS.ratingFormBody(current: au.homefinder.shared.model.HomelyRating?) {
     form(classes = "rating-form") {
         attributes[RatingForm.ATTRIBUTE] = "true"
-        attributes["aria-label"] = "Your Homely rating"
+        attributes[Aria.LABEL] = "Your Homely rating"
         p("hint") { +"Copy the score from the suburb's Homely page by hand. Nothing is fetched from Homely." }
         div("fields") {
             label {
@@ -258,12 +265,12 @@ private fun DETAILS.ratingFormBody(current: au.homefinder.shared.model.HomelyRat
                 }
             }
         }
-        p(RatingForm.MESSAGE_CLASS) { attributes["role"] = "status" }
+        p(RatingForm.MESSAGE_CLASS) { attributes[Aria.ROLE] = "status" }
     }
 }
 
-/** The zones under the Zoned schools row: each school (linked to its own website when it has one) with its kind and years, the share of the suburb it covers and its ICSEA. */
-private fun zoneList(report: SuburbReport): (kotlinx.html.DIV.() -> Unit)? {
+/** The zones under the Zoned schools row: each school (linked to its own website when it has one) with its kind and years, the share of the suburb it covers, its ICSEA and your NAPLAN figure. */
+private fun zoneList(report: SuburbReport, slots: NaplanSlots): (kotlinx.html.DIV.() -> Unit)? {
     val zones = report.zonedSchools.value?.zones?.takeIf { it.isNotEmpty() } ?: return null
     return {
         ul("zones") {
@@ -279,14 +286,15 @@ private fun zoneList(report: SuburbReport): (kotlinx.html.DIV.() -> Unit)? {
                         span("school-name") { +zone.school.name }
                     }
                     span("detail") { +SuburbCardRows.zoneDetail(zone) }
+                    naplanControls(zone.school, slots)
                 }
             }
         }
     }
 }
 
-/** The schools under the Schools row: each with its kind, ICSEA and size, linked to its own website when it has one, and a link to My School. */
-private fun schoolList(report: SuburbReport): (kotlinx.html.DIV.() -> Unit)? {
+/** The schools under the Schools row: each with its kind, ICSEA, your NAPLAN figure and size, linked to its own website when it has one, and a link to My School. */
+private fun schoolList(report: SuburbReport, slots: NaplanSlots): (kotlinx.html.DIV.() -> Unit)? {
     val schools = report.schools.value?.publicSchoolsInside?.takeIf { it.isNotEmpty() } ?: return null
     return {
         ul("schools") {
@@ -302,6 +310,7 @@ private fun schoolList(report: SuburbReport): (kotlinx.html.DIV.() -> Unit)? {
                         span("school-name") { +school.name }
                     }
                     span("detail") { +SuburbCardRows.schoolDetail(school) }
+                    naplanControls(school, slots)
                 }
             }
         }
@@ -324,10 +333,10 @@ private fun kotlinx.html.DL.cardRow(
     val list = this
     val row = item.row
     // dt and dd are only defined on the list, so call them through it from inside the row's div.
-    div(if (item.hidden) "row row-hidden" else "row") {
+    div(CardRowClasses.row(item.hidden)) {
         list.dt { +row.label }
         val value = row.value
-        list.dd(if (value == null) "value unknown" else "value") { +(value ?: SuburbCardRows.UNKNOWN) }
+        list.valueCell(value)
         list.provenanceDetails(row)
         extra?.invoke(this)
         if (customising) rowControls(item, first = index == 0, last = index == count - 1)

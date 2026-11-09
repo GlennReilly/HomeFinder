@@ -29,16 +29,22 @@ fun interface HttpGet {
     suspend fun get(url: String, headers: Map<String, String>): HttpResult
 }
 
-/** One request that changes something (PUT, DELETE); the body, if any, is JSON. Separate from Ktor so it can be tested without a network. */
+/** The HTTP methods of the requests that change something; [wire] is the method's name on the wire. */
+enum class HttpVerb(val wire: String) {
+    PUT("PUT"),
+    DELETE("DELETE"),
+}
+
+/** One request that changes something ([HttpVerb]); the body, if any, is JSON. Separate from Ktor so it can be tested without a network. */
 fun interface HttpWrite {
-    suspend fun send(method: String, url: String, headers: Map<String, String>, body: String?): HttpResult
+    suspend fun send(method: HttpVerb, url: String, headers: Map<String, String>, body: String?): HttpResult
 }
 
 /** The Ktor client behind both kinds of request. */
 class KtorHttp(private val client: HttpClient = defaultClient()) : HttpGet, HttpWrite {
-    override suspend fun send(method: String, url: String, headers: Map<String, String>, body: String?): HttpResult = try {
+    override suspend fun send(method: HttpVerb, url: String, headers: Map<String, String>, body: String?): HttpResult = try {
         val response = client.request(url) {
-            this.method = HttpMethod.parse(method)
+            this.method = HttpMethod.parse(method.wire)
             headers.forEach { (name, value) -> header(name, value) }
             if (body != null) {
                 contentType(ContentType.Application.Json)
