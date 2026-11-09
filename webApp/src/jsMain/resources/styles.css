@@ -140,6 +140,8 @@ progress { width: 100%; margin: 16px 0; }
 /* The public schools listed under the Schools row. */
 .schools, .zones, .naplan-schools { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .schools li, .zones li, .naplan-schools li { display: grid; gap: 1px; }
+/* A thin divider between one school and the next. */
+.schools li + li, .zones li + li, .naplan-schools li + li { border-top: 1px solid rgba(128, 128, 128, .35); padding-top: 6px; }
 .schools .detail, .zones .detail, .naplan-schools .detail { font-size: .8rem; color: var(--muted); }
 
 /* The NAPLAN score you type in for a school (ADR 0068): a link-styled button under the school with a full 44 px tap box. Its top part overlaps
