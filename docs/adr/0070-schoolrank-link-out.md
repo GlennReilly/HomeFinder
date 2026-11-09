@@ -1,6 +1,6 @@
 # 0070. A SchoolRank link beside each school (link out only)
 
-Status: Accepted
+Status: Accepted. Extended by 0075
 
 ## Context
 You read schools' NAPLAN figures on [SchoolRank](https://schoolrank.com.au/) and type them in (ADR 0069). A link from each school on the cards to

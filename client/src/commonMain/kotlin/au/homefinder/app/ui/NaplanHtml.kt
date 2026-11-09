@@ -70,7 +70,7 @@ fun schoolRankTitle(schoolName: String): String = "SchoolRank page for $schoolNa
 
 /** The SchoolRank link for a school, or nothing when its page address cannot be built (no locality in the data). */
 fun FlowContent.schoolRankLink(school: School) {
-    ExternalLinks.schoolRankPage(school.name, school.locality)?.let { externalLink(it, SCHOOLRANK_LINK_TEXT, schoolRankTitle(school.name)) }
+    ExternalLinks.schoolRankPage(school.id, school.name, school.locality)?.let { externalLink(it, SCHOOLRANK_LINK_TEXT, schoolRankTitle(school.name)) }
 }
 
 /**
@@ -98,7 +98,7 @@ fun FlowContent.schoolEntry(school: School, detail: String?, slots: NaplanSlots)
         }
     }
     val website = ExternalLinks.webAddress(school.website)
-    val rank = ExternalLinks.schoolRankPage(school.name, school.locality)
+    val rank = ExternalLinks.schoolRankPage(school.id, school.name, school.locality)
     if (website != null || rank != null) {
         div(SchoolLines.LINKS_LINE) {
             website?.let { externalLink(it, SchoolLines.WEBSITE_TEXT, "${school.name}: ${SchoolLines.WEBSITE_TEXT.lowercase()} (opens in a new tab)") }

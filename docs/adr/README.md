@@ -71,8 +71,9 @@
 | [0067](0067-narrow-bottom-sheet-layout.md) | Narrow windows: half-height sheet, compact lot header, fold chevron | Accepted |
 | [0068](0068-manual-naplan-score-per-school.md) | A NAPLAN score per school, typed in by hand from My School | Partly superseded by 0069 |
 | [0069](0069-naplan-difference-from-national-average.md) | The NAPLAN figure is a signed difference from the national average | Partly superseded by 0071 |
-| [0070](0070-schoolrank-link-out.md) | A SchoolRank link beside each school (link out only) | Accepted |
+| [0070](0070-schoolrank-link-out.md) | A SchoolRank link beside each school (link out only) | Accepted, extended by 0075 |
 | [0071](0071-naplan-year-optional.md) | The NAPLAN year is optional and the note is removed | Partly superseded by 0073 |
 | [0072](0072-one-details-fold-per-row.md) | One closed Details section per row holds the note and the source | Accepted |
 | [0073](0073-no-naplan-year-and-one-zoned-schools-row.md) | No NAPLAN year, and one Schools row on the Suburb Card that lists only the zoned schools | Accepted |
 | [0074](0074-zoned-naplan-filter.md) | A suburb filter on the NAPLAN figures you typed for the zoned schools | Accepted |
+| [0075](0075-schoolrank-address-overrides.md) | SchoolRank address overrides, by school code | Accepted |
