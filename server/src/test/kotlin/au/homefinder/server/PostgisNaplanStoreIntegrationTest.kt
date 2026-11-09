@@ -45,14 +45,14 @@ class PostgisNaplanStoreIntegrationTest {
     @Test
     fun `a figure is saved, read back and replaced`() = withStore { store ->
         assertEquals(emptyMap(), store.forSchools(listOf("1234")))
-        val saved = assertIs<NaplanWrite.Saved>(store.put("1234", NaplanEntry(512, 2025, "Year 5 reading")))
+        val saved = assertIs<NaplanWrite.Saved>(store.put("1234", NaplanEntry(512, 2025)))
         assertEquals(512, saved.naplan.score)
         // Dated today (the database's day may differ from this machine's by the time zone).
         val days = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.parse(saved.naplan.updatedOn.toString()), java.time.LocalDate.now())
         assertTrue(days in -1L..1L, "updated on ${saved.naplan.updatedOn}")
-        assertEquals(NaplanScore(512, 2025, "Year 5 reading", saved.naplan.updatedOn), store.forSchools(listOf("1234"))["1234"])
-        store.put("1234", NaplanEntry(530, 2024, null))
-        assertEquals(NaplanScore(530, 2024, null, saved.naplan.updatedOn), store.forSchools(listOf("1234", "5678", "x"))["1234"])
+        assertEquals(NaplanScore(512, 2025, saved.naplan.updatedOn), store.forSchools(listOf("1234"))["1234"])
+        store.put("1234", NaplanEntry(530, 2024))
+        assertEquals(NaplanScore(530, 2024, saved.naplan.updatedOn), store.forSchools(listOf("1234", "5678", "x"))["1234"])
         assertEquals(1L, count("SELECT count(*) FROM school_naplan"))
     }
 
@@ -93,11 +93,28 @@ class PostgisNaplanStoreIntegrationTest {
     }
 
     @Test
+    fun `a figure without a year saves and reads back with none, beside one with a year`() = withStore { store ->
+        store.put("1234", NaplanEntry(-41, null))
+        store.put("5678", NaplanEntry(25, 2025))
+        assertEquals(listOf(null, 2025), store.all().map { it.naplan.year })
+        assertEquals(NaplanScore(-41, null, store.all().first().naplan.updatedOn), store.forSchools(listOf("1234"))["1234"])
+    }
+
+    @Test
+    fun `a note left from before is neither read nor overwritten`() = withStore { store ->
+        execute("INSERT INTO school_naplan (school_code, score, year, note) VALUES (1234, 512, 2024, 'old note')")
+        assertEquals(NaplanScore(512, 2024, store.forSchools(listOf("1234"))["1234"]?.updatedOn), store.forSchools(listOf("1234"))["1234"])
+        store.put("1234", NaplanEntry(-41, null))
+        assertEquals(-41, store.forSchools(listOf("1234"))["1234"]?.score)
+        assertEquals(1L, count("SELECT count(*) FROM school_naplan WHERE note = 'old note'"), "the column is kept and not written")
+    }
+
+    @Test
     fun `the table refuses figures out of range`() {
+        assertFailsWith<java.sql.SQLException> { execute("INSERT INTO school_naplan (school_code, score, year) VALUES (1, 0, 2007)") }
         assertFailsWith<java.sql.SQLException> { execute("INSERT INTO school_naplan (school_code, score, year) VALUES (1, 1001, 2025)") }
         assertFailsWith<java.sql.SQLException> { execute("INSERT INTO school_naplan (school_code, score, year) VALUES (1, -1001, 2025)") }
         assertFailsWith<java.sql.SQLException> { execute("INSERT INTO school_naplan (school_code, score, year) VALUES (1, 500, 2007)") }
-        assertFailsWith<java.sql.SQLException> { execute("INSERT INTO school_naplan (school_code, score, year, note) VALUES (1, 500, 2025, repeat('x', 201))") }
     }
 
     @Test

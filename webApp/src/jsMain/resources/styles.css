@@ -7,13 +7,12 @@
   --error: #b3261e; /* 6.5:1 on white */
   --tap-target: 44px; /* least height of a small tap target (WCAG 2.5.5) */
   --summary-overlap: 14px; /* the part of a 44 px summary tap area that sits outside its text line (hit area only, not visible space) */
-  --details-stack-gap: 4px; /* visible space between the Details text and the Source text under it */
-  --summary-line-height: 1.2; /* line height of the Details and Source summaries */
-  --summary-slack: calc(var(--tap-target) - .8rem * var(--summary-line-height)); /* the part of a 44 px summary box outside its text line */
+  --summary-line-height: 1.2; /* line height of the Details summaries */
   --sheet-open-height: 50dvh; /* height of the open bottom sheet below 600 px (ADR 0067); the map above it stays usable */
   --sheet-credit-height: 28px; /* room for the map credit line, kept above the open sheet */
   --chevron-size: 8px; /* side of the fold chevron on the selected tab (bottom sheet only) */
   --details-gap: 14px; /* extra space above each foldable details section on the cards */
+  --inline-gap: 16px; /* space between links or buttons that sit side by side on one line */
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--ink);
 }
@@ -79,7 +78,7 @@ progress { width: 100%; margin: 16px 0; }
 .row dd { margin: 2px 0 0; }
 .row .value { font-size: 1.05rem; }
 .row .unknown { font-style: italic; color: var(--muted); }
-.row .provenance, .row .note { font-size: .8rem; color: var(--muted); }
+.row .row-details { font-size: .8rem; color: var(--muted); }
 .disclaimer { font-size: .8rem; color: var(--muted); margin-top: 16px; }
 .error { margin: 12px 0; }
 
@@ -138,17 +137,19 @@ progress { width: 100%; margin: 16px 0; }
 /* The public schools listed under the Schools row. */
 .schools, .zones, .naplan-schools { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .schools li, .zones li, .naplan-schools li { display: grid; gap: 1px; }
-.schools .detail, .zones .detail { font-size: .8rem; color: var(--muted); }
+.schools .detail, .zones .detail, .naplan-schools .detail { font-size: .8rem; color: var(--muted); }
 
 /* The NAPLAN score you type in for a school (ADR 0068): a link-styled button under the school with a full 44 px tap box. Its top part overlaps
    the plain text line above (not visible space, as for Details/Source); its bottom part stays clear of the next school's link. */
-.naplan-line { display: flex; align-items: center; column-gap: 16px; flex-wrap: wrap; margin-top: calc(-1 * var(--summary-overlap)); }
-/* The SchoolRank link beside the NAPLAN button (ADR 0070): the same full-height tap box as the listing links. */
-.naplan-line .external-link { display: inline-flex; align-items: center; min-height: var(--tap-target); font-size: .85rem; }
+/* One school, line by line (ADR 0071): name and detail, ICSEA, the NAPLAN figure with its button, then the links. */
+.naplan-line, .school-links { display: flex; align-items: center; column-gap: var(--inline-gap); flex-wrap: wrap; }
+.naplan-line { margin-top: calc(-1 * var(--summary-overlap)); }
+.school-icsea, .naplan-figure { font-size: .85rem; }
+/* The school's links (own website, SchoolRank, ADR 0070): the same full-height tap box as the listing links. */
+.school-links .external-link { display: inline-flex; align-items: center; min-height: var(--tap-target); font-size: .85rem; }
 .naplan-edit { font: inherit; font-size: .85rem; padding: 0; min-height: var(--tap-target); border: 0; background: none; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .naplan-edit:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
 .naplan-form { padding: 4px 0 8px; }
-.naplan-form .note-field { grid-column: 1 / -1; }
 .listing-links { margin: 0; font-size: .85rem; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; }
 /* Each link has a full-height tap area; the label sits on the same line, flush with the first link. */
 .listing-links .external-link, .row-links .external-link { display: inline-flex; align-items: center; min-height: var(--tap-target); }
@@ -200,18 +201,13 @@ button.reset-all:disabled { opacity: .75; color: var(--muted); border-style: das
 
 /* The close button is a cross. */
 button.close { font-size: 1.3rem; line-height: 1; padding: 2px 10px; min-width: var(--tap-target); min-height: var(--tap-target); cursor: pointer; }
-.source-details, .note-details { font-size: .8rem; color: var(--muted); }
-.source-details summary, .note-details summary { cursor: pointer; width: fit-content; min-height: var(--tap-target); line-height: var(--summary-line-height); margin: calc(-1 * var(--summary-overlap)) 0; display: flex; align-items: center; text-decoration: underline; text-underline-offset: 3px; }
-.source-details summary:focus-visible, .note-details summary:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
-.source-details p, .note-details p { margin: 4px 0 0; }
-.source-details, .note-details { margin-top: calc(var(--details-gap) + var(--summary-overlap)); }
-/* A Source straight after a Details sits one line below it, not a section gap away. */
-/* Details and Source sit in sibling dd elements (.note, .provenance). The two 44 px tap boxes sit edge to edge without overlapping: the Details text rides at the bottom of its box and the Source text at the top of its box, so the visible space between the texts is only the stack gap. */
-.note:has(+ .provenance) > .note-details { margin-top: calc(var(--details-gap) + var(--summary-overlap)); }
-.note:has(+ .provenance) > .note-details summary { align-items: flex-end; margin-top: calc(-1 * (var(--summary-overlap) + var(--summary-slack) / 2)); margin-bottom: 0; }
-.note + .provenance { margin-top: var(--details-stack-gap); }
-.note + .provenance > .source-details { margin-top: 0; }
-.note + .provenance > .source-details summary { align-items: flex-start; margin-top: 0; margin-bottom: calc(-1 * (var(--summary-overlap) + var(--summary-slack) / 2)); }
+/* One closed "Details" section per row and in the filter panel (ADR 0072): the note, then the "Source:" lines a little below it. The summary keeps a
+   44 px tap area; the part outside its text line overlaps the space around it rather than adding visible space. */
+.details-fold { font-size: .8rem; color: var(--muted); margin-top: calc(var(--details-gap) + var(--summary-overlap)); }
+.details-fold summary { cursor: pointer; width: fit-content; min-height: var(--tap-target); line-height: var(--summary-line-height); margin: calc(-1 * var(--summary-overlap)) 0; display: flex; align-items: center; text-decoration: underline; text-underline-offset: 3px; }
+.details-fold summary:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
+.details-fold p { margin: 4px 0 0; }
+.details-fold .details-note + .details-source { margin-top: 8px; }
 /* Card groups (ADR 0064): a folding heading per group; the rows inside keep their own dividers. */
 .card-group { border-top: 1px solid rgba(128, 128, 128, .35); }
 .card-group:first-of-type { border-top: 0; }

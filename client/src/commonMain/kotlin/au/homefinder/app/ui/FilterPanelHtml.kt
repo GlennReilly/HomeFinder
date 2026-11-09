@@ -108,13 +108,12 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
             "${criterion.label.substringBefore(" (")}: $details"
         }
     }
-    if (sources.isNotEmpty()) {
-        details("source-details filter-sources") {
-            summary { +SOURCE_SUMMARY_TEXT }
-            sources.forEach { line -> p("hint") { +line } }
-        }
-    }
+    // One closed "Details" section, as on the cards (ADR 0072).
+    detailsFold(emptyList(), sources, FILTER_SOURCES_CLASS, DetailsFold.SOURCE_FOR_PREFIX)
 }
+
+/** The class that marks the filter panel's Details section. */
+const val FILTER_SOURCES_CLASS: String = "filter-sources"
 
 private fun FlowContent.filterCriterion(data: FilterData, criterion: FilterCriterion) {
     val bounds = data.bounds(criterion)

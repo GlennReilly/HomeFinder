@@ -72,7 +72,7 @@ class NaplanFlowTest {
                 url.contains("/schools/9999/") -> HttpResult.Response(404, "")
                 method == HttpVerb.PUT -> {
                     val entry = ApiJson.decodeFromString<NaplanEntry>(body!!)
-                    val kept = NaplanScore(entry.score, entry.year, entry.note, day).also { world.stored = it }
+                    val kept = NaplanScore(entry.score, entry.year, day).also { world.stored = it }
                     HttpResult.Response(200, ApiJson.encodeToString(kept))
                 }
                 else -> { world.stored = null; HttpResult.Response(204, "") }
@@ -87,14 +87,14 @@ class NaplanFlowTest {
     fun `saving a figure reloads the suburb card in place with it`() = runTest {
         val world = World()
         val vm = build(world, this).also { it.onMapTap(-32.92, 151.75, 10.0); advanceUntilIdle() }
-        assertEquals(NaplanOutcome.Saved, vm.saveNaplan("1234", "-41", "2025", " Year 5 "))
-        assertEquals(NaplanScore(-41, 2025, "Year 5", day), suburbSchool(vm).naplan)
+        assertEquals(NaplanOutcome.Saved, vm.saveNaplan("1234", "-41", "2025"))
+        assertEquals(NaplanScore(-41, 2025, day), suburbSchool(vm).naplan)
         assertEquals("9001", vm.state.value.selectedSuburbId)
     }
 
     @Test
     fun `clearing a figure reloads the card without it`() = runTest {
-        val world = World().apply { stored = NaplanScore(512, 2025, null, LocalDate(2026, 1, 1)) }
+        val world = World().apply { stored = NaplanScore(512, 2025, LocalDate(2026, 1, 1)) }
         val vm = build(world, this).also { it.onMapTap(-32.92, 151.75, 10.0); advanceUntilIdle() }
         assertEquals(NaplanOutcome.Removed, vm.removeNaplan("1234"))
         assertEquals(null, suburbSchool(vm).naplan)
@@ -104,17 +104,17 @@ class NaplanFlowTest {
     fun `on a lot card the lot report is reloaded instead`() = runTest {
         val world = World()
         val vm = build(world, this).also { it.onMapTap(-32.92, 151.75, 17.0); advanceUntilIdle() }
-        assertEquals(NaplanOutcome.Saved, vm.saveNaplan("1234", "530", "2024", ""))
+        assertEquals(NaplanOutcome.Saved, vm.saveNaplan("1234", "530", "2024"))
         val lot = assertIs<LotCardState.Loaded>(vm.state.value.lotCard).report
-        assertEquals(NaplanScore(530, 2024, null, day), lot.schools.value!!.nearest.single().school.naplan)
+        assertEquals(NaplanScore(530, 2024, day), lot.schools.value!!.nearest.single().school.naplan)
     }
 
     @Test
     fun `bad input is rejected with the reason and nothing is sent`() = runTest {
         val world = World()
         val vm = build(world, this).also { it.onMapTap(-32.92, 151.75, 10.0); advanceUntilIdle() }
-        assertEquals(NaplanOutcome.Rejected(NaplanInput.MESSAGE_SCORE_RANGE), vm.saveNaplan("1234", "-1200", "2025", ""))
-        assertEquals(NaplanOutcome.Rejected(NaplanInput.MESSAGE_YEAR_RANGE), vm.saveNaplan("1234", "512", "2027", ""))
+        assertEquals(NaplanOutcome.Rejected(NaplanInput.MESSAGE_SCORE_RANGE), vm.saveNaplan("1234", "-1200", "2025"))
+        assertEquals(NaplanOutcome.Rejected(NaplanInput.MESSAGE_YEAR_RANGE), vm.saveNaplan("1234", "512", "2027"))
         assertTrue(world.writes.isEmpty())
     }
 
@@ -122,12 +122,12 @@ class NaplanFlowTest {
     fun `a failing server, an unknown school and no NAPLAN api are reported`() = runTest {
         val world = World()
         val vm = build(world, this).also { it.onMapTap(-32.92, 151.75, 10.0); advanceUntilIdle() }
-        assertEquals(NaplanOutcome.Failed(MapViewModel.MESSAGE_SCHOOL_UNKNOWN), vm.saveNaplan("9999", "512", "2025", ""))
+        assertEquals(NaplanOutcome.Failed(MapViewModel.MESSAGE_SCHOOL_UNKNOWN), vm.saveNaplan("9999", "512", "2025"))
         world.writeFails = true
-        assertIs<NaplanOutcome.Failed>(vm.saveNaplan("1234", "512", "2025", ""))
+        assertIs<NaplanOutcome.Failed>(vm.saveNaplan("1234", "512", "2025"))
         assertIs<NaplanOutcome.Failed>(vm.removeNaplan("1234"))
         assertEquals(null, suburbSchool(vm).naplan)
         val bare = MapViewModel(SuburbApi(config) { _, _ -> HttpResult.Response(404, "") }, this)
-        assertEquals(NaplanOutcome.Failed(MapViewModel.MESSAGE_NAPLAN_UNAVAILABLE), bare.saveNaplan("1234", "512", "2025", ""))
+        assertEquals(NaplanOutcome.Failed(MapViewModel.MESSAGE_NAPLAN_UNAVAILABLE), bare.saveNaplan("1234", "512", "2025"))
     }
 }

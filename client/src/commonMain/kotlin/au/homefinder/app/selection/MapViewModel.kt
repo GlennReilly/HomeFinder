@@ -155,9 +155,9 @@ class MapViewModel(
     }
 
     /** Saves the NAPLAN figure typed in for one school, then reloads the card on show (suburb or lot) so every listing of the school shows it. */
-    suspend fun saveNaplan(schoolCode: String, scoreText: String, yearText: String, noteText: String): NaplanOutcome {
+    suspend fun saveNaplan(schoolCode: String, scoreText: String, yearText: String): NaplanOutcome {
         val api = naplan ?: return NaplanOutcome.Failed(MESSAGE_NAPLAN_UNAVAILABLE)
-        val entry = when (val input = NaplanInput.parse(scoreText, yearText, noteText, thisYear())) {
+        val entry = when (val input = NaplanInput.parse(scoreText, yearText, thisYear())) {
             is ParsedNaplan.Invalid -> return NaplanOutcome.Rejected(input.message)
             is ParsedNaplan.Valid -> input.entry
         }

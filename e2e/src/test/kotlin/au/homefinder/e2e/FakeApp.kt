@@ -162,7 +162,7 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
             path == "/v1/suburbs/9001/rating" && method == "DELETE" -> { rating = null; reply(exchange, 204, "application/json", ByteArray(0)) }
             path.matches(Regex("/v1/schools/[12]/naplan")) && method == "PUT" -> {
                 val entry = ApiJson.decodeFromString<NaplanEntry>(exchange.requestBody.readBytes().toString(StandardCharsets.UTF_8))
-                val kept = NaplanScore(entry.score, entry.year, entry.note?.trim()?.ifEmpty { null }, LocalDate(2026, 11, 8))
+                val kept = NaplanScore(entry.score, entry.year, LocalDate(2026, 11, 8))
                 naplan[path.split('/')[3]] = kept
                 json(exchange, 200, ApiJson.encodeToString(kept))
             }

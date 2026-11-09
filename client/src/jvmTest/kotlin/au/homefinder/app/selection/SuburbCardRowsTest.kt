@@ -47,12 +47,14 @@ class SuburbCardRowsTest {
     private val girlsHigh = School("20", "Newcastle Girls High", SchoolSector.PUBLIC, SchoolLevel.HIGH, icsea = null, levelLabel = "high, girls, 7-12")
 
     @Test
-    fun `the zoned schools row names each zone and its kind, and each zone's line gives its years, share and ICSEA`() {
+    fun `the zoned schools row names each zone and its kind, and each zone's first line gives its years and share, ICSEA its own line`() {
         val zoned = SuburbZonedSchools(listOf(SuburbZone(hamiltonPs, 0.82), SuburbZone(girlsHigh, 0.255)), 2026)
         val row = SuburbCardRows.of(allKnown.copy(zonedSchools = known(zoned))).first { it.label == SuburbCardRows.ZONED_LABEL }
         assertEquals("Hamilton Public School (primary), Newcastle Girls High (high)", row.value)
-        assertEquals("primary, K-6 · 82% of the suburb's lots · ICSEA 1,041", SuburbCardRows.zoneDetail(zoned.zones[0]))
-        assertEquals("high, girls, 7-12 · 26% of the suburb's lots · ICSEA not published", SuburbCardRows.zoneDetail(zoned.zones[1]))
+        assertEquals("primary, K-6 · 82% of the suburb's lots", SuburbCardRows.zoneDetail(zoned.zones[0]))
+        assertEquals("ICSEA 1,041", SuburbCardRows.icseaText(zoned.zones[0].school))
+        assertEquals("high, girls, 7-12 · 26% of the suburb's lots", SuburbCardRows.zoneDetail(zoned.zones[1]))
+        assertEquals(null, SuburbCardRows.icseaText(zoned.zones[1].school), "no ICSEA, no line")
         assertTrue(SuburbCardRows.of(allUnknown).first { it.label == SuburbCardRows.ZONED_LABEL }.isUnknown)
     }
 
@@ -172,9 +174,9 @@ class SuburbCardRowsTest {
     }
 
     @Test
-    fun `a school line gives its kind, ICSEA and size only as far as they are published`() {
-        assertEquals("Primary School · ICSEA 1,051 · 412 students", SuburbCardRows.schoolDetail(school.copy(icsea = 1051, enrolments = 412, levelLabel = "Primary School")))
-        assertEquals("Secondary School · ICSEA not published", SuburbCardRows.schoolDetail(school.copy(levelLabel = "Secondary School")))
-        assertEquals("High school · ICSEA 1,012 · 1,204 students", SuburbCardRows.schoolDetail(school.copy(level = SchoolLevel.HIGH, icsea = 1012, enrolments = 1204)))
+    fun `a school's first line gives its kind and size as far as published, and ICSEA is separate`() {
+        assertEquals("Primary School · 412 students", SuburbCardRows.schoolDetail(school.copy(icsea = 1051, enrolments = 412, levelLabel = "Primary School")))
+        assertEquals("Secondary School", SuburbCardRows.schoolDetail(school.copy(levelLabel = "Secondary School")))
+        assertEquals("High school · 1,204 students", SuburbCardRows.schoolDetail(school.copy(level = SchoolLevel.HIGH, icsea = 1012, enrolments = 1204)))
     }
 }

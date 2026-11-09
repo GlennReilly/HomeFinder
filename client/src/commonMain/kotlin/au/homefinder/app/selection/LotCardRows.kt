@@ -6,6 +6,7 @@ import au.homefinder.shared.model.LotReport
 import au.homefinder.shared.model.ParkAccess
 import au.homefinder.shared.model.Proximity
 import au.homefinder.shared.model.ProximityList
+import au.homefinder.shared.model.NearbySchool
 import au.homefinder.shared.model.School
 import au.homefinder.shared.model.SchoolInfo
 import au.homefinder.shared.model.SlopeSummary
@@ -68,8 +69,8 @@ object LotCardRows {
     }
 
     /**
-     * "Hamilton Public School (Primary School), 600 m away, about 8 min walk (estimated), ICSEA 1,051; ..." for the nearest primary and the
-     * nearest high school (ADR 0045). ICSEA is only said where ACARA publishes one.
+     * "Hamilton Public School (Primary School), 600 m away, about 8 min walk (estimated); ..." for the nearest primary and the nearest high school
+     * (ADR 0045). Each school's ICSEA and NAPLAN are on lines of their own under the row (ADR 0071).
      */
     private fun schools(info: SchoolInfo): String {
         val parts = ArrayList<String>()
@@ -84,21 +85,34 @@ object LotCardRows {
     /** What the nearest schools are called where the lot has a zone for the other level or none at all (ADR 0056). */
     const val NEAREST_NOT_ZONED_PREFIX: String = "Nearest, not zoned: "
 
-    /** "Hamilton Public School (primary, K-6), ICSEA 1,051": a school whose catchment the lot lies in, with the kind and years of the zone. */
-    private fun zoned(school: School): String {
-        val kind = school.levelLabel?.let { " ($it)" }.orEmpty()
-        val icsea = school.icsea?.let { ", ICSEA ${Formats.grouped(it.toLong())}" }.orEmpty()
-        return "${school.name}$kind$icsea${SuburbCardRows.naplanSuffix(school, ", ")}"
+    /** "Hamilton Public School (primary, K-6)": a school whose catchment the lot lies in, with the kind and years of the zone. */
+    private fun zoned(school: School): String = school.name + zonedDetail(school)
+
+    /** " (primary, K-6)": the kind and years of a zone the lot lies in. */
+    private fun zonedDetail(school: School): String = school.levelLabel?.let { " ($it)" }.orEmpty()
+
+    private fun nearest(info: SchoolInfo): String = info.nearest.joinToString("; ") { near -> near.school.name + nearestDetail(near) }
+
+    /** " (Primary School), 600 m away, about 8 min walk (estimated)": the kind of a nearest school and how far it is. */
+    private fun nearestDetail(near: NearbySchool): String {
+        val kind = near.school.levelLabel?.let { " ($it)" }.orEmpty()
+        return "$kind, ${distanceText(near)}"
     }
 
-    private fun nearest(info: SchoolInfo): String {
-        return info.nearest.joinToString("; ") { near ->
-            val school = near.school
-            val kind = school.levelLabel?.let { " ($it)" }.orEmpty()
-            val walk = near.walkingMinutes?.takeIf { it <= WALK_ESTIMATE_MAX_MINUTES }?.let { ", about $it min walk (estimated)" }.orEmpty()
-            val icsea = school.icsea?.let { ", ICSEA ${Formats.grouped(it.toLong())}" }.orEmpty()
-            "${school.name}$kind, ${Formats.distance(near.distanceM)} away$walk$icsea${SuburbCardRows.naplanSuffix(school, ", ")}"
-        }
+    /** "600 m away, about 8 min walk (estimated)". */
+    private fun distanceText(near: NearbySchool): String {
+        val walk = near.walkingMinutes?.takeIf { it <= WALK_ESTIMATE_MAX_MINUTES }?.let { ", about $it min walk (estimated)" }.orEmpty()
+        return "${Formats.distance(near.distanceM)} away$walk"
+    }
+
+    /**
+     * Each school the Schools row names with the text for its first line (ADR 0071): the zone's kind and years, or for a nearest school its kind
+     * and distance. ICSEA, NAPLAN and links go on lines of their own under it, so the row's value names the schools without them.
+     */
+    fun schoolLines(report: LotReport): List<Pair<School, String>> {
+        val info = report.schools.value ?: return emptyList()
+        return info.zoned.map { it to it.levelLabel.orEmpty() } +
+            info.nearest.map { near -> near.school to listOfNotNull(near.school.levelLabel, distanceText(near)).joinToString(", ") }
     }
 
     /** A walking estimate is only worth showing for a walk: beyond this many minutes the distance alone is said. */

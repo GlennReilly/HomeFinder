@@ -1,6 +1,6 @@
 # 0063. Source lines are collapsed by default
 
-Status: Accepted
+Status: Superseded by 0072
 
 ## Context
 Every card row carried a "Source: … · as of … · confidence" line, and the filter panel listed one source line per criterion. With 16 rows on the Suburb Card these lines

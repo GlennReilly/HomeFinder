@@ -218,7 +218,7 @@ class LotSelectionTest {
     }
 
     @Test
-    fun `schools read as the nearest primary and high school with distance, estimated walk and ICSEA where published`() {
+    fun `schools read as the nearest primary and high school with distance and estimated walk, ICSEA going on its own line`() {
         val base = report("1001", "12 MAIN STREET, HAMILTON NSW 2303")
         fun row(vararg near: NearbySchool) = LotCardRows.of(
             base.copy(schools = Attribute(SchoolInfo(nearest = near.toList()), Confidence.MEDIUM, "Dept")),
@@ -226,7 +226,7 @@ class LotSelectionTest {
         val primary = NearbySchool(School("1", "Hamilton Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, icsea = 1051, levelLabel = "Primary School"), 600, walkingMinutes = 10)
         val high = NearbySchool(School("2", "Newcastle High", SchoolSector.PUBLIC, SchoolLevel.HIGH, levelLabel = "Secondary School"), 1_400, walkingMinutes = 23)
         assertEquals(
-            "Hamilton Public School (Primary School), 600 m away, about 10 min walk (estimated), ICSEA 1,051; " +
+            "Hamilton Public School (Primary School), 600 m away, about 10 min walk (estimated); " +
                 "Newcastle High (Secondary School), 1.4 km away, about 23 min walk (estimated)",
             row(primary, high),
         )
@@ -242,12 +242,12 @@ class LotSelectionTest {
         val primary = School("1", "Hamilton Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, icsea = 1051, levelLabel = "primary, K-6")
         val high = School("2", "Newcastle High School", SchoolSector.PUBLIC, SchoolLevel.HIGH, levelLabel = "high, 7-12")
         assertEquals(
-            "Zoned: Hamilton Public School (primary, K-6), ICSEA 1,051, Newcastle High School (high, 7-12)",
+            "Zoned: Hamilton Public School (primary, K-6), Newcastle High School (high, 7-12)",
             row(SchoolInfo(zoned = listOf(primary, high), zonesChecked = true)),
         )
         val nearHigh = NearbySchool(School("3", "Near High", SchoolSector.PUBLIC, SchoolLevel.HIGH, levelLabel = "Secondary School"), 900, walkingMinutes = 15)
         assertEquals(
-            "Zoned: Hamilton Public School (primary, K-6), ICSEA 1,051; Nearest, not zoned: Near High (Secondary School), 900 m away, about 15 min walk (estimated)",
+            "Zoned: Hamilton Public School (primary, K-6); Nearest, not zoned: Near High (Secondary School), 900 m away, about 15 min walk (estimated)",
             row(SchoolInfo(zoned = listOf(primary), nearest = listOf(nearHigh), zonesChecked = true)),
         )
         assertEquals(

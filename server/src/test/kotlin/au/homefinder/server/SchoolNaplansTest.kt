@@ -22,7 +22,7 @@ import kotlin.test.assertSame
 class SchoolNaplansTest {
     private fun <T> u() = Attribute.unknown<T>("src")
     private fun school(id: String, level: SchoolLevel = SchoolLevel.PRIMARY) = School(id, "School $id", SchoolSector.PUBLIC, level, 1000)
-    private val score = NaplanScore(512, 2025, null, LocalDate(2026, 11, 8))
+    private val score = NaplanScore(512, 2025, LocalDate(2026, 11, 8))
 
     private val suburb = SuburbReport(
         "9001", "HAMILTON", "2303", Attribute(1.0, Confidence.HIGH, "src"), u(), u(), u(), u(), u(), u(), u(), u(), u(), u(), u(), u(),

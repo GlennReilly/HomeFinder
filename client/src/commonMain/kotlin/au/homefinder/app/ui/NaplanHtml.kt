@@ -1,5 +1,6 @@
 package au.homefinder.app.ui
 
+import au.homefinder.app.selection.SuburbCardRows
 import au.homefinder.shared.model.NaplanRules
 import au.homefinder.shared.model.School
 import kotlinx.html.ButtonType
@@ -13,6 +14,7 @@ import kotlinx.html.id
 import kotlinx.html.input
 import kotlinx.html.label
 import kotlinx.html.p
+import kotlinx.html.span
 
 /** The element ids and attributes of the NAPLAN controls (ADR 0068), shared by the cards, the page and the browser tests. */
 object NaplanIds {
@@ -20,7 +22,6 @@ object NaplanIds {
     const val FORM: String = "naplan-form"
     const val SCORE: String = "naplan-score"
     const val YEAR: String = "naplan-year"
-    const val NOTE: String = "naplan-note"
     const val SAVE: String = "naplan-save"
     const val CLEAR: String = "naplan-clear"
     const val CANCEL: String = "naplan-cancel"
@@ -42,6 +43,9 @@ const val NAPLAN_EDIT_TEXT: String = "Edit NAPLAN"
 /** What the score box asks for: a signed difference from the national average (ADR 0069). */
 const val NAPLAN_SCORE_LABEL: String = "Difference from national average (points, may be negative, e.g. -41)"
 const val NAPLAN_SCORE_PLACEHOLDER: String = "-41"
+
+/** The year box may be left empty (ADR 0071). */
+const val NAPLAN_YEAR_LABEL: String = "Year (optional)"
 
 /** The link in the form's hint: My School's home page, never a guessed page for one school. */
 const val NAPLAN_MY_SCHOOL_TEXT: String = "My School (opens myschool.edu.au)"
@@ -74,15 +78,20 @@ fun FlowContent.schoolRankLink(school: School) {
 }
 
 /**
- * The "Add NAPLAN" / "Edit NAPLAN" link for one listing of a school and, when it is the open one, the small form under it (ADR 0068). The figure
- * itself is shown in the school's line beside its ICSEA.
+ * One school in a Schools row, line by line (ADR 0071): its name with [detail] (zone, level or distance text); its ICSEA when published; its NAPLAN
+ * figure, if any, with the "Add NAPLAN" / "Edit NAPLAN" button (ADR 0068); its links (own website, SchoolRank, ADR 0070). When this listing's
+ * button is the open one, the small form follows under the school.
  */
-fun FlowContent.naplanControls(school: School, slots: NaplanSlots) {
+fun FlowContent.schoolEntry(school: School, detail: String?, slots: NaplanSlots) {
     val editId = slots.next(school.id)
     val open = slots.isOpen(editId)
-    div("naplan-line") {
-        // The school's SchoolRank page (ADR 0070), on the same line as the NAPLAN button so the two 44 px tap areas sit side by side.
-        schoolRankLink(school)
+    div(SchoolLines.NAME_LINE) {
+        span(SchoolLines.NAME) { +school.name }
+        detail?.takeIf { it.isNotBlank() }?.let { span(SchoolLines.DETAIL) { +(SchoolLines.NAME_DETAIL_SEPARATOR + it) } }
+    }
+    SuburbCardRows.icseaText(school)?.let { div(SchoolLines.ICSEA_LINE) { +it } }
+    div(SchoolLines.NAPLAN_LINE) {
+        school.naplan?.let { span(SchoolLines.NAPLAN_FIGURE) { +NaplanRules.label(it) } }
         button(type = ButtonType.button, classes = "naplan-edit") {
             id = editId
             attributes[CardActions.ATTRIBUTE] = CardActions.EDIT_NAPLAN
@@ -92,10 +101,18 @@ fun FlowContent.naplanControls(school: School, slots: NaplanSlots) {
             +(if (school.naplan == null) NAPLAN_ADD_TEXT else NAPLAN_EDIT_TEXT)
         }
     }
+    val website = ExternalLinks.webAddress(school.website)
+    val rank = ExternalLinks.schoolRankPage(school.name, school.locality)
+    if (website != null || rank != null) {
+        div(SchoolLines.LINKS_LINE) {
+            website?.let { externalLink(it, SchoolLines.WEBSITE_TEXT, "${school.name}: ${SchoolLines.WEBSITE_TEXT.lowercase()} (opens in a new tab)") }
+            schoolRankLink(school)
+        }
+    }
     if (open) naplanForm(school)
 }
 
-/** The form, filled with the figure already kept, if any. Clear is offered only when there is something to clear. The message line starts empty. */
+/** The form (difference and year; no note, ADR 0071), filled with the figure already kept, if any. Clear is offered only when there is something to clear. The message line starts empty. */
 private fun FlowContent.naplanForm(school: School) {
     val current = school.naplan
     form(classes = "naplan-form") {
@@ -121,22 +138,12 @@ private fun FlowContent.naplanForm(school: School) {
                 }
             }
             label {
-                +"Year"
+                +NAPLAN_YEAR_LABEL
                 input(type = InputType.text, name = NaplanIds.YEAR) {
                     id = NaplanIds.YEAR
                     attributes["inputmode"] = "numeric"
                     attributes["autocomplete"] = "off"
-                    attributes["required"] = "required"
-                    current?.let { attributes["value"] = it.year.toString() }
-                }
-            }
-            label("note-field") {
-                +"Note (optional)"
-                input(type = InputType.text, name = NaplanIds.NOTE) {
-                    id = NaplanIds.NOTE
-                    attributes["autocomplete"] = "off"
-                    attributes["maxlength"] = NaplanRules.MAX_NOTE_LENGTH.toString()
-                    current?.note?.let { attributes["value"] = it }
+                    current?.year?.let { attributes["value"] = it.toString() }
                 }
             }
         }
