@@ -30,7 +30,7 @@ layout. The card's rows are built by pure Kotlin in the `client` module (`Suburb
 - **PDF library**: Apache PDFBox 3.0.5 (Apache-2.0, pure Java, in the version catalog). It writes text with the standard Type 1 Helvetica, so no font file
   is embedded and nothing is fetched. Helvetica has only the WinAnsi characters, so `PdfText` replaces the rest: stars and diamonds become "*", "≥" ">=",
   control characters are dropped, and anything else the font cannot draw becomes "?"; drawing never throws.
-- **Layout**: A4, a cover with the title, date, number of suburbs, filters used, the suburb names and the card's disclaimer; then each suburb from a new
+- **Layout**: A4, a cover with the title, date, number of suburbs, filters used, the suburb names and the card's disclaimer; then the first suburb on the same page (no blank half page) and each other suburb from a new
   page, rows in a label column and a value column, text wrapped, a row kept on one page where it fits, a group title never left alone at a page foot, and a
   footer with the date and page number.
 

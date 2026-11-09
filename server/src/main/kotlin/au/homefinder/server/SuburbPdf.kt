@@ -95,7 +95,8 @@ object SuburbPdf {
         val bold = PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD)
         val writer = Writer(pdf, regular, bold, document.date)
         cover(writer, document)
-        document.suburbs.forEach { suburb(writer, it) }
+        // The first suburb follows the cover on the same page, so the cover is not left mostly blank; the others start pages of their own.
+        document.suburbs.forEachIndexed { index, suburb -> suburb(writer, suburb, newPage = index > 0) }
         writer.finish()
         pdf.documentInformation.apply {
             title = TITLE
@@ -126,8 +127,8 @@ object SuburbPdf {
         )
     }
 
-    private fun suburb(writer: Writer, suburb: ExportSuburb) {
-        writer.newPage()
+    private fun suburb(writer: Writer, suburb: ExportSuburb, newPage: Boolean) {
+        if (newPage) writer.newPage() else writer.gap(SECTION_GAP * 2)
         writer.paragraph(suburb.name, writer.bold, SUBURB_SIZE)
         suburb.postcode?.let { writer.paragraph("Postcode $it", writer.regular, BODY_SIZE, grey = true) }
         if (suburb.groups.isEmpty()) writer.paragraph("No data for this suburb yet.", writer.regular, BODY_SIZE)

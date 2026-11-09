@@ -22,7 +22,7 @@ class SuburbPdfTest {
     fun `it makes a PDF with a cover and one section per suburb`() {
         val bytes = SuburbPdf.render(document(3))
         assertEquals("%PDF", bytes.copyOfRange(0, 4).decodeToString())
-        assertTrue(pages(bytes) >= 1 + 3, "a cover and at least a page per suburb")
+        assertTrue(pages(bytes) >= 3, "the first suburb shares the cover, the others have pages of their own")
         val text = text(bytes)
         assertTrue(SuburbPdf.TITLE in text, text)
         assertTrue("Made on 2026-11-09 · 3 suburbs" in text, text)
