@@ -711,8 +711,13 @@ class SmokeTest {
         page.evaluate("() => { window.homefinderMap.setBearing(40) }")
         page.waitForFunction("() => document.querySelector('.maplibregl-ctrl-compass .maplibregl-ctrl-icon').style.transform.includes('-40')")
         assertThat(compass).isVisible()
+        // It is the red arrow with an N, not MapLibre's small grey one (a screenshot showed that once), and turned it stays inside its 44 px button.
+        val drawing = page.evaluate("() => getComputedStyle(document.querySelector('.maplibregl-ctrl-compass .maplibregl-ctrl-icon')).backgroundImage") as String
+        assertTrue(drawing.contains("%23d32f2f") && drawing.contains("%3EN%3C"), "the compass is not the red north arrow with an N: $drawing")
+        val button = checkNotNull(compass.boundingBox())
         val box = checkNotNull(page.locator(".maplibregl-ctrl-compass .maplibregl-ctrl-icon").boundingBox())
         val view = checkNotNull(page.viewportSize())
+        assertTrue(box.x >= button.x - 0.5 && box.y >= button.y - 0.5 && box.x + box.width <= button.x + button.width + 0.5 && box.y + box.height <= button.y + button.height + 0.5, "the turned compass overflows its button: $box in $button")
         assertTrue(box.x >= 0 && box.y >= 0 && box.x + box.width <= view.width && box.y + box.height <= view.height, "the compass is off screen")
         compass.click()
         page.waitForFunction("() => Math.abs(window.homefinderMap.getBearing()) < 0.5")

@@ -10,7 +10,9 @@ faint grey arrow, so the user did not see it and reported that the map had no co
 ## Decision
 
 Keep MapLibre's own compass (`showCompass: true`, no pitch tilt) so it turns with the bearing and a click, tap or Enter resets the map to north. CSS makes
-the three buttons 44 px (the tap size) and draws the compass as a red north arrow with an "N". The button gets the spoken name from a constant
+the three buttons 44 px (the tap size) and draws the compass as a red "N" over a red north needle with a grey south half. The selector names the
+control group, because MapLibre's own icon rule has the same weight and comes later (the first version lost to it and the user saw MapLibre's small
+grey arrow). The icon box is 31 px so that, turned, its corners stay inside the button. The button gets the spoken name from a constant
 (`MapDefaults.COMPASS_LABEL`, set with `Aria.LABEL`). It sits top-left under the zoom buttons, clear of the search box, the scale bar (bottom) and the
 right-hand panel or bottom sheet. An e2e test checks it is visible on load, after zooming and after the map is turned.
 
