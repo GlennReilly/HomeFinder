@@ -298,7 +298,7 @@ class SmokeTest {
         assertEquals("\"naplan-diamond\"", page.evaluate("JSON.stringify($map.getLayoutProperty('suburb-naplan-label', 'icon-image'))").toString())
         assertEquals("undefined", page.evaluate("String($map.getLayoutProperty('suburb-rated-label', 'icon-image'))").toString())
         assertEquals("true", page.evaluate("String($map.hasImage('naplan-diamond'))").toString())
-        assertEquals("12,16", page.evaluate("[$map.getLayer('suburb-naplan-label').minzoom, $map.getLayer('suburb-naplan-label').maxzoom].join(',')").toString())
+        assertEquals("11,16", page.evaluate("[$map.getLayer('suburb-naplan-label').minzoom, $map.getLayer('suburb-naplan-label').maxzoom].join(',')").toString())
 
         page.evaluate("() => { $map.jumpTo({center: [151.75, -32.92], zoom: 13}); }")
         page.waitForFunction("() => (${naplanLabels()}) === '9001:+11,9002:-10'")

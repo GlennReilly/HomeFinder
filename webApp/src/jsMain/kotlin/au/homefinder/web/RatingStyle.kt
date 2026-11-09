@@ -17,10 +17,10 @@ object RatingStyle {
     const val FAR_NAME_LAYER: String = "suburb-name-rated-far"
 
     /**
-     * The score label appears once you have zoomed in two taps of the "+" button from where the map opens (a tap is one
+     * The score label appears once you have zoomed in one tap of the "+" button from where the map opens (a tap is one
      * zoom level), so a zoomed-out map is not cluttered. Until then a rated suburb shows its ordinary name, like any other.
      */
-    const val ZOOM_TAPS_BEFORE_SHOWN: Int = 2
+    const val ZOOM_TAPS_BEFORE_SHOWN: Int = 1
     const val MIN_ZOOM: Double = MapDefaults.ZOOM + ZOOM_TAPS_BEFORE_SHOWN
 
     private const val NAME_COLOR = "#3b2f63"

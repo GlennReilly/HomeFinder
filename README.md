@@ -129,7 +129,7 @@ The Schools group also has **Zoned schools' NAPLAN (vs national)**, an "at least
 average of the figures for the zoned schools its Suburb Card lists, weighted by how much of the suburb each zone covers, and a suburb with no figure for any of
 them never matches. Until a figure is typed the filter is shown disabled ("No NAPLAN figures typed yet"); its help line says how many suburbs have a figure.
 It is worked out on every request (no data load), and saving or clearing a figure reloads the filter values ([ADR 0074](docs/adr/0074-zoned-naplan-filter.md)).
-The same value shows on the map from zoom 12 to 15 as a dark-blue diamond and the signed figure (for example "+11") under each suburb that has one,
+The same value shows on the map from zoom 11 to 15 as a dark-blue diamond and the signed figure (for example "+11") under each suburb that has one,
 below its name or its Homely score label. Clicking it opens the suburb's card on its Schools group; the card's "Jump to Schools" button does the same from the
 keyboard. Saving or clearing a figure redraws the labels ([ADR 0076](docs/adr/0076-naplan-map-label.md)).
 
