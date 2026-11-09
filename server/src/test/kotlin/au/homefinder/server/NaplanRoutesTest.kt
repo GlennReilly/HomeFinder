@@ -88,6 +88,16 @@ class NaplanRoutesTest {
     }
 
     @Test
+    fun `a difference below the national average is negative and is kept as typed`() = FakeStore().let { store ->
+        api(store) {
+            listOf(-41, 25, 0, -1000, 1000).forEach { points ->
+                assertEquals(HttpStatusCode.OK, put(path, """{"score":$points,"year":2025}""").status, "$points")
+                assertEquals(points, store.rows["1234"]?.score)
+            }
+        }
+    }
+
+    @Test
     fun `saving again replaces the figure, and the note is optional`() = FakeStore().let { store ->
         api(store) {
             put(path, """{"score":512,"year":2024,"note":"old"}""")
@@ -100,7 +110,7 @@ class NaplanRoutesTest {
     fun `a figure out of range, not whole numbers or malformed is a bad request and saves nothing`() = FakeStore().let { store ->
         api(store) {
             listOf(
-                """{"score":1001,"year":2025}""", """{"score":-1,"year":2025}""", """{"score":512,"year":2007}""", """{"score":512,"year":2027}""",
+                """{"score":1001,"year":2025}""", """{"score":-1001,"year":2025}""", """{"score":-41.5,"year":2025}""", """{"score":512,"year":2007}""", """{"score":512,"year":2027}""",
                 """{"score":512.5,"year":2025}""", """{"score":"abc","year":2025}""", """{"year":2025}""", """{"score":512}""",
                 """{"score":512,"year":2025,"note":"${"x".repeat(201)}"}""", """not json""", "", """[]""",
             ).forEach {

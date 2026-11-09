@@ -107,13 +107,13 @@ The card then shows a "Homely rating" row under the area, and a "★ 2.1" label 
 ### Your NAPLAN scores
 
 `GET /v1/schools/naplan` lists the NAPLAN scores you have typed in (`?codes=` for some schools), and `PUT` / `DELETE /v1/schools/{code}/naplan`
-set and remove one (one overall score from 0 to 1000, the year it is from, 2008 to this year, and an optional note). Nothing is fetched from
-[My School](https://www.myschool.edu.au/): its terms allow personal, non-commercial use with the credit "Source: Australian Curriculum,
-Assessment and Reporting Authority (ACARA)". They need migration V25.
+set and remove one (the school's difference from the national average in points, a whole number from -1000 to +1000 that may be negative, the year it is from, 2008 to this year, and an optional note). Nothing is fetched. The card calls it your own figure and
+does not name where you read it; NAPLAN results are published by ACARA on [My School](https://www.myschool.edu.au/). They need migrations V25 and V26.
 
 In the app: under each school in the Suburb Card's Schools and Zoned schools rows, or the Lot Card's Schools row, press "Add NAPLAN", type
-the score and year from the school's My School page and press Save. The card then shows "NAPLAN 512 (2025)" beside the school's ICSEA;
-"Edit NAPLAN" changes or clears it. See [ADR 0068](docs/adr/0068-manual-naplan-score-per-school.md).
+the difference from the national average (for example -41) and the year, and press Save. The card then shows "NAPLAN -41 vs national (2025)" beside the school's ICSEA;
+"Edit NAPLAN" changes or clears it. See [ADR 0068](docs/adr/0068-manual-naplan-score-per-school.md) and
+[ADR 0069](docs/adr/0069-naplan-difference-from-national-average.md).
 ### Filtering suburbs
 
 `GET /v1/suburbs/filters` gives every suburb's values for seven criteria, each with its source and date, in one response: average school ICSEA,

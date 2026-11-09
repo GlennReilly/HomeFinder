@@ -87,8 +87,8 @@ class NaplanFlowTest {
     fun `saving a figure reloads the suburb card in place with it`() = runTest {
         val world = World()
         val vm = build(world, this).also { it.onMapTap(-32.92, 151.75, 10.0); advanceUntilIdle() }
-        assertEquals(NaplanOutcome.Saved, vm.saveNaplan("1234", "512", "2025", " Year 5 "))
-        assertEquals(NaplanScore(512, 2025, "Year 5", day), suburbSchool(vm).naplan)
+        assertEquals(NaplanOutcome.Saved, vm.saveNaplan("1234", "-41", "2025", " Year 5 "))
+        assertEquals(NaplanScore(-41, 2025, "Year 5", day), suburbSchool(vm).naplan)
         assertEquals("9001", vm.state.value.selectedSuburbId)
     }
 
@@ -113,7 +113,7 @@ class NaplanFlowTest {
     fun `bad input is rejected with the reason and nothing is sent`() = runTest {
         val world = World()
         val vm = build(world, this).also { it.onMapTap(-32.92, 151.75, 10.0); advanceUntilIdle() }
-        assertEquals(NaplanOutcome.Rejected(NaplanInput.MESSAGE_SCORE_RANGE), vm.saveNaplan("1234", "1200", "2025", ""))
+        assertEquals(NaplanOutcome.Rejected(NaplanInput.MESSAGE_SCORE_RANGE), vm.saveNaplan("1234", "-1200", "2025", ""))
         assertEquals(NaplanOutcome.Rejected(NaplanInput.MESSAGE_YEAR_RANGE), vm.saveNaplan("1234", "512", "2027", ""))
         assertTrue(world.writes.isEmpty())
     }

@@ -4,8 +4,9 @@ import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
 /**
- * One overall NAPLAN figure for a school, typed in by you from My School (ADR 0068): the score, the year it is from and an optional short note.
- * This is what `PUT /v1/schools/{schoolCode}/naplan` takes. Nothing is ever fetched from My School. Check it with [NaplanRules.check].
+ * One NAPLAN figure for a school, typed in by you (ADR 0068, 0069): [score] is the school's difference from the national average in points, above (+)
+ * or below (-), for example -41; then the year it is from and an optional short note. This is what `PUT /v1/schools/{schoolCode}/naplan` takes.
+ * Nothing is ever fetched. Check it with [NaplanRules.check].
  */
 @Serializable
 data class NaplanEntry(val score: Int, val year: Int, val note: String? = null)
@@ -14,11 +15,11 @@ data class NaplanEntry(val score: Int, val year: Int, val note: String? = null)
 @Serializable
 data class NaplanScore(val score: Int, val year: Int, val note: String? = null, val updatedOn: LocalDate? = null) {
     companion object {
-        /** My School terms, clause 6.2: the attribution that must go with anything taken from the site. */
-        const val ATTRIBUTION: String = "Source: Australian Curriculum, Assessment and Reporting Authority (ACARA)"
-
-        /** What a row's Source line adds when a school on it has a NAPLAN figure. */
-        const val SOURCE: String = "NAPLAN typed in by you from My School. $ATTRIBUTION"
+        /**
+         * What a row's Source line adds when a school on it has a NAPLAN figure. Neutral on purpose (ADR 0069): the figure may be read from another
+         * site, so the app does not say it came from My School or ACARA.
+         */
+        const val SOURCE: String = "Your own figure, typed in. NAPLAN results are published by ACARA on My School."
     }
 }
 
@@ -40,8 +41,8 @@ sealed interface NaplanCheck {
 
 /** The limits on a typed-in NAPLAN figure (ADR 0068), shared by the server and the form so both refuse the same things. */
 object NaplanRules {
-    /** NAPLAN national scale scores run from 0 to 1000. */
-    const val MIN_SCORE: Int = 0
+    /** The difference from the national average, in points: a loose sanity bound either side of it (ADR 0069). */
+    const val MIN_SCORE: Int = -1000
     const val MAX_SCORE: Int = 1000
 
     /** NAPLAN was first sat in 2008, so no figure is older. */
@@ -61,6 +62,9 @@ object NaplanRules {
         }
     }
 
-    /** "NAPLAN 512 (2025)": how a figure reads beside a school's ICSEA. */
-    fun label(naplan: NaplanScore): String = "NAPLAN ${naplan.score} (${naplan.year})"
+    /** "NAPLAN -41 vs national (2025)": how a figure reads beside a school's ICSEA. */
+    fun label(naplan: NaplanScore): String = "NAPLAN ${signed(naplan.score)} vs national (${naplan.year})"
+
+    /** The difference with its sign always shown: "-41", "+25", and "0" for no difference. */
+    fun signed(points: Int): String = if (points > 0) "+$points" else points.toString()
 }

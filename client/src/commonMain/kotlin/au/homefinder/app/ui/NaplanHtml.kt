@@ -39,6 +39,10 @@ object NaplanIds {
 const val NAPLAN_ADD_TEXT: String = "Add NAPLAN"
 const val NAPLAN_EDIT_TEXT: String = "Edit NAPLAN"
 
+/** What the score box asks for: a signed difference from the national average (ADR 0069). */
+const val NAPLAN_SCORE_LABEL: String = "Difference from national average (points, may be negative, e.g. -41)"
+const val NAPLAN_SCORE_PLACEHOLDER: String = "-41"
+
 /** The link in the form's hint: My School's home page, never a guessed page for one school. */
 const val NAPLAN_MY_SCHOOL_TEXT: String = "My School (opens myschool.edu.au)"
 
@@ -87,22 +91,24 @@ private fun FlowContent.naplanForm(school: School) {
         attributes[NaplanIds.CODE_ATTRIBUTE] = school.id
         attributes[Aria.LABEL] = "NAPLAN for ${school.name}"
         p("hint") {
-            +"Type the school's overall NAPLAN score from "
+            +"Your own figure, typed in by hand: how far the school is above (+) or below (-) the national average, for your own use. Nothing is fetched. NAPLAN results are published by ACARA on "
             a(href = ExternalLinks.MY_SCHOOL_HOME, target = "_blank", classes = "external-link") {
                 attributes["rel"] = "noopener noreferrer"
                 +NAPLAN_MY_SCHOOL_TEXT
             }
-            +" by hand, for your own use. Nothing is fetched from My School."
+            +"."
         }
         div("fields") {
             label {
-                +"Score (${NaplanRules.MIN_SCORE} to ${NaplanRules.MAX_SCORE})"
+                +NAPLAN_SCORE_LABEL
+                // Plain text, not type=number or a numeric keypad: phone number pads often have no minus key, and a number box drops "+25"
+                // or a typographic minus; the form checks the value itself (ADR 0069).
                 input(type = InputType.text, name = NaplanIds.SCORE) {
                     id = NaplanIds.SCORE
-                    attributes["inputmode"] = "numeric"
                     attributes["autocomplete"] = "off"
                     attributes["required"] = "required"
-                    current?.let { attributes["value"] = it.score.toString() }
+                    attributes["placeholder"] = NAPLAN_SCORE_PLACEHOLDER
+                    current?.let { attributes["value"] = NaplanRules.signed(it.score) }
                 }
             }
             label {

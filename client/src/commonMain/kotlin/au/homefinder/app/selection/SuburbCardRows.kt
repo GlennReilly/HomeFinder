@@ -130,11 +130,11 @@ object SuburbCardRows {
         }
     }
 
-    /** A schools row whose schools include a NAPLAN figure you typed in names My School and ACARA in its Source line too (ADR 0068). */
+    /** A schools row whose schools include a NAPLAN figure you typed in says so in its Source line (ADR 0068; neutral wording, ADR 0069). */
     internal fun withNaplanSource(row: CardRow, schools: List<School>): CardRow =
         if (schools.any { it.naplan != null }) row.copy(source = "${row.source}; ${NaplanScore.SOURCE}") else row
 
-    /** ", NAPLAN 512 (2025)" after a school's ICSEA when you have typed a figure in, else nothing. */
+    /** ", NAPLAN -41 vs national (2025)" after a school's ICSEA when you have typed a figure in, else nothing. */
     fun naplanSuffix(school: School, separator: String): String = school.naplan?.let { separator + NaplanRules.label(it) }.orEmpty()
 
     internal fun <T> row(label: String, attribute: Attribute<T>, format: (T) -> String): CardRow = CardRow(

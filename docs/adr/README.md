@@ -69,4 +69,5 @@
 | [0065](0065-filter-shading-fades-at-lot-zoom.md) | The suburb filter shading fades out at lot zoom | Accepted |
 | [0066](0066-filter-groups.md) | Filters are grouped into folding sections | Accepted |
 | [0067](0067-narrow-bottom-sheet-layout.md) | Narrow windows: half-height sheet, compact lot header, fold chevron | Accepted |
-| [0068](0068-manual-naplan-score-per-school.md) | A NAPLAN score per school, typed in by hand from My School | Accepted |
+| [0068](0068-manual-naplan-score-per-school.md) | A NAPLAN score per school, typed in by hand from My School | Partly superseded by 0069 |
+| [0069](0069-naplan-difference-from-national-average.md) | The NAPLAN figure is a signed difference from the national average | Accepted |
