@@ -201,7 +201,8 @@ class SmokeTest {
         assertThat(page.locator("#card dl.rows dt", Page.LocatorOptions().setHasText("Zoned schools"))).hasCount(0)
         assertThat(page.locator("#card dl.rows dt", Page.LocatorOptions().setHasText(Pattern.compile("^Schools$")))).hasCount(1)
         val row = rows.first()
-        assertThat(row).containsText("Hamilton South Public School (primary), Newcastle High School (high)")
+        assertThat(row).not().containsText("Hamilton South Public School (primary), Newcastle High School (high)")
+        assertThat(row).containsText("Hamilton South Public School")
         assertThat(row).not().containsText("public school, average ICSEA")
         // Line by line (ADR 0071): name and zone, ICSEA, NAPLAN, then the links.
         assertThat(page.locator("#card ul.zones")).containsText("primary, K-6 · 82% of the suburb's lots")
