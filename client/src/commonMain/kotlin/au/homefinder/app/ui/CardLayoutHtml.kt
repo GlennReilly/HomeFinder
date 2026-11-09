@@ -79,21 +79,6 @@ private fun DIV.control(action: String, text: String, description: String, label
     }
 }
 
-/**
- * The muted line under the rows when some have no data (ADR 0058): how many are left out, with a button to show them (and, once shown, to hide them
- * again). Nothing is drawn when there are none.
- */
-fun FlowContent.unknownRowsNote(count: Int, showing: Boolean) {
-    if (count == 0) return
-    p("unknown-note") {
-        +(UnknownRows.note(count, showing) + " ")
-        button(type = ButtonType.button, classes = "unknown-toggle") {
-            attributes[CardActions.ATTRIBUTE] = if (showing) CardActions.HIDE_UNKNOWN else CardActions.SHOW_UNKNOWN
-            +UnknownRows.toggleText(count, showing)
-        }
-    }
-}
-
 /** The class of a group's `details` (ADR 0064). */
 const val CARD_GROUP_CLASS: String = "card-group"
 

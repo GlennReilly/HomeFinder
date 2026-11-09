@@ -208,8 +208,6 @@ private fun start(apiKey: String) {
             CardActions.CLOSE -> viewModel.clear()
             CardActions.RETRY -> viewModel.retry()
             CardActions.JUMP_SCHOOLS -> latest.selectedSuburbId?.let(::jumpToSchools)
-            CardActions.SHOW_UNKNOWN -> { layouts.showUnknown = true; redraw() }
-            CardActions.HIDE_UNKNOWN -> { layouts.showUnknown = false; redraw() }
             CardActions.REMOVE_RATING -> scope.launch { announce(viewModel.removeRating(), card, ::showNotice) }
             // One NAPLAN form at a time, under the school whose link was pressed (ADR 0068); pressing the open one's link again closes it.
             CardActions.EDIT_NAPLAN -> {
