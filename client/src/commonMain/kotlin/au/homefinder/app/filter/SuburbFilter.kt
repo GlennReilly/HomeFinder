@@ -32,7 +32,7 @@ enum class FilterCriterion(
     val label: String,
     /** What a value ends with: nothing, " km", "%" or " per 1,000". */
     val unit: String,
-    /** The one slider's direction: the side of the limit that passes (a high ICSEA is better, a short distance to the beach is better). */
+    /** The one slider's direction: the side of the limit that passes (a high zoned-school ICSEA is better, a short distance to the beach is better). */
     val direction: Direction,
     /** The slider step, also the grid the slider's ends are rounded out to. */
     val step: Double,
@@ -59,11 +59,6 @@ enum class FilterCriterion(
     /** Whether a value is a difference that always shows its sign ("+12", "-30", "0"), like a NAPLAN figure. */
     val signed: Boolean = false,
 ) {
-    ICSEA(
-        "icsea", "School ICSEA (average of public schools in the suburb)", "", Direction.AT_LEAST, 10.0, "ICSEA",
-        "ICSEA measures the socio-educational advantage of a school's students (1,000 is the average). It is not a measure of school quality.",
-        "School data has not been loaded yet, so there is nothing to filter on.",
-    ),
     BEACH(
         "beach", "Distance to the beach (from the suburb's centre)", " km", Direction.AT_MOST, 1.0, "beach distance",
         "A straight line from the suburb's centre to the nearest ocean beach on the mapped coastline, not a route.",
@@ -252,7 +247,6 @@ class FilterData(
         fun from(response: SuburbFiltersResponse): FilterData {
             val ids = response.suburbs.map { it.suburbId }.toSet()
             val values = mapOf(
-                FilterCriterion.ICSEA to response.suburbs.associate { it.suburbId to it.averageIcsea?.toDouble() },
                 FilterCriterion.BEACH to response.suburbs.associate { it.suburbId to it.beachKm },
                 FilterCriterion.PARKS to response.suburbs.associate { it.suburbId to it.parkShare?.times(PERCENT) },
                 FilterCriterion.RENTED to response.suburbs.associate { it.suburbId to it.rentedShare?.times(PERCENT) },
@@ -263,7 +257,6 @@ class FilterData(
                 FilterCriterion.NAPLAN to response.suburbs.associate { it.suburbId to it.zonedNaplan?.toDouble() },
             )
             val sources = buildMap {
-                put(FilterCriterion.ICSEA, FilterSource(response.icseaSource, response.icseaAsOf))
                 response.beach?.let { put(FilterCriterion.BEACH, FilterSource(it.source, it.asOf)) }
                 response.parks?.let { put(FilterCriterion.PARKS, FilterSource(it.source, it.asOf)) }
                 response.rented?.let { put(FilterCriterion.RENTED, FilterSource(it.source, it.asOf)) }

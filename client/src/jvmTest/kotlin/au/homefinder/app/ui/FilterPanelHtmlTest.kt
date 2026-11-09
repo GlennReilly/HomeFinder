@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 
 class FilterPanelHtmlTest {
     private fun data(vararg values: Int?) = FilterData.from(
-        SuburbFiltersResponse(values.mapIndexed { i, v -> SuburbFilterValue("s$i", v) }, "NSW schools", LocalDate(2026, 10, 2)),
+        SuburbFiltersResponse(values.mapIndexed { i, v -> SuburbFilterValue("s$i", zonedIcsea = v) }, "", zoned = FilterProvenance("NSW schools", LocalDate(2026, 10, 2))),
     )
 
     private fun html(data: FilterData) = createHTML().div { filterPanel(data, data.apply(FilterSelection())) }
@@ -24,11 +24,11 @@ class FilterPanelHtmlTest {
     @Test
     fun `the panel has a switch and one slider spanning the data, in steps of ten, starting at the lowest value for at least`() {
         val out = html(data(1032, 961, null))
-        assertTrue("""id="${FilterIds.on(FilterCriterion.ICSEA)}"""" in out)
-        assertTrue("""id="${FilterIds.limit(FilterCriterion.ICSEA)}"""" in out)
-        assertFalse("filter-icsea-min" in out || "filter-icsea-max" in out, "no second slider")
+        assertTrue("""id="${FilterIds.on(FilterCriterion.ZONED)}"""" in out)
+        assertTrue("""id="${FilterIds.limit(FilterCriterion.ZONED)}"""" in out)
+        assertFalse("filter-zoned-min" in out || "filter-zoned-max" in out, "no second slider")
         assertTrue("""min="960"""" in out && """max="1040"""" in out && """step="10"""" in out && """value="960"""" in out, out)
-        assertTrue("""<span id="filter-icsea-limit-prefix">At least </span><span id="filter-icsea-limit-value">960</span>""" in out, out)
+        assertTrue("""<span id="filter-zoned-limit-prefix">At least </span><span id="filter-zoned-limit-value">960</span>""" in out, out)
     }
 
     @Test
@@ -42,7 +42,7 @@ class FilterPanelHtmlTest {
     fun `without any ICSEA it says the schools are not loaded and has no ICSEA sliders`() {
         val out = html(data(null, null))
         assertTrue(FILTER_NO_DATA_TEXT in out)
-        assertFalse(FilterIds.limit(FilterCriterion.ICSEA) in out)
+        assertFalse(FilterIds.limit(FilterCriterion.ZONED) in out)
     }
 
     @Test
@@ -51,17 +51,17 @@ class FilterPanelHtmlTest {
         assertEquals("Switch on a filter to highlight matching suburbs.", filterSummaryText(d.apply(FilterSelection())))
         assertEquals(
             "1 of 3 suburbs match.",
-            filterSummaryText(d.apply(FilterSelection(mapOf(FilterCriterion.ICSEA to 1050.0)))),
+            filterSummaryText(d.apply(FilterSelection(mapOf(FilterCriterion.ZONED to 1050.0)))),
         )
-        val two = FilterSelection(mapOf(FilterCriterion.ICSEA to 0.0, FilterCriterion.RENTED to 100.0))
+        val two = FilterSelection(mapOf(FilterCriterion.ZONED to 0.0, FilterCriterion.RENTED to 100.0))
         assertEquals("0 of 3 suburbs match all 2 filters.$NO_MATCH_HINT", filterSummaryText(d.apply(two)))
     }
 
     @Test
     fun `each slider says how many suburbs have no value for it`() {
         val d = data(1000, 1100, null)
-        assertEquals("1 of 3 suburbs have no ICSEA and never match.", filterUnknownText(d, FilterCriterion.ICSEA))
-        assertTrue("""id="${FilterIds.unknown(FilterCriterion.ICSEA)}"""" in html(d))
+        assertEquals("1 of 3 suburbs have no zoned-school ICSEA and never match.", filterUnknownText(d, FilterCriterion.ZONED))
+        assertTrue("""id="${FilterIds.unknown(FilterCriterion.ZONED)}"""" in html(d))
     }
 
     private val full = FilterData.from(
@@ -96,7 +96,7 @@ class FilterPanelHtmlTest {
         val out = html(data(1000, 1100))
         assertTrue(FilterCriterion.RENTED.notLoadedText in out && FilterCriterion.BEACH.notLoadedText in out)
         assertFalse(FilterIds.limit(FilterCriterion.RENTED) in out)
-        assertTrue(FilterIds.limit(FilterCriterion.ICSEA) in out)
+        assertTrue(FilterIds.limit(FilterCriterion.ZONED) in out)
     }
 
     @Test
@@ -106,7 +106,7 @@ class FilterPanelHtmlTest {
 
     @Test
     fun `text is escaped`() {
-        val d = FilterData.from(SuburbFiltersResponse(listOf(SuburbFilterValue("a", 1000)), "<b>x</b>", null))
+        val d = FilterData.from(SuburbFiltersResponse(listOf(SuburbFilterValue("a", zonedIcsea = 1000)), "", zoned = FilterProvenance("<b>x</b>", null)))
         assertFalse("<b>x</b>" in html(d))
     }
 
@@ -116,7 +116,7 @@ class FilterPanelHtmlTest {
         val idle = html(d)
         assertTrue("""id="${FilterIds.RESET}"""" in idle && FILTER_RESET_TEXT in idle)
         assertTrue(Regex("""<button[^>]*id="${FilterIds.RESET}"[^>]*disabled""").containsMatchIn(idle) || Regex("""<button[^>]*disabled[^>]*id="${FilterIds.RESET}"""").containsMatchIn(idle), idle)
-        val active = createHTML().div { filterPanel(d, d.apply(FilterSelection(mapOf(FilterCriterion.ICSEA to 1000.0)))) }
+        val active = createHTML().div { filterPanel(d, d.apply(FilterSelection(mapOf(FilterCriterion.ZONED to 1000.0)))) }
         assertFalse(Regex("""<button[^>]*id="${FilterIds.RESET}"[^>]*disabled""").containsMatchIn(active) || Regex("""<button[^>]*disabled[^>]*id="${FilterIds.RESET}"""").containsMatchIn(active), active)
     }
 
@@ -144,13 +144,13 @@ class FilterPanelHtmlTest {
         assertTrue("""<details class="$FILTER_GROUP_CLASS" id="filter-group-schools">""" in out, out)
         assertTrue("""id="filter-group-schools-count"""" in out)
         val schools = out.substringAfter("""id="filter-group-schools"""").substringBefore("</details>")
-        assertTrue("""id="filter-icsea-on"""" in schools && """id="filter-icsea-limit"""" in schools)
+        assertTrue("""id="filter-zoned-on"""" in schools && """id="filter-zoned-limit"""" in schools)
         assertTrue("""id="${FilterIds.RESET}"""" in out && """id="${FilterIds.SUMMARY}"""" in out)
     }
 
     private fun naplanData(vararg values: Int?) = FilterData.from(
         SuburbFiltersResponse(
-            values.mapIndexed { i, v -> SuburbFilterValue("s$i", 1000, zonedNaplan = v) }, "NSW schools", LocalDate(2026, 10, 2),
+            values.mapIndexed { i, v -> SuburbFilterValue("s$i", zonedIcsea = 1000, zonedNaplan = v) }, "NSW schools", LocalDate(2026, 10, 2),
             zoned = FilterProvenance("NSW DoE catchments", LocalDate(2026, 11, 5)), naplan = FilterProvenance("Your own figures", LocalDate(2026, 11, 8)),
         ),
     )

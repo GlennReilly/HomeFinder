@@ -17,10 +17,10 @@ class FilterGroupsTest {
 
     @Test
     fun `a criterion no group lists goes to a final More group`() {
-        val groups = listOf(FilterGroup("Only", listOf(FilterCriterion.ICSEA), openByDefault = true))
+        val groups = listOf(FilterGroup("Only", listOf(FilterCriterion.ZONED), openByDefault = true))
         val arranged = FilterGroups.arrange(groups = groups)
         assertEquals(listOf("Only", FilterGroups.OTHER_TITLE), arranged.map { it.title })
-        assertEquals(FilterCriterion.entries - FilterCriterion.ICSEA, arranged.last().criteria)
+        assertEquals(FilterCriterion.entries - FilterCriterion.ZONED, arranged.last().criteria)
     }
 
     @Test
@@ -39,7 +39,7 @@ class FilterGroupsTest {
     fun `the on text counts the group's switched-on criteria and is empty for none`() {
         val crime = FilterGroups.arrange().first { it.title == "Crime" }
         assertEquals("", FilterGroups.onText(crime, emptySet()))
-        assertEquals("1 on", FilterGroups.onText(crime, setOf(FilterCriterion.VIOLENT, FilterCriterion.ICSEA)))
+        assertEquals("1 on", FilterGroups.onText(crime, setOf(FilterCriterion.VIOLENT, FilterCriterion.ZONED)))
         assertEquals("2 on", FilterGroups.onText(crime, setOf(FilterCriterion.VIOLENT, FilterCriterion.PROPERTY)))
     }
 
@@ -52,9 +52,9 @@ class FilterGroupsTest {
     }
 
     @Test
-    fun `the zoned NAPLAN filter sits in the Schools group after the ICSEA filters and counts in its N on`() {
+    fun `the zoned NAPLAN filter sits first in the Schools group, before the zoned ICSEA filter (ADR 0078), and counts in its N on`() {
         val schools = FilterGroups.arrange().first { it.title == "Schools" }
-        assertEquals(listOf(FilterCriterion.ICSEA, FilterCriterion.ZONED, FilterCriterion.NAPLAN), schools.criteria)
+        assertEquals(listOf(FilterCriterion.NAPLAN, FilterCriterion.ZONED), schools.criteria)
         assertEquals("1 on", FilterGroups.onText(schools, setOf(FilterCriterion.NAPLAN)))
         assertTrue(FilterGroups.arrange(setOf(FilterCriterion.NAPLAN)).first { it.title == "Schools" }.open)
     }

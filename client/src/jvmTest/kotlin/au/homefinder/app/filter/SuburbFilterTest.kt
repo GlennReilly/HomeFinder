@@ -14,9 +14,9 @@ import kotlin.test.assertTrue
 class SuburbFilterTest {
     private val day = LocalDate(2026, 10, 2)
     private fun data(vararg pairs: Pair<String, Int?>) =
-        FilterData.from(SuburbFiltersResponse(pairs.map { SuburbFilterValue(it.first, it.second) }, "Schools", day))
+        FilterData.from(SuburbFiltersResponse(pairs.map { SuburbFilterValue(it.first, zonedIcsea = it.second) }, "", zoned = FilterProvenance("Schools", day)))
 
-    private fun icsea(limit: Double) = FilterSelection(mapOf(FilterCriterion.ICSEA to limit))
+    private fun zoned(limit: Double) = FilterSelection(mapOf(FilterCriterion.ZONED to limit))
 
     private val sample = data("a" to 1032, "b" to 961, "c" to null, "d" to 1105)
 
@@ -30,51 +30,51 @@ class SuburbFilterTest {
 
     @Test
     fun `an ICSEA limit passes the suburbs at or above it, the limit included`() {
-        val result = sample.apply(icsea(1032.0))
+        val result = sample.apply(zoned(1032.0))
         assertEquals(setOf("a", "d"), result.passingIds)
         assertEquals(2, result.matching)
     }
 
     @Test
     fun `a suburb with no ICSEA never passes and is counted as unknown`() {
-        val result = sample.apply(icsea(0.0))
+        val result = sample.apply(zoned(0.0))
         assertEquals(setOf("a", "b", "d"), result.passingIds)
-        assertEquals(1, result.unknown.getValue(FilterCriterion.ICSEA))
+        assertEquals(1, result.unknown.getValue(FilterCriterion.ZONED))
         assertEquals(4, result.total)
     }
 
     @Test
     fun `the unknown counts are shown even before a filter is on`() {
         val result = sample.apply(FilterSelection())
-        assertEquals(1, result.unknown.getValue(FilterCriterion.ICSEA))
+        assertEquals(1, result.unknown.getValue(FilterCriterion.ZONED))
         assertEquals(4, result.unknown.getValue(FilterCriterion.BEACH), "no suburb has a beach distance in this response")
     }
 
     @Test
     fun `the slider bounds are the known range widened to whole steps`() {
-        assertEquals(FilterRange(960.0, 1110.0), sample.bounds(FilterCriterion.ICSEA))
-        assertEquals(FilterRange(1000.0, 1000.0), data("x" to 1000).bounds(FilterCriterion.ICSEA))
+        assertEquals(FilterRange(960.0, 1110.0), sample.bounds(FilterCriterion.ZONED))
+        assertEquals(FilterRange(1000.0, 1000.0), data("x" to 1000).bounds(FilterCriterion.ZONED))
     }
 
     @Test
     fun `with no ICSEA anywhere there are no bounds`() {
         val none = data("a" to null, "b" to null)
-        assertNull(none.bounds(FilterCriterion.ICSEA))
-        assertFalse(none.hasData(FilterCriterion.ICSEA))
+        assertNull(none.bounds(FilterCriterion.ZONED))
+        assertFalse(none.hasData(FilterCriterion.ZONED))
         assertFalse(none.hasAnyData)
-        assertEquals(emptySet(), none.apply(icsea(0.0)).passingIds)
+        assertEquals(emptySet(), none.apply(zoned(0.0)).passingIds)
     }
 
     @Test
     fun `no suburbs at all is fine`() {
         val empty = data()
-        assertNull(empty.bounds(FilterCriterion.ICSEA))
+        assertNull(empty.bounds(FilterCriterion.ZONED))
         assertEquals(0, empty.apply(FilterSelection()).total)
     }
 
     @Test
     fun `provenance is kept from the response and a criterion with none has no source`() {
-        assertEquals(FilterSource("Schools", day), sample.source(FilterCriterion.ICSEA))
+        assertEquals(FilterSource("Schools", day), sample.source(FilterCriterion.ZONED))
         assertNull(sample.source(FilterCriterion.BEACH))
         assertNull(sample.source(FilterCriterion.RENTED))
     }
@@ -89,11 +89,11 @@ class SuburbFilterTest {
     fun `each criterion has one fixed direction, and its slider starts where every suburb passes`() {
         assertEquals(
             listOf(Direction.AT_LEAST, Direction.AT_MOST, Direction.AT_LEAST, Direction.AT_MOST, Direction.AT_LEAST, Direction.AT_MOST, Direction.AT_MOST),
-            listOf(FilterCriterion.ICSEA, FilterCriterion.BEACH, FilterCriterion.PARKS, FilterCriterion.RENTED, FilterCriterion.SEIFA, FilterCriterion.VIOLENT, FilterCriterion.PROPERTY)
+            listOf(FilterCriterion.ZONED, FilterCriterion.BEACH, FilterCriterion.PARKS, FilterCriterion.RENTED, FilterCriterion.SEIFA, FilterCriterion.VIOLENT, FilterCriterion.PROPERTY)
                 .map { it.direction },
         )
         val bounds = FilterRange(960.0, 1110.0)
-        assertEquals(960.0, FilterCriterion.ICSEA.startLimit(bounds), "at least: the lowest value")
+        assertEquals(960.0, FilterCriterion.ZONED.startLimit(bounds), "at least: the lowest value")
         assertEquals(1110.0, FilterCriterion.BEACH.startLimit(bounds), "at most: the highest value")
         assertTrue(Direction.AT_LEAST.passes(5.0, 5.0) && Direction.AT_MOST.passes(5.0, 5.0), "the limit itself passes")
         assertFalse(Direction.AT_LEAST.passes(4.9, 5.0) || Direction.AT_MOST.passes(5.1, 5.0))
@@ -130,7 +130,7 @@ class SuburbFilterTest {
         assertEquals(FilterRange(1.0, 12.0), all.bounds(FilterCriterion.BEACH), "1.5 km rounds down to 1 and 12.0 stays")
         assertEquals("45%", FilterCriterion.RENTED.format(45.0))
         assertEquals("12 km", FilterCriterion.BEACH.format(12.0))
-        assertEquals("1050", FilterCriterion.ICSEA.format(1050.0))
+        assertEquals("1050", FilterCriterion.ZONED.format(1050.0))
     }
 
     @Test
@@ -157,7 +157,7 @@ class SuburbFilterTest {
             assertEquals(criterion, au.homefinder.app.ui.FilterIds.criterionOf(au.homefinder.app.ui.FilterIds.limit(criterion)))
             assertEquals(criterion, au.homefinder.app.ui.FilterIds.criterionOf(au.homefinder.app.ui.FilterIds.limitOut(criterion)))
         }
-        assertEquals("filter-icsea-on", au.homefinder.app.ui.FilterIds.on(FilterCriterion.ICSEA), "the ICSEA ids are unchanged")
+        assertEquals("filter-zoned-on", au.homefinder.app.ui.FilterIds.on(FilterCriterion.ZONED), "the zoned ids")
         assertNull(au.homefinder.app.ui.FilterIds.criterionOf("filter-summary"))
     }
 
@@ -224,7 +224,7 @@ class SuburbFilterTest {
         assertNull(small.noLimitPosition(FilterCriterion.VIOLENT))
         assertEquals(FilterRange(4.0, 31.0), small.bounds(FilterCriterion.VIOLENT))
         assertEquals("31 per 1,000", small.limitText(FilterCriterion.VIOLENT, 31.0))
-        assertNull(withOutlier.cap(FilterCriterion.ICSEA), "no values")
+        assertNull(withOutlier.cap(FilterCriterion.ZONED), "no values")
     }
 
     @Test
@@ -292,7 +292,7 @@ class SuburbFilterTest {
         assertEquals("", empty.limitPrefix(FilterCriterion.NAPLAN, 0.0))
         assertEquals(2, empty.unknown(FilterCriterion.NAPLAN))
         assertFalse(naplan("a" to null, loaded = false).isEmpty(FilterCriterion.NAPLAN), "no catchments: the not-loaded text instead")
-        assertFalse(empty.isEmpty(FilterCriterion.ICSEA), "only a criterion with an empty text can be empty")
+        assertFalse(empty.isEmpty(FilterCriterion.ZONED), "only a criterion with an empty text can be empty")
     }
 
     @Test
@@ -302,14 +302,14 @@ class SuburbFilterTest {
             "Average of the NAPLAN figures you typed for the zoned schools, weighted by how much of the suburb each zone covers; 1 of 3 suburbs have at least one.",
             data.helpText(FilterCriterion.NAPLAN),
         )
-        assertEquals(FilterCriterion.ICSEA.help, data.helpText(FilterCriterion.ICSEA))
+        assertEquals(FilterCriterion.ZONED.help, data.helpText(FilterCriterion.ZONED))
         assertEquals(1, data.known(FilterCriterion.NAPLAN))
     }
 
     @Test
     fun `a selection carried to reloaded values keeps its limits, clamps them into the new range and drops a criterion with no values`() {
         val reloaded = naplan("a" to 10, "b" to 30)
-        val carried = FilterSelection(mapOf(FilterCriterion.NAPLAN to -20.0, FilterCriterion.ICSEA to 1000.0)).carriedTo(reloaded)
+        val carried = FilterSelection(mapOf(FilterCriterion.NAPLAN to -20.0, FilterCriterion.ZONED to 1000.0)).carriedTo(reloaded)
         assertEquals(mapOf(FilterCriterion.NAPLAN to 10.0), carried.limits)
         assertEquals(mapOf(FilterCriterion.NAPLAN to 20.0), FilterSelection(mapOf(FilterCriterion.NAPLAN to 20.0)).carriedTo(reloaded).limits)
         assertFalse(FilterSelection(mapOf(FilterCriterion.NAPLAN to 20.0)).carriedTo(naplan("a" to null)).isActive)

@@ -36,7 +36,7 @@
 | [0032](0032-browser-smoke-tests.md) | Browser smoke tests | Accepted |
 | [0033](0033-suburb-osm-rollup.md) | Suburb roll-up of the OpenStreetMap features | Accepted |
 | [0034](0034-suburb-schools-and-icsea.md) | Suburb schools and ICSEA | Accepted |
-| [0035](0035-suburb-filter-panel.md) | Suburb filter side panel | Accepted |
+| [0035](0035-suburb-filter-panel.md) | Suburb filter side panel | Partly superseded by 0078 |
 | [0036](0036-lot-height-and-slope-from-dem.md) | Lot height and slope from the 5 m DEM | Accepted |
 | [0037](0037-dem-request-in-degrees.md) | DEM request in degrees, resampled to metres | Accepted |
 | [0038](0038-sales-window-ends-on-latest-sale.md) | Sales windows end on the latest sale | Accepted |
@@ -79,3 +79,4 @@
 | [0075](0075-schoolrank-address-overrides.md) | SchoolRank address overrides, by school code | Accepted |
 | [0076](0076-naplan-map-label.md) | Each suburb's NAPLAN average as a clickable map label | Accepted |
 | [0077](0077-smaller-buttons-same-touch-area.md) | Buttons drawn smaller, with the same 44 px touch area | Accepted |
+| [0078](0078-remove-in-suburb-icsea-filter.md) | Remove the in-suburb ICSEA filter; NAPLAN first in Schools | Accepted |

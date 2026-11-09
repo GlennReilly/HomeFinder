@@ -45,8 +45,7 @@ fun filterResetTitle(anyOn: Boolean): String =
 const val FILTER_LOADING_TEXT: String = "Loading filters…"
 const val FILTER_UNAVAILABLE_TEXT: String = "The filters could not be loaded."
 const val FILTER_NO_DATA_TEXT: String = "No data has been loaded yet, so there is nothing to filter on."
-val FILTER_NO_SCHOOLS_TEXT: String = FilterCriterion.ICSEA.notLoadedText
-val FILTER_ICSEA_HELP: String = checkNotNull(FilterCriterion.ICSEA.help)
+val FILTER_NO_SCHOOLS_TEXT: String = FilterCriterion.ZONED.notLoadedText
 
 /** The line under the sliders: how many suburbs match every switched-on filter. The unknown counts sit beside each slider. */
 fun filterSummaryText(result: FilterResult): String = when {
