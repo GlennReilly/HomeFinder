@@ -10,8 +10,11 @@ class NaplanInputTest {
     private fun parse(score: String, year: String, note: String = "") = NaplanInput.parse(score, year, note, thisYear)
 
     @Test
-    fun `a whole score and a year are accepted, with spaces trimmed and the note kept`() {
-        assertEquals(ParsedNaplan.Valid(NaplanEntry(512, 2025, null)), parse(" 512 ", "2025"))
+    fun `a signed whole difference and a year are accepted, with spaces trimmed and the note kept`() {
+        assertEquals(ParsedNaplan.Valid(NaplanEntry(-41, 2025, null)), parse(" -41 ", "2025"))
+        assertEquals(ParsedNaplan.Valid(NaplanEntry(25, 2025, null)), parse("+25", "2025"))
+        assertEquals(ParsedNaplan.Valid(NaplanEntry(-41, 2025, null)), parse("\u221241", "2025"), "a typographic minus as other sites print it")
+        assertEquals(ParsedNaplan.Valid(NaplanEntry(-1000, 2025, null)), parse("-1000", "2025"))
         assertEquals(ParsedNaplan.Valid(NaplanEntry(0, 2008, "Year 5 reading")), parse("0", "2008", " Year 5 reading "))
         assertEquals(ParsedNaplan.Valid(NaplanEntry(1000, 2026, null)), parse("1000", "2026", "   "))
     }
@@ -23,8 +26,8 @@ class NaplanInputTest {
     }
 
     @Test
-    fun `a score that is not a whole number from 0 to 1000 is refused`() {
-        listOf("1001", "-1", "512.5", "abc", "5 12", "99999999999").forEach {
+    fun `a difference that is not a whole number from -1000 to +1000 is refused`() {
+        listOf("1001", "-1001", "-41.5", "abc", "5 12", "--41", "+-4", "-", "99999999999").forEach {
             assertEquals(ParsedNaplan.Invalid(NaplanInput.MESSAGE_SCORE_RANGE), parse(it, "2025"), it)
         }
     }

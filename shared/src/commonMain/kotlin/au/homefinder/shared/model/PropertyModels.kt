@@ -119,7 +119,7 @@ data class School(
     val website: String? = null,
     /** The kind of school in the data's own words, for example "Primary School". */
     val levelLabel: String? = null,
-    /** The overall NAPLAN figure you typed in from My School (ADR 0068), or null when you have not. */
+    /** The NAPLAN difference from the national average you typed in (ADR 0068, 0069), or null when you have not. */
     val naplan: NaplanScore? = null,
 )
 

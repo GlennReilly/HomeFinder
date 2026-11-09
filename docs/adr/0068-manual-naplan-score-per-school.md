@@ -1,6 +1,6 @@
 # 0068. A NAPLAN score per school, typed in by hand from My School
 
-Status: Accepted
+Status: Partly superseded by 0069
 
 ## Context
 You wanted a NAPLAN figure beside each school on the cards. ICSEA (ADR 0034) describes a school's students' background, not

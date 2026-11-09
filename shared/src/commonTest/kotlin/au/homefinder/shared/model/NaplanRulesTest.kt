@@ -3,6 +3,7 @@ package au.homefinder.shared.model
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class NaplanRulesTest {
@@ -11,15 +12,15 @@ class NaplanRulesTest {
     private fun check(score: Int, year: Int, note: String? = null) = NaplanRules.check(NaplanEntry(score, year, note), thisYear)
 
     @Test
-    fun `scores from 0 to 1000 and years from 2008 to this year are accepted`() {
-        listOf(0 to 2008, 1000 to thisYear, 512 to 2025).forEach { (score, year) ->
+    fun `differences from -1000 to +1000 and years from 2008 to this year are accepted`() {
+        listOf(-41 to 2025, 25 to 2025, 0 to 2008, -1000 to 2024, 1000 to thisYear).forEach { (score, year) ->
             assertEquals(NaplanCheck.Valid(NaplanEntry(score, year)), check(score, year), "$score in $year")
         }
     }
 
     @Test
-    fun `a score outside 0 to 1000 is refused`() {
-        listOf(-1, 1001, Int.MAX_VALUE, Int.MIN_VALUE).forEach {
+    fun `a difference outside -1000 to +1000 is refused`() {
+        listOf(-1001, 1001, Int.MAX_VALUE, Int.MIN_VALUE).forEach {
             assertEquals(NaplanCheck.Invalid(NaplanProblem.SCORE_OUT_OF_RANGE), check(it, 2025), "$it")
         }
     }
@@ -40,8 +41,16 @@ class NaplanRulesTest {
     }
 
     @Test
-    fun `the label shows the score and its year`() {
-        assertEquals("NAPLAN 512 (2025)", NaplanRules.label(NaplanScore(512, 2025, "note", LocalDate(2026, 11, 8))))
+    fun `the label shows the difference with its sign and the year`() {
+        fun label(points: Int) = NaplanRules.label(NaplanScore(points, 2025, "note", LocalDate(2026, 11, 8)))
+        assertEquals("NAPLAN -41 vs national (2025)", label(-41))
+        assertEquals("NAPLAN +25 vs national (2025)", label(25))
+        assertEquals("NAPLAN 0 vs national (2025)", label(0))
+    }
+
+    @Test
+    fun `a fractional difference is not a whole number of points, so it does not decode`() {
+        assertFailsWith<IllegalArgumentException> { ApiJson.decodeFromString<NaplanEntry>("""{"score":-41.5,"year":2025}""") }
     }
 
     @Test

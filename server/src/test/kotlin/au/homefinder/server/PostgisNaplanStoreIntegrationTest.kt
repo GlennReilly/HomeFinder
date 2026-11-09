@@ -85,8 +85,17 @@ class PostgisNaplanStoreIntegrationTest {
     }
 
     @Test
+    fun `a difference below the national average is saved and read back as negative`() = withStore { store ->
+        assertIs<NaplanWrite.Saved>(store.put("1234", NaplanEntry(-41, 2025)))
+        assertEquals(-41, store.forSchools(listOf("1234"))["1234"]?.score)
+        store.put("5678", NaplanEntry(-1000, 2024))
+        assertEquals(listOf(-41, -1000), store.all().map { it.naplan.score })
+    }
+
+    @Test
     fun `the table refuses figures out of range`() {
         assertFailsWith<java.sql.SQLException> { execute("INSERT INTO school_naplan (school_code, score, year) VALUES (1, 1001, 2025)") }
+        assertFailsWith<java.sql.SQLException> { execute("INSERT INTO school_naplan (school_code, score, year) VALUES (1, -1001, 2025)") }
         assertFailsWith<java.sql.SQLException> { execute("INSERT INTO school_naplan (school_code, score, year) VALUES (1, 500, 2007)") }
         assertFailsWith<java.sql.SQLException> { execute("INSERT INTO school_naplan (school_code, score, year, note) VALUES (1, 500, 2025, repeat('x', 201))") }
     }

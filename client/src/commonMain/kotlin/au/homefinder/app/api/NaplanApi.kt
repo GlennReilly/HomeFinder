@@ -3,6 +3,7 @@ package au.homefinder.app.api
 import au.homefinder.shared.api.ApiContract
 import au.homefinder.shared.model.ApiJson
 import au.homefinder.shared.model.NaplanEntry
+import au.homefinder.shared.model.NaplanRules
 import au.homefinder.shared.model.NaplanScore
 import kotlinx.serialization.encodeToString
 
@@ -11,6 +12,10 @@ private const val HTTP_NO_CONTENT = 204
 private const val HTTP_BAD_REQUEST = 400
 private const val HTTP_UNAUTHORIZED = 401
 private const val HTTP_NOT_FOUND = 404
+
+/** What a 400 means: the difference, year or note was outside what the server accepts (ADR 0069). */
+const val MESSAGE_NOT_ACCEPTED: String =
+    "the server did not accept that figure (a whole number from ${NaplanRules.MIN_SCORE} to +${NaplanRules.MAX_SCORE}, a year from ${NaplanRules.FIRST_YEAR})"
 
 /** The endpoints for your NAPLAN figures, one per school (ADR 0068). The key goes only in the request header. */
 class NaplanApi(private val config: ApiConfig, private val writes: HttpWrite) {
@@ -21,7 +26,7 @@ class NaplanApi(private val config: ApiConfig, private val writes: HttpWrite) {
             is HttpResult.Response -> when (answer.status) {
                 HTTP_OK -> runCatching { ApiJson.decodeFromString<NaplanScore>(answer.body) }
                     .fold({ LookupResult.Found(it) }, { LookupResult.Failed("the response was not understood") })
-                HTTP_BAD_REQUEST -> LookupResult.Failed("the server did not accept that figure")
+                HTTP_BAD_REQUEST -> LookupResult.Failed(MESSAGE_NOT_ACCEPTED)
                 HTTP_UNAUTHORIZED -> LookupResult.Unauthorized
                 HTTP_NOT_FOUND -> LookupResult.NotFound
                 else -> LookupResult.Failed("the server answered ${answer.status}")

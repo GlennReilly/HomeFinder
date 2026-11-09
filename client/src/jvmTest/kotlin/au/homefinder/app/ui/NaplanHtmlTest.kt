@@ -27,7 +27,7 @@ import kotlin.test.assertTrue
 
 class NaplanHtmlTest {
     private fun <T> u() = Attribute.unknown<T>("src", note = "Not computed yet")
-    private val score = NaplanScore(512, 2025, "Year 5 reading", LocalDate(2026, 11, 8))
+    private val score = NaplanScore(-41, 2025, "Year 5 reading", LocalDate(2026, 11, 8))
     private fun school(id: String, name: String, naplan: NaplanScore? = null, level: SchoolLevel = SchoolLevel.PRIMARY) =
         School(id, name, SchoolSector.PUBLIC, level, 1051, naplan = naplan)
 
@@ -51,18 +51,19 @@ class NaplanHtmlTest {
         val out = suburbHtml(scored = false)
         assertEquals(listOf("naplan-edit-1", "naplan-edit-1-2", "naplan-edit-2"), ids(out))
         assertEquals(3, Regex(">$NAPLAN_ADD_TEXT<").findAll(out).count())
-        assertFalse("NAPLAN 512" in out)
+        assertFalse("vs national" in out)
         assertFalse(NaplanIds.FORM in out, "no form until a link is pressed")
-        assertFalse("ACARA" in out, "the attribution goes with a figure")
+        assertFalse("Your own figure" in out, "the Source wording goes with a figure")
     }
 
     @Test
-    fun `a saved figure shows beside the ICSEA in both rows, the link says Edit and the Source names ACARA`() {
+    fun `a saved figure shows beside the ICSEA in both rows, the link says Edit and the Source says it is your own figure`() {
         val out = suburbHtml(scored = true)
-        assertTrue("Primary · ICSEA 1,051 · NAPLAN 512 (2025)" in out, out)
-        assertTrue("ICSEA 1,051 · NAPLAN 512 (2025)" in out.substringAfter("80% of the suburb"))
+        assertTrue("Primary · ICSEA 1,051 · NAPLAN -41 vs national (2025)" in out, out)
+        assertTrue("ICSEA 1,051 · NAPLAN -41 vs national (2025)" in out.substringAfter("80% of the suburb"))
         assertEquals(2, Regex(">$NAPLAN_EDIT_TEXT<").findAll(out).count())
-        assertTrue("Department of Education; NAPLAN typed in by you from My School. Source: Australian Curriculum, Assessment and Reporting Authority (ACARA)" in out)
+        assertTrue("Department of Education; Your own figure, typed in. NAPLAN results are published by ACARA on My School." in out)
+        assertFalse("Source: Australian Curriculum" in out, "the app does not say the figure came from ACARA")
         // The second school has no figure: still just the Add link.
         assertTrue("aria-label=\"$NAPLAN_ADD_TEXT for Newcastle High School\"" in out)
     }
@@ -77,10 +78,30 @@ class NaplanHtmlTest {
         listOf(NaplanIds.SCORE, NaplanIds.YEAR, NaplanIds.NOTE, NaplanIds.SAVE, NaplanIds.CLEAR, NaplanIds.CANCEL, NaplanIds.MESSAGE).forEach {
             assertTrue("id=\"$it\"" in form, it)
         }
-        assertTrue("value=\"512\"" in form && "value=\"2025\"" in form && "value=\"Year 5 reading\"" in form)
+        assertTrue("value=\"-41\"" in form && "value=\"2025\"" in form && "value=\"Year 5 reading\"" in form)
         assertTrue("""${NaplanIds.CODE_ATTRIBUTE}="1"""" in form)
         assertTrue("""href="https://www.myschool.edu.au/"""" in form)
         assertTrue("""aria-expanded="true"""" in out)
+    }
+
+    @Test
+    fun `the score box asks for a signed difference and lets a minus sign be typed`() {
+        val out = suburbHtml(scored = false, open = "naplan-edit-2")
+        assertTrue(NAPLAN_SCORE_LABEL in out)
+        assertEquals("Difference from national average (points, may be negative, e.g. -41)", NAPLAN_SCORE_LABEL)
+        val box = Regex("<input[^>]*id=\"${NaplanIds.SCORE}\"[^>]*>").find(out)!!.value
+        assertTrue("type=\"text\"" in box && "autocomplete=\"off\"" in box && "placeholder=\"-41\"" in box, box)
+        assertFalse("inputmode" in box, "a numeric keypad can lack a minus key: $box")
+        assertFalse("0 to 1000" in out)
+    }
+
+    @Test
+    fun `a positive figure is shown and filled in with its plus sign`() {
+        val out = createHTML().div {
+            suburbCard(SuburbCardState.Loaded(suburb(scored = false).let { r -> r.copy(zonedSchools = r.zonedSchools.copy(value = r.zonedSchools.value!!.copy(zones = r.zonedSchools.value!!.zones.map { it.copy(school = it.school.copy(naplan = score.copy(score = 25))) }))) }), groupOpen = mapOf("Schools" to true), naplanOpen = "naplan-edit-2")
+        }
+        assertTrue("NAPLAN +25 vs national (2025)" in out)
+        assertTrue("value=\"+25\"" in out)
     }
 
     @Test
@@ -104,8 +125,8 @@ class NaplanHtmlTest {
     @Test
     fun `the lot card shows the figure in its Schools row and lists each school with its link`() {
         val row = LotCardRows.of(lot).single { it.label == SuburbCardRows.SCHOOLS_LABEL }
-        assertTrue("Hamilton Public School (primary, K-6), ICSEA 1,051, NAPLAN 512 (2025)" in row.value!!, row.value)
-        assertTrue("ACARA" in row.source)
+        assertTrue("Hamilton Public School (primary, K-6), ICSEA 1,051, NAPLAN -41 vs national (2025)" in row.value!!, row.value)
+        assertTrue("Your own figure, typed in." in row.source)
         val out = createHTML().div { lotCard(LotCardState.Loaded(lot), groupOpen = mapOf("Schools" to true), naplanOpen = "naplan-edit-2") }
         assertEquals(listOf("naplan-edit-1", "naplan-edit-2"), ids(out))
         assertTrue("naplan-schools" in out)
