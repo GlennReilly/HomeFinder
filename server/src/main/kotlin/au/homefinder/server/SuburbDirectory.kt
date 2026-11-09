@@ -250,7 +250,7 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
                     val values = buildList {
                         while (rows.next()) {
                             val icsea = rows.getInt("average_icsea").takeIf { !rows.wasNull() }
-                            add(SuburbFilterRow(rows.getString("suburb_id"), icsea, double("beach_km"), double("park_share"), double("rented_share"), rows.getInt("seifa_decile").takeIf { !rows.wasNull() }, double("violent_per_1000"), double("property_per_1000"), rows.getString("name").orEmpty(), rows.getInt("zoned_icsea").takeIf { !rows.wasNull() }, zonedNaplan[rows.getString("suburb_id")]))
+                            add(SuburbFilterRow(rows.getString("suburb_id"), icsea, double("beach_km"), double("park_share"), double("rented_share"), rows.getInt("seifa_decile").takeIf { !rows.wasNull() }, double("violent_per_1000"), double("property_per_1000"), rows.getString("name").orEmpty(), rows.getInt("zoned_icsea").takeIf { !rows.wasNull() }, zonedNaplan[rows.getString("suburb_id")], double("label_lat"), double("label_lon")))
                         }
                     }
                     SuburbFilterData(values, schoolsDate, schoolsLoaded = schools, osmLoaded = amenity, osmAsOf = osmDate, censusLoaded = census, seifaLoaded = seifa, crimeLoaded = crime, crimeAsOf = crimeDate, zonedLoaded = zoned, zonedAsOf = zonedDate, naplanLoaded = naplan, naplanAsOf = naplanDate)
@@ -419,8 +419,11 @@ class PostgisSuburbDirectory(private val dataSource: DataSource) : SuburbDirecto
                 "NULL::int"
             }
             return "SELECT s.suburb_id, s.name, $icsea AS average_icsea, $beach AS beach_km, $park AS park_share, $rented AS rented_share, $decile AS seifa_decile, " +
-                "${rate("violent_incidents")} AS violent_per_1000, ${rate("property_incidents")} AS property_per_1000, $zonedIcsea AS zoned_icsea " +
-                "FROM suburb s$joins ORDER BY s.suburb_id"
+                "${rate("violent_incidents")} AS violent_per_1000, ${rate("property_incidents")} AS property_per_1000, $zonedIcsea AS zoned_icsea, " +
+                // Where the suburb's name is drawn, as the ratings list has it (the label table stores Web Mercator), else a point inside the suburb (ADR 0076).
+                "ST_Y(COALESCE(ST_Transform(lbl.geom, $GDA2020_SRID), ST_PointOnSurface(s.geom))) AS label_lat, " +
+                "ST_X(COALESCE(ST_Transform(lbl.geom, $GDA2020_SRID), ST_PointOnSurface(s.geom))) AS label_lon " +
+                "FROM suburb s LEFT JOIN suburb_label lbl ON lbl.suburb_id = s.suburb_id$joins ORDER BY s.suburb_id"
         }
 
         val FIND_SQL = """

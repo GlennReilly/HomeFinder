@@ -18,6 +18,10 @@ external object MapLibre {
         fun getSource(id: String): dynamic
         fun getBounds(): dynamic
         fun querySourceFeatures(sourceId: String, parameters: dynamic): dynamic
+        fun queryRenderedFeatures(point: dynamic, parameters: dynamic): dynamic
+        fun getLayer(id: String): dynamic
+        fun addImage(id: String, image: dynamic, options: dynamic = definedExternally)
+        fun getCanvas(): dynamic
         fun fitBounds(bounds: dynamic, options: dynamic = definedExternally)
         fun flyTo(options: dynamic)
         fun addControl(control: dynamic, position: String = definedExternally)

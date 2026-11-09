@@ -368,6 +368,11 @@ class PostgisSuburbDirectoryIntegrationTest {
         assertNull(byId["9003"], "a suburb with no school is listed with no value")
         assertEquals(LocalDate(2026, 10, 2), data.icseaAsOf)
         assertTrue(data.suburbs.all { it.name.isNotBlank() }, "each suburb carries its name for the score ranking")
+        // Each suburb carries the point its name is drawn at, for the map's NAPLAN label (ADR 0076): inside the suburb, latitude and longitude not swapped.
+        val hamilton = data.suburbs.first { it.suburbId == "9001" }
+        assertTrue(assertNotNull(hamilton.latitude) in -32.93..-32.91, "latitude ${hamilton.latitude}")
+        assertTrue(assertNotNull(hamilton.longitude) in 151.74..151.76, "longitude ${hamilton.longitude}")
+        assertTrue(data.suburbs.all { it.latitude != null && it.longitude != null }, "every suburb has a label point")
     }
 
     @Test

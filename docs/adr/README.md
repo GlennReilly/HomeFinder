@@ -77,3 +77,4 @@
 | [0073](0073-no-naplan-year-and-one-zoned-schools-row.md) | No NAPLAN year, and one Schools row on the Suburb Card that lists only the zoned schools | Accepted |
 | [0074](0074-zoned-naplan-filter.md) | A suburb filter on the NAPLAN figures you typed for the zoned schools | Accepted |
 | [0075](0075-schoolrank-address-overrides.md) | SchoolRank address overrides, by school code | Accepted |
+| [0076](0076-naplan-map-label.md) | Each suburb's NAPLAN average as a clickable map label | Accepted |

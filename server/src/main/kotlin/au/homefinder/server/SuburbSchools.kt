@@ -31,6 +31,9 @@ data class SuburbFilterRow(
     val zonedIcsea: Int? = null,
     /** The share-weighted average of your NAPLAN figures for the listed zoned schools (ADR 0074); null when none has one. */
     val zonedNaplan: Int? = null,
+    /** Where the suburb's name is drawn (its label point, else a point inside it), for the map's NAPLAN label (ADR 0076). */
+    val latitude: Double? = null,
+    val longitude: Double? = null,
 )
 
 /**

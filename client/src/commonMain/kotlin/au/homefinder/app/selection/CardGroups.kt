@@ -10,6 +10,9 @@ data class ArrangedGroup(val title: String, val rows: List<ArrangedRow>, val ope
 object CardGroups {
     const val OTHER_TITLE: String = "More"
 
+    /** The Suburb Card group the map's NAPLAN labels and the "Jump to Schools" button open (ADR 0076). */
+    const val SCHOOLS_TITLE: String = "Schools"
+
     val SUBURB: List<CardGroup> = listOf(
         CardGroup(
             "Prices and blocks",
@@ -22,7 +25,7 @@ object CardGroups {
         ),
         CardGroup("Crime", listOf("Violent crime", "Break-ins, car and home theft")),
         CardGroup("Location", listOf("Distance to the beach", "Parks", "Shopping", "Transport")),
-        CardGroup("Schools", listOf(SuburbCardRows.SCHOOLS_LABEL)),
+        CardGroup(SCHOOLS_TITLE, listOf(SuburbCardRows.SCHOOLS_LABEL)),
     )
 
     val LOT: List<CardGroup> = listOf(

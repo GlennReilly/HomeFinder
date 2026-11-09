@@ -48,7 +48,15 @@ object CardActions {
     const val EDIT_NAPLAN: String = "edit-naplan"
     const val CANCEL_NAPLAN: String = "cancel-naplan"
     const val CLEAR_NAPLAN: String = "clear-naplan"
+
+    /** Opens the Schools group and scrolls it into view below the pinned header (ADR 0076), as a click on the suburb's NAPLAN map label does. */
+    const val JUMP_SCHOOLS: String = "jump-schools"
 }
+
+/** The keyboard-reachable stand-in for clicking a NAPLAN label on the map (ADR 0076). */
+const val JUMP_TO_SCHOOLS_TEXT: String = "Jump to Schools"
+const val JUMP_TO_SCHOOLS_LABEL: String = "Jump to Schools: open the Schools group and scroll to it"
+const val JUMP_TO_SCHOOLS_CLASS: String = "layout-button jump-schools"
 
 /** The close button shows a cross; its aria-label carries the words. */
 const val CLOSE_BUTTON_TEXT: String = "×"
@@ -126,7 +134,16 @@ fun FlowContent.suburbCard(
                     +CLOSE_BUTTON_TEXT
                 }
             }
-            if (card is SuburbCardState.Loaded) layoutBar(customising, layout.isDefault)
+            if (card is SuburbCardState.Loaded) {
+                layoutBar(customising, layout.isDefault)
+                if (!customising && schoolsGroupShown(card, layout, showUnknown)) {
+                    button(type = ButtonType.button, classes = JUMP_TO_SCHOOLS_CLASS) {
+                        attributes[CardActions.ATTRIBUTE] = CardActions.JUMP_SCHOOLS
+                        attributes[Aria.LABEL] = JUMP_TO_SCHOOLS_LABEL
+                        +JUMP_TO_SCHOOLS_TEXT
+                    }
+                }
+            }
         }
         when (card) {
             SuburbCardState.Hidden -> Unit
@@ -187,6 +204,12 @@ fun FlowContent.suburbCard(
         }
     }
 }
+
+/** Whether the card draws a Schools group with at least one row in it (outside Customise), so the "Jump to Schools" button has somewhere to go. */
+internal fun schoolsGroupShown(card: SuburbCardState.Loaded, layout: CardLayout, showUnknown: Boolean): Boolean =
+    layout.arrangeGroups(SuburbCardRows.of(card.report), CardGroups.SUBURB)
+        .filter { it.title == CardGroups.SCHOOLS_TITLE }
+        .any { UnknownRows.visible(it.rows, customising = false, showUnknown).isNotEmpty() }
 
 /** The names the page uses to find the rating form and read its boxes. */
 object RatingForm {

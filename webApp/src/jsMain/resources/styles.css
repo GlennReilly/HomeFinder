@@ -64,6 +64,9 @@ html, body { margin: 0; height: 100%; }
    let the pinned block cover the card's own padding. */
 .card-sticky { position: sticky; top: 0; z-index: 1; background: var(--surface); margin: -16px -16px 8px; padding: 16px 16px 4px; border-bottom: 1px solid rgba(128, 128, 128, .35); }
 .card-sticky .layout-bar { margin: 8px 0 4px; }
+/* "Jump to Schools" sits beside Customise (ADR 0076): the keyboard way to do what clicking a NAPLAN label on the map does. */
+.card-sticky .layout-bar:has(+ .jump-schools) { display: inline-block; }
+.card-sticky .jump-schools { margin: 8px 0 4px 8px; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .card-header h2 { margin: 0; font-size: 1.4rem; }
 .subtitle { margin: 4px 0 0; color: var(--muted); }

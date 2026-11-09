@@ -179,9 +179,9 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
     /** Three suburbs: one above 1,000 (and near the beach, with parks, mostly rented), one below, one with no values at all. */
     private fun filters() = SuburbFiltersResponse(
         listOf(
-            SuburbFilterValue("9001", 1051, beachKm = 1.5, parkShare = 0.20, rentedShare = 0.45, seifaDecile = 8, violentPer1000 = 4.2, propertyPer1000 = 12.5, name = "HAMILTON", zonedIcsea = 1030, zonedNaplan = zonedNaplan(HAMILTON_ZONES)),
-            SuburbFilterValue("9002", 960, beachKm = 12.0, parkShare = 0.05, rentedShare = 0.20, seifaDecile = 3, violentPer1000 = 31.0, propertyPer1000 = 90.0, name = "MAYFIELD", zonedIcsea = 990, zonedNaplan = zonedNaplan(MAYFIELD_ZONES)),
-            SuburbFilterValue("9003", null, name = "WICKHAM"),
+            SuburbFilterValue("9001", 1051, beachKm = 1.5, parkShare = 0.20, rentedShare = 0.45, seifaDecile = 8, violentPer1000 = 4.2, propertyPer1000 = 12.5, name = "HAMILTON", zonedIcsea = 1030, zonedNaplan = zonedNaplan(HAMILTON_ZONES), latitude = -32.92, longitude = 151.75),
+            SuburbFilterValue("9002", 960, beachKm = 12.0, parkShare = 0.05, rentedShare = 0.20, seifaDecile = 3, violentPer1000 = 31.0, propertyPer1000 = 90.0, name = "MAYFIELD", zonedIcsea = 990, zonedNaplan = zonedNaplan(MAYFIELD_ZONES), latitude = -32.90, longitude = 151.73),
+            SuburbFilterValue("9003", null, name = "WICKHAM", latitude = -32.92, longitude = 151.77),
         ),
         "Test schools", LocalDate(2026, 10, 2),
         beach = FilterProvenance("Test OpenStreetMap", LocalDate(2026, 10, 29)),

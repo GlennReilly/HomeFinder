@@ -24,7 +24,7 @@ object RatingStyle {
     const val MIN_ZOOM: Double = MapDefaults.ZOOM + ZOOM_TAPS_BEFORE_SHOWN
 
     private const val NAME_COLOR = "#3b2f63"
-    private const val STARS_COLOR = "#8a4b00"
+    private const val STARS_COLOR = LabelColors.HOMELY_STARS
     private const val HALO = "rgba(255,255,255,0.95)"
     private const val TEXT_SIZE = 13
     private const val HALO_WIDTH = 1.6
