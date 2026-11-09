@@ -1,6 +1,6 @@
 # 0069. The NAPLAN figure is a signed difference from the national average
 
-Status: Accepted. Supersedes the score range and the Source wording of ADR 0068.
+Status: Partly superseded by 0071
 
 ## Context
 ADR 0068 stored one NAPLAN figure per school as an absolute national scale score from 0 to 1000. The figure you actually want to

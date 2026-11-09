@@ -20,14 +20,14 @@ class NaplanApiTest {
 
     @Test
     fun `saving sends a PUT with the key only in a header and a JSON body`() = runBlocking<Unit> {
-        val writes = Writes(HttpResult.Response(200, """{"score":512,"year":2025,"note":"Year 5","updatedOn":"2026-11-08"}"""))
-        val result = NaplanApi(config, writes).save("1234", NaplanEntry(512, 2025, "Year 5"))
-        assertEquals(LookupResult.Found(NaplanScore(512, 2025, "Year 5", LocalDate(2026, 11, 8))), result)
+        val writes = Writes(HttpResult.Response(200, """{"score":512,"year":2025,"updatedOn":"2026-11-08"}"""))
+        val result = NaplanApi(config, writes).save("1234", NaplanEntry(512, 2025))
+        assertEquals(LookupResult.Found(NaplanScore(512, 2025, LocalDate(2026, 11, 8))), result)
         val (method, url, headers, body) = writes.calls.single()
         assertEquals(HttpVerb.PUT, method)
         assertEquals("http://host:8080/v1/schools/1234/naplan", url)
         assertEquals(mapOf("X-API-Key" to "secret-key-123456"), headers)
-        assertEquals("""{"score":512,"year":2025,"note":"Year 5"}""", body)
+        assertEquals("""{"score":512,"year":2025}""", body)
         assertTrue("secret" !in (url as String))
     }
 

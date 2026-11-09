@@ -57,10 +57,9 @@ class PostgisNaplanStore(private val dataSource: DataSource) : NaplanStore {
                 connection.prepareStatement(UPSERT_SQL).use { statement ->
                     statement.setInt(1, code)
                     statement.setInt(2, entry.score)
-                    statement.setInt(3, entry.year)
-                    if (entry.note == null) statement.setNull(4, Types.VARCHAR) else statement.setString(4, entry.note)
+                    if (entry.year == null) statement.setNull(3, Types.SMALLINT) else statement.setInt(3, entry.year!!)
+                    statement.setInt(4, code)
                     statement.setInt(5, code)
-                    statement.setInt(6, code)
                     statement.executeQuery().use { rows -> if (rows.next()) NaplanWrite.Saved(score(rows)) else NaplanWrite.UnknownSchool }
                 }
             }
@@ -89,7 +88,8 @@ class PostgisNaplanStore(private val dataSource: DataSource) : NaplanStore {
 
     private fun score(rows: ResultSet): NaplanScore {
         val day = rows.getDate("updated_on").toLocalDate()
-        return NaplanScore(rows.getInt("score"), rows.getInt("year"), rows.getString("note"), LocalDate(day.year, day.monthValue, day.dayOfMonth))
+        val year = rows.getInt("year").takeIf { !rows.wasNull() }
+        return NaplanScore(rows.getInt("score"), year, LocalDate(day.year, day.monthValue, day.dayOfMonth))
     }
 
     private suspend fun <T> tolerateMissingTable(whenMissing: T, block: () -> T): T = withContext(Dispatchers.IO) {
@@ -102,7 +102,7 @@ class PostgisNaplanStore(private val dataSource: DataSource) : NaplanStore {
 
     companion object {
         private const val UNDEFINED_TABLE = "42P01"
-        private const val COLUMNS = "school_code, score, year, note, updated_at::date AS updated_on"
+        private const val COLUMNS = "school_code, score, year, updated_at::date AS updated_on"
 
         /** A school code is a positive whole number (the `school` table's key); anything else matches no school. */
         fun schoolCodeOf(text: String): Int? = text.trim().takeIf { it.isNotEmpty() && it.all(Char::isDigit) }?.toIntOrNull()?.takeIf { it > 0 }
@@ -111,11 +111,11 @@ class PostgisNaplanStore(private val dataSource: DataSource) : NaplanStore {
 
         // Only a code the school list or the catchments know is accepted (a zoned school can be missing from the school list).
         private const val UPSERT_SQL = """
-            INSERT INTO school_naplan (school_code, score, year, note)
-            SELECT ?, ?, ?, ?
+            INSERT INTO school_naplan (school_code, score, year)
+            SELECT ?, ?, ?
             WHERE EXISTS (SELECT 1 FROM school WHERE school_code = ?) OR EXISTS (SELECT 1 FROM school_catchment WHERE school_code = ?)
             ON CONFLICT (school_code) DO UPDATE
-            SET score = EXCLUDED.score, year = EXCLUDED.year, note = EXCLUDED.note, updated_at = now()
+            SET score = EXCLUDED.score, year = EXCLUDED.year, updated_at = now()
             RETURNING $COLUMNS
         """
 

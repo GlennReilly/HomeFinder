@@ -59,9 +59,6 @@ const val HOMELY_LINK_TEXT: String = "Reviews on Homely (opens homely.com.au)"
 /** The link that opens the rating form, which stays hidden until then. */
 const val RATING_EDIT_TEXT: String = "Edit the Homely rating"
 
-/** The link's words say where it goes and what to do there: the schools are named above, My School is searched by name. */
-const val MY_SCHOOL_LINK_TEXT: String = "Look these schools up on My School (opens myschool.edu.au)"
-
 const val CARD_DISCLAIMER: String =
     "Indicative only. Verify against the contract of sale, a council planning certificate and a building inspection."
 
@@ -86,36 +83,20 @@ fun confidenceLabel(confidence: Confidence): String? = when (confidence) {
     Confidence.NONE -> null
 }
 
-/** What sits inside a row's closed "Source" section: where the value comes from, when, and how far to trust it. */
+/** The source part of a row's closed "Details" section: where the value comes from, when, and how far to trust it. */
 fun provenanceLine(row: CardRow): String =
     listOfNotNull(row.source, row.asOf?.let { "as of $it" }, confidenceLabel(row.confidence)).joinToString(" · ")
 
-/** Heading of the collapsed section that holds a row's source, so the card stays short until you ask. */
-const val SOURCE_SUMMARY_TEXT: String = "Source"
-
-/** Heading of the collapsed section that holds a row's explanatory note (sales counts, caveats). */
-const val DETAILS_SUMMARY_TEXT: String = "Details"
-
 /**
- * A row's note and provenance, each in a `details` that is closed by default, the note ("Details") above the "Source".
- * Call through the list: `dd` is only defined there.
+ * A row's note and its source in one `details` headed "Details", closed by default (ADR 0072): the note first, then "Source: ..." a little
+ * below it. A row with neither gets no section. Call through the list: `dd` is only defined there.
  */
 fun DL.provenanceDetails(row: CardRow) {
     val list = this
-    row.note?.let { note ->
-        list.dd("note") {
-            details("note-details") {
-                summary { +DETAILS_SUMMARY_TEXT }
-                p { +note }
-            }
-        }
-    }
-    list.dd("provenance") {
-        details("source-details") {
-            summary { +SOURCE_SUMMARY_TEXT }
-            p { +provenanceLine(row) }
-        }
-    }
+    val note = row.note?.trim()?.takeIf { it.isNotEmpty() }
+    val source = provenanceLine(row).takeIf { it.isNotEmpty() }
+    if (note == null && source == null) return
+    list.dd(DetailsFold.ITEM_CLASS) { detailsFold(listOfNotNull(note), listOfNotNull(source)) }
 }
 
 /**
@@ -266,47 +247,26 @@ private fun DETAILS.ratingFormBody(current: au.homefinder.shared.model.HomelyRat
     }
 }
 
-/** The zones under the Zoned schools row: each school (linked to its own website when it has one) with its kind and years, the share of the suburb it covers, its ICSEA and your NAPLAN figure. */
+/** The zones under the Zoned schools row: each school with its kind and years and the share of the suburb it covers, then its ICSEA, NAPLAN and links on lines of their own. */
 private fun zoneList(report: SuburbReport, slots: NaplanSlots): (kotlinx.html.DIV.() -> Unit)? {
     val zones = report.zonedSchools.value?.zones?.takeIf { it.isNotEmpty() } ?: return null
     return {
         ul("zones") {
             zones.forEach { zone ->
-                li {
-                    val address = ExternalLinks.webAddress(zone.school.website)
-                    if (address != null) {
-                        externalLink(address, zone.school.name)
-                    } else {
-                        span("school-name") { +zone.school.name }
-                    }
-                    span("detail") { +SuburbCardRows.zoneDetail(zone) }
-                    naplanControls(zone.school, slots)
-                }
+                li { schoolEntry(zone.school, SuburbCardRows.zoneDetail(zone), slots) }
             }
         }
     }
 }
 
-/** The schools under the Schools row: each with its kind, ICSEA, your NAPLAN figure and size, linked to its own website when it has one, and a link to My School. */
+/** The schools under the Schools row: each with its kind and size, then its ICSEA, NAPLAN and links on lines of their own. */
 private fun schoolList(report: SuburbReport, slots: NaplanSlots): (kotlinx.html.DIV.() -> Unit)? {
     val schools = report.schools.value?.publicSchoolsInside?.takeIf { it.isNotEmpty() } ?: return null
     return {
         ul("schools") {
             schools.forEach { school ->
-                li {
-                    val address = ExternalLinks.webAddress(school.website)
-                    if (address != null) {
-                        externalLink(address, school.name)
-                    } else {
-                        span("school-name") { +school.name }
-                    }
-                    span("detail") { +SuburbCardRows.schoolDetail(school) }
-                    naplanControls(school, slots)
-                }
+                li { schoolEntry(school, SuburbCardRows.schoolDetail(school), slots) }
             }
-        }
-        p("hint") {
-            externalLink(ExternalLinks.MY_SCHOOL_HOME, MY_SCHOOL_LINK_TEXT)
         }
     }
 }

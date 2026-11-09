@@ -7,22 +7,23 @@ import kotlin.test.assertEquals
 class NaplanInputTest {
     private val thisYear = 2026
 
-    private fun parse(score: String, year: String, note: String = "") = NaplanInput.parse(score, year, note, thisYear)
+    private fun parse(score: String, year: String) = NaplanInput.parse(score, year, thisYear)
 
     @Test
-    fun `a signed whole difference and a year are accepted, with spaces trimmed and the note kept`() {
-        assertEquals(ParsedNaplan.Valid(NaplanEntry(-41, 2025, null)), parse(" -41 ", "2025"))
-        assertEquals(ParsedNaplan.Valid(NaplanEntry(25, 2025, null)), parse("+25", "2025"))
-        assertEquals(ParsedNaplan.Valid(NaplanEntry(-41, 2025, null)), parse("\u221241", "2025"), "a typographic minus as other sites print it")
-        assertEquals(ParsedNaplan.Valid(NaplanEntry(-1000, 2025, null)), parse("-1000", "2025"))
-        assertEquals(ParsedNaplan.Valid(NaplanEntry(0, 2008, "Year 5 reading")), parse("0", "2008", " Year 5 reading "))
-        assertEquals(ParsedNaplan.Valid(NaplanEntry(1000, 2026, null)), parse("1000", "2026", "   "))
+    fun `a signed whole difference and a year are accepted, with spaces trimmed`() {
+        assertEquals(ParsedNaplan.Valid(NaplanEntry(-41, 2025)), parse(" -41 ", "2025"))
+        assertEquals(ParsedNaplan.Valid(NaplanEntry(25, 2025)), parse("+25", "2025"))
+        assertEquals(ParsedNaplan.Valid(NaplanEntry(-41, 2025)), parse("\u221241", "2025"), "a typographic minus as other sites print it")
+        assertEquals(ParsedNaplan.Valid(NaplanEntry(-1000, 2025)), parse("-1000", "2025"))
+        assertEquals(ParsedNaplan.Valid(NaplanEntry(0, 2008)), parse("0", " 2008 "))
+        assertEquals(ParsedNaplan.Valid(NaplanEntry(1000, 2026)), parse("1000", "2026"))
     }
 
     @Test
-    fun `a missing score or year says what to type`() {
+    fun `a missing score says what to type, and the year may be left empty`() {
         assertEquals(ParsedNaplan.Invalid(NaplanInput.MESSAGE_SCORE_MISSING), parse("  ", "2025"))
-        assertEquals(ParsedNaplan.Invalid(NaplanInput.MESSAGE_YEAR_MISSING), parse("512", ""))
+        assertEquals(ParsedNaplan.Valid(NaplanEntry(-41, null)), parse("-41", ""))
+        assertEquals(ParsedNaplan.Valid(NaplanEntry(-41, null)), parse("-41", "   "))
     }
 
     @Test
@@ -39,8 +40,4 @@ class NaplanInputTest {
         }
     }
 
-    @Test
-    fun `a note over 200 characters is refused`() {
-        assertEquals(ParsedNaplan.Invalid(NaplanInput.MESSAGE_NOTE_LONG), parse("512", "2025", "x".repeat(201)))
-    }
 }

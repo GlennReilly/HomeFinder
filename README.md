@@ -107,11 +107,12 @@ The card then shows a "Homely rating" row under the area, and a "★ 2.1" label 
 ### Your NAPLAN scores
 
 `GET /v1/schools/naplan` lists the NAPLAN scores you have typed in (`?codes=` for some schools), and `PUT` / `DELETE /v1/schools/{code}/naplan`
-set and remove one (the school's difference from the national average in points, a whole number from -1000 to +1000 that may be negative, the year it is from, 2008 to this year, and an optional note). Nothing is fetched. The card calls it your own figure and
-does not name where you read it; NAPLAN results are published by ACARA on [My School](https://www.myschool.edu.au/). They need migrations V25 and V26.
+set and remove one (the school's difference from the national average in points, a whole number from -1000 to +1000 that may be negative, and the year it is from, which is optional (2008 to this year)). Nothing is fetched. The card calls it your own figure and
+does not name where you read it; NAPLAN results are published by ACARA on [My School](https://www.myschool.edu.au/). They need migrations V25, V26 and V27.
 
 In the app: under each school in the Suburb Card's Schools and Zoned schools rows, or the Lot Card's Schools row, press "Add NAPLAN", type
 the difference from the national average (for example -41) and the year, and press Save. The card then shows "NAPLAN -41 vs national (2025)" beside the school's ICSEA;
+The year is optional (without one the card shows "NAPLAN -41 vs national"; [ADR 0071](docs/adr/0071-naplan-year-optional.md)).
 "Edit NAPLAN" changes or clears it. Beside it, a "SchoolRank" link opens the school's [SchoolRank](https://schoolrank.com.au/) page in a new
 tab; its address is built from the school's name and address locality and never fetched or checked, so it may not exist
 ([ADR 0070](docs/adr/0070-schoolrank-link-out.md)). See [ADR 0068](docs/adr/0068-manual-naplan-score-per-school.md) and

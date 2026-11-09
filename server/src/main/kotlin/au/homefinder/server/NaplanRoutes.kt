@@ -57,7 +57,7 @@ fun Route.naplanRoutes(store: NaplanStore?, currentYear: () -> Int) {
     }
 }
 
-/** The body as a checked entry (note trimmed), or a 400 and null: not JSON, not whole numbers, or outside [NaplanRules]. */
+/** The body as a checked entry, or a 400 and null: not JSON, not whole numbers, or outside [NaplanRules]. */
 private suspend fun receiveEntry(call: RoutingCall, currentYear: Int): NaplanEntry? {
     val received = try {
         call.receive<NaplanEntry>()

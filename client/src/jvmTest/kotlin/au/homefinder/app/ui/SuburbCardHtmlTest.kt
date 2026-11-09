@@ -20,6 +20,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/** The HTML with the pretty-printing whitespace between tags removed, so markup can be matched as one string. */
+private fun flat(html: String): String = html.replace(Regex(">\\s+<"), "><")
+
 class SuburbCardHtmlTest {
     private fun <T> unknown() = Attribute.unknown<T>("Some source", note = "Not computed yet")
     private val report = SuburbReport(
@@ -39,8 +42,10 @@ class SuburbCardHtmlTest {
         assertEquals(18, Regex("""class="value unknown"""").findAll(out).count())
         assertTrue("Some source" in out)
         assertTrue("Not computed yet" in out)
-        assertTrue(Regex("""<details class="note-details">\s*<summary>Details</summary>\s*<p>\s*Not computed yet""").containsMatchIn(out), out)
-        assertTrue(out.indexOf("note-details") < out.indexOf("source-details"), "Details sit above Source")
+        // One closed Details section per row holds the note and then the source (ADR 0072); there is no separate Source section.
+        assertTrue(Regex("""<details class="details-fold">\s*<summary>Details</summary>\s*<p class="details-note">\s*Not computed yet</p>\s*<p class="details-source">Source: Some source</p>""").containsMatchIn(out), out)
+        assertEquals(Regex("""<details class="details-fold">""").findAll(out).count(), Regex("""<dd class="row-details">""").findAll(out).count())
+        assertFalse("source-details" in out || "note-details" in out || "<summary>Source</summary>" in out)
         assertTrue(CARD_DISCLAIMER in out)
     }
 
@@ -136,8 +141,8 @@ class SuburbCardHtmlTest {
         assertTrue("Homely rating</dt>" in block && HOMELY_LINK_TEXT in block && "data-rating-form" in block, "one block holds the rating, the link and the form")
         assertFalse(HOMELY_LINK_TEXT in out.substringBefore("""<section class="homely">"""), "the link is no longer above the block")
         assertEquals(1, Regex("""<details class="rating-edit"""").findAll(out).count())
-        assertFalse(Regex("""<details class="source-details" open""").containsMatchIn(out), "every Source section starts closed")
-        assertTrue("""<details class="source-details"><summary>Source</summary>""" in out, out)
+        assertFalse(Regex("""<details class="details-fold" open""").containsMatchIn(out), "every Details section starts closed")
+        assertTrue("""<details class="details-fold"><summary>Details</summary>""" in out, out)
         assertTrue(RATING_EDIT_TEXT in html(SuburbCardState.Loaded(report)), "with no rating the edit link is still there")
     }
 
@@ -186,13 +191,15 @@ class SuburbCardHtmlTest {
         au.homefinder.shared.model.School("1", name, au.homefinder.shared.model.SchoolSector.PUBLIC, au.homefinder.shared.model.SchoolLevel.PRIMARY, icsea, enrolments, website, label)
 
     @Test
-    fun `the schools are listed under the Schools row with their ICSEA, size and own website, and a My School link`() {
+    fun `the schools are listed under the Schools row with their ICSEA, size and own website, and no separate My School line`() {
         val out = html(SuburbCardState.Loaded(withSchools(school("Hamilton Public School", 1051, "https://hamilton-p.schools.nsw.gov.au"), school("Small School", null, null, enrolments = null))))
         assertTrue("1 public school" !in out && "2 public schools, average ICSEA 1,032 (1,000 is average)" in out)
-        assertTrue("""<a href="https://hamilton-p.schools.nsw.gov.au" target="_blank" class="external-link" rel="noopener noreferrer">Hamilton Public School</a>""" in out, out)
-        assertTrue("Primary School · ICSEA 1,051 · 412 students" in out)
-        assertTrue("""<span class="school-name">Small School</span><span class="detail">Primary School · ICSEA not published</span>""" in out, out)
-        assertTrue("""href="https://www.myschool.edu.au/"""" in out && MY_SCHOOL_LINK_TEXT in out)
+        // One line each (ADR 0071): name and kind, ICSEA, NAPLAN, links; the website link is on the links line, not the name.
+        val flat = flat(out)
+        assertTrue("""<div class="school-line"><span class="school-name">Hamilton Public School</span><span class="detail"> · Primary School · 412 students</span></div><div class="school-icsea">ICSEA 1,051</div><div class="naplan-line">""" in flat, flat)
+        assertTrue("""<div class="school-links"><a href="https://hamilton-p.schools.nsw.gov.au" target="_blank" class="external-link" rel="noopener noreferrer" title="Hamilton Public School: school website (opens in a new tab)">School website</a>""" in flat, flat)
+        assertTrue("""<div class="school-line"><span class="school-name">Small School</span><span class="detail"> · Primary School</span></div><div class="naplan-line">""" in flat, "no ICSEA line without an ICSEA: $flat")
+        assertFalse("Look these schools up" in out || "myschool.edu.au" in out, "the My School line is gone; only the NAPLAN form links there")
         val row = out.indexOf("Schools</dt>")
         assertTrue(row in 0 until out.indexOf("Hamilton Public School") && out.indexOf("Hamilton Public School") < out.indexOf("Zoned schools</dt>"), "the list sits inside the Schools row")
     }
@@ -361,7 +368,7 @@ class SuburbCardHtmlTest {
     }
 
     @Test
-    fun `the zoned schools row lists each zone under it, linked to the school's website when it has one`() {
+    fun `the zoned schools row lists each zone under it, with a link to the school's website when it has one`() {
         val zoned = SuburbZonedSchools(
             listOf(
                 SuburbZone(School("10", "Hamilton Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, icsea = 1041, website = "https://hamilton-p.schools.nsw.gov.au", levelLabel = "primary, K-6"), 0.82),
@@ -371,11 +378,11 @@ class SuburbCardHtmlTest {
         )
         val out = html(SuburbCardState.Loaded(report.copy(zonedSchools = Attribute(zoned, Confidence.MEDIUM, "NSW DoE", null, "A note"))))
         assertTrue("Zoned schools" in out && "Hamilton Public School (primary), Newcastle High School (high)" in out, out)
-        assertTrue("""href="https://hamilton-p.schools.nsw.gov.au"""" in out && "primary, K-6 · 82% of the suburb" in out && "lots · ICSEA 1,041" in out, out)
-        assertTrue("Newcastle High School</span>" in out && "ICSEA 1,017" in out, out)
+        assertTrue("""href="https://hamilton-p.schools.nsw.gov.au"""" in out && " · primary, K-6 · 82% of the suburb's lots</span></div><div class=\"school-icsea\">ICSEA 1,041</div>" in flat(out), out)
+        assertTrue("Newcastle High School</span>" in out && ">ICSEA 1,017<" in out, out)
     }
 
-    private val headings get() = { out: String -> Regex("""<summary>([^<]*)</summary>""").findAll(out).map { it.groupValues[1] }.filter { it !in setOf(SOURCE_SUMMARY_TEXT, DETAILS_SUMMARY_TEXT, RATING_EDIT_TEXT) }.toList() }
+    private val headings get() = { out: String -> Regex("""<summary>([^<]*)</summary>""").findAll(out).map { it.groupValues[1] }.filter { it !in setOf(DetailsFold.SUMMARY_TEXT, RATING_EDIT_TEXT) }.toList() }
 
     @Test
     fun `rows sit in folding groups, and only the first starts open`() {

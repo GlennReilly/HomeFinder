@@ -134,8 +134,9 @@ object SuburbCardRows {
     internal fun withNaplanSource(row: CardRow, schools: List<School>): CardRow =
         if (schools.any { it.naplan != null }) row.copy(source = "${row.source}; ${NaplanScore.SOURCE}") else row
 
-    /** ", NAPLAN -41 vs national (2025)" after a school's ICSEA when you have typed a figure in, else nothing. */
-    fun naplanSuffix(school: School, separator: String): String = school.naplan?.let { separator + NaplanRules.label(it) }.orEmpty()
+    /** "ICSEA 1,051", a school's ICSEA line, or null where ACARA publishes none (then the line is left out). */
+    fun icseaText(school: School): String? = school.icsea?.let { "ICSEA ${Formats.grouped(it.toLong())}" }
+
 
     internal fun <T> row(label: String, attribute: Attribute<T>, format: (T) -> String): CardRow = CardRow(
         label = label,
@@ -172,12 +173,10 @@ object SuburbCardRows {
     /** The kind of zone in a word or two: "primary", "high, girls", "central school, primary years" (the first part of the label). */
     private fun zoneLevel(school: School): String = school.levelLabel?.substringBefore(", ").orEmpty().ifBlank { if (school.level == SchoolLevel.HIGH) "high" else "primary" }
 
-    /** One zone's line under the Zoned schools row: its kind and years, the share of the suburb's lots it covers, and its ICSEA. */
+    /** One zone's first line under the Zoned schools row: its kind and years and the share of the suburb's lots it covers (ICSEA and NAPLAN have lines of their own, ADR 0071). */
     fun zoneDetail(zone: SuburbZone): String = listOfNotNull(
         zone.school.levelLabel,
         "${Formats.share(zone.lotShare)} of the suburb's lots",
-        zone.school.icsea?.let { "ICSEA ${Formats.grouped(it.toLong())}" } ?: "ICSEA not published",
-        zone.school.naplan?.let(NaplanRules::label),
     ).joinToString(" · ")
 
     private fun schools(schools: SuburbSchools): String {
@@ -187,11 +186,9 @@ object SuburbCardRows {
         return (if (count == 1) "1 public school" else "$count public schools") + average
     }
 
-    /** One school's line under the Schools row: its kind, ICSEA and size, each only as far as it is published. */
+    /** One school's first line under the Schools row: its kind and size (ICSEA and NAPLAN have lines of their own, ADR 0071). */
     fun schoolDetail(school: School): String = listOfNotNull(
         school.levelLabel ?: when (school.level) { SchoolLevel.PRIMARY -> "Primary"; SchoolLevel.HIGH -> "High school"; SchoolLevel.COMBINED -> "Combined" },
-        school.icsea?.let { "ICSEA ${Formats.grouped(it.toLong())}" } ?: "ICSEA not published",
-        school.naplan?.let(NaplanRules::label),
         school.enrolments?.let { "${Formats.grouped(it.toLong())} students" },
     ).joinToString(" · ")
 

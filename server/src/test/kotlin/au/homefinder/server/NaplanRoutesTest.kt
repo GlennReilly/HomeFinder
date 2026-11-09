@@ -42,7 +42,7 @@ class NaplanRoutesTest {
         override suspend fun put(schoolCode: String, entry: NaplanEntry): NaplanWrite {
             failure?.let { throw it }
             if (schoolCode !in known) return NaplanWrite.UnknownSchool
-            return NaplanWrite.Saved(NaplanScore(entry.score, entry.year, entry.note, day).also { rows[schoolCode] = it })
+            return NaplanWrite.Saved(NaplanScore(entry.score, entry.year, day).also { rows[schoolCode] = it })
         }
         override suspend fun delete(schoolCode: String) { failure?.let { throw it }; rows.remove(schoolCode) }
         override suspend fun all(): List<SchoolNaplan> { failure?.let { throw it }; return rows.map { (code, naplan) -> SchoolNaplan(code, naplan) } }
@@ -79,9 +79,9 @@ class NaplanRoutesTest {
     @Test
     fun `a figure is saved with the day and returned`() = FakeStore().let { store ->
         api(store) {
-            val response = put(path, """{"score":512,"year":2025,"note":"  Year 5 reading "}""")
+            val response = put(path, """{"score":512,"year":2025,"note":"ignored by the server"}""")
             assertEquals(HttpStatusCode.OK, response.status)
-            val expected = NaplanScore(512, 2025, "Year 5 reading", day)
+            val expected = NaplanScore(512, 2025, day)
             assertEquals(expected, ApiJson.decodeFromString<NaplanScore>(response.bodyAsText()))
             assertEquals(expected, store.rows["1234"])
         }
@@ -98,11 +98,22 @@ class NaplanRoutesTest {
     }
 
     @Test
-    fun `saving again replaces the figure, and the note is optional`() = FakeStore().let { store ->
+    fun `the year may be missing or null, and is then kept as none`() = FakeStore().let { store ->
         api(store) {
-            put(path, """{"score":512,"year":2024,"note":"old"}""")
+            val response = put(path, """{"score":-41}""")
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals(NaplanScore(-41, null, day), ApiJson.decodeFromString<NaplanScore>(response.bodyAsText()))
+            assertEquals(HttpStatusCode.OK, put(path, """{"score":25,"year":null}""").status)
+            assertEquals(NaplanScore(25, null, day), store.rows["1234"])
+        }
+    }
+
+    @Test
+    fun `saving again replaces the figure`() = FakeStore().let { store ->
+        api(store) {
+            put(path, """{"score":512,"year":2024}""")
             put(path, """{"score":530,"year":2025}""")
-            assertEquals(listOf(NaplanScore(530, 2025, null, day)), store.rows.values.toList())
+            assertEquals(listOf(NaplanScore(530, 2025, day)), store.rows.values.toList())
         }
     }
 
@@ -111,8 +122,8 @@ class NaplanRoutesTest {
         api(store) {
             listOf(
                 """{"score":1001,"year":2025}""", """{"score":-1001,"year":2025}""", """{"score":-41.5,"year":2025}""", """{"score":512,"year":2007}""", """{"score":512,"year":2027}""",
-                """{"score":512.5,"year":2025}""", """{"score":"abc","year":2025}""", """{"year":2025}""", """{"score":512}""",
-                """{"score":512,"year":2025,"note":"${"x".repeat(201)}"}""", """not json""", "", """[]""",
+                """{"score":512.5,"year":2025}""", """{"score":"abc","year":2025}""", """{"year":2025}""", """{"score":512,"year":"later"}""", """{"score":512,"year":2025.5}""",
+                """not json""", "", """[]""",
             ).forEach {
                 val response = put(path, it)
                 assertEquals(HttpStatusCode.BadRequest, response.status, it)
@@ -188,8 +199,8 @@ class NaplanRoutesTest {
             assertNull(suburbSchool().naplan)
             assertNull(lotSchool().naplan)
             put(path, """{"score":512,"year":2025}""")
-            assertEquals(NaplanScore(512, 2025, null, day), suburbSchool().naplan)
-            assertEquals(NaplanScore(512, 2025, null, day), lotSchool().naplan)
+            assertEquals(NaplanScore(512, 2025, day), suburbSchool().naplan)
+            assertEquals(NaplanScore(512, 2025, day), lotSchool().naplan)
             assertEquals(1051, suburbSchool().icsea, "the rest of the school is unchanged")
             keyed(path, delete = true)
             assertNull(suburbSchool().naplan)

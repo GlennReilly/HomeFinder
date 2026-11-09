@@ -111,7 +111,7 @@ fun FlowContent.lotCard(
                             group.rows.forEach { item ->
                                 val i = drawn.indexOfFirst { it.row.label == item.row.label }
                                 val links = ListingLinks.forLotRow(item.row.label, card.report)
-                                val schools = if (item.row.label == SuburbCardRows.SCHOOLS_LABEL) LotCardRows.listedSchools(card.report) else emptyList()
+                                val schools = if (item.row.label == SuburbCardRows.SCHOOLS_LABEL) LotCardRows.schoolLines(card.report) else emptyList()
                                 if (i >= 0) lotRow(item, i, drawn.size, customising, links, schools, slots) else if (links != null && !item.hidden) listingLinksRow(links)
                             }
                         }
@@ -130,7 +130,7 @@ private fun DL.lotRow(
     count: Int,
     customising: Boolean,
     links: ListingBlock? = null,
-    schools: List<School> = emptyList(),
+    schools: List<Pair<School, String>> = emptyList(),
     slots: NaplanSlots = NaplanSlots(null),
 ) {
     val list = this
@@ -141,15 +141,10 @@ private fun DL.lotRow(
         list.valueCell(value)
         list.provenanceDetails(row)
         links?.let { listingLinksLine(it) }
-        // Under the Schools row: each school it names, with the link to add or edit your NAPLAN figure for it (ADR 0068).
+        // Under the Schools row: each school it names, line by line: name and zone or distance, ICSEA, NAPLAN, links (ADR 0068, 0071).
         if (schools.isNotEmpty()) {
             ul("naplan-schools") {
-                schools.forEach { school ->
-                    li {
-                        span("school-name") { +school.name }
-                        naplanControls(school, slots)
-                    }
-                }
+                schools.forEach { (school, detail) -> li { schoolEntry(school, detail, slots) } }
             }
         }
         if (customising) rowControls(item, first = index == 0, last = index == count - 1)

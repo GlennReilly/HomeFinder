@@ -64,11 +64,13 @@
 | [0060](0060-homely-block-at-the-bottom.md) | The Homely block is the last section of the Suburb Card | Accepted |
 | [0061](0061-listing-links.md) | Links to listings on realestate.com.au and Domain | Accepted |
 | [0062](0062-suburb-catchments-and-zoned-icsea-filter.md) | School catchments on the Suburb Card and an ICSEA filter on them | Accepted |
-| [0063](0063-sources-collapsed-by-default.md) | Source lines are collapsed by default | Accepted |
+| [0063](0063-sources-collapsed-by-default.md) | Source lines are collapsed by default | Superseded by 0072 |
 | [0064](0064-card-row-groups.md) | Card rows are grouped into folding sections | Accepted |
 | [0065](0065-filter-shading-fades-at-lot-zoom.md) | The suburb filter shading fades out at lot zoom | Accepted |
 | [0066](0066-filter-groups.md) | Filters are grouped into folding sections | Accepted |
 | [0067](0067-narrow-bottom-sheet-layout.md) | Narrow windows: half-height sheet, compact lot header, fold chevron | Accepted |
 | [0068](0068-manual-naplan-score-per-school.md) | A NAPLAN score per school, typed in by hand from My School | Partly superseded by 0069 |
-| [0069](0069-naplan-difference-from-national-average.md) | The NAPLAN figure is a signed difference from the national average | Accepted |
+| [0069](0069-naplan-difference-from-national-average.md) | The NAPLAN figure is a signed difference from the national average | Partly superseded by 0071 |
 | [0070](0070-schoolrank-link-out.md) | A SchoolRank link beside each school (link out only) | Accepted |
+| [0071](0071-naplan-year-optional.md) | The NAPLAN year is optional and the note is removed | Accepted |
+| [0072](0072-one-details-fold-per-row.md) | One closed Details section per row holds the note and the source | Accepted |

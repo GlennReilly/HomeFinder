@@ -209,7 +209,7 @@ private fun start(apiKey: String) {
             val code = naplanCode(form) ?: return@addEventListener
             fun field(name: String) = (form.elements.namedItem(name) as? HTMLInputElement)?.value.orEmpty()
             scope.launch {
-                announceNaplan(viewModel.saveNaplan(code, field(NaplanIds.SCORE), field(NaplanIds.YEAR), field(NaplanIds.NOTE)), card, layouts, ::redraw, ::showNotice)
+                announceNaplan(viewModel.saveNaplan(code, field(NaplanIds.SCORE), field(NaplanIds.YEAR)), card, layouts, ::redraw, ::showNotice)
             }
         }
     })
