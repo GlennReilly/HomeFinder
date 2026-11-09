@@ -91,7 +91,7 @@ class NaplanHtmlTest {
         assertTrue(NAPLAN_SCORE_LABEL in out)
         assertEquals("Difference from national average (points, may be negative)", NAPLAN_SCORE_LABEL)
         val box = Regex("<input[^>]*id=\"${NaplanIds.SCORE}\"[^>]*>").find(out)!!.value
-        assertTrue("type=\"text\"" in box && "autocomplete=\"off\"" in box && "placeholder=\"-41\"" in box, box)
+        assertTrue("type=\"text\"" in box && "autocomplete=\"off\"" in box && "placeholder=\"-5\"" in box, box)
         assertFalse("inputmode" in box, "a numeric keypad can lack a minus key: $box")
         assertFalse("0 to 1000" in out)
     }

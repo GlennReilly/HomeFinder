@@ -41,7 +41,7 @@ const val NAPLAN_EDIT_TEXT: String = "Edit NAPLAN"
 
 /** What the score box asks for: a signed difference from the national average (ADR 0069). */
 const val NAPLAN_SCORE_LABEL: String = "Difference from national average (points, may be negative)"
-const val NAPLAN_SCORE_PLACEHOLDER: String = "-41"
+const val NAPLAN_SCORE_PLACEHOLDER: String = "-5"
 
 /**
  * Gives each listing of a school on one card its own edit link id, so a school listed twice (a
