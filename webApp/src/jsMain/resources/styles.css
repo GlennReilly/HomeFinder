@@ -70,7 +70,7 @@ html, body { margin: 0; height: 100%; }
 .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .card-header h2 { margin: 0; font-size: 1.4rem; }
 .subtitle { margin: 4px 0 0; color: var(--muted); }
-button { font: inherit; padding: 6px 12px; border: 1px solid var(--purple); border-radius: 6px; background: transparent; color: var(--ink); cursor: pointer; }
+button { font: inherit; padding: 4.8px 9.6px; border: 1px solid var(--purple); border-radius: 6px; background: transparent; color: var(--ink); cursor: pointer; }
 button:focus-visible, input:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
 progress { width: 100%; margin: 16px 0; }
 .rows { margin: 12px 0 0; }
