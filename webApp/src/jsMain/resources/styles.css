@@ -155,6 +155,7 @@ progress { width: 100%; margin: 16px 0; }
 .naplan-edit { font-size: .85rem; min-height: var(--tap-target); }
 .naplan-edit:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
 .naplan-form { padding: 4px 0 8px; }
+.naplan-form .hint { margin-bottom: 16px; }
 .listing-links { margin: 0; font-size: .85rem; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; }
 /* Each link has a full-height tap area; the label sits on the same line, flush with the first link. */
 .listing-links .external-link, .row-links .external-link { display: inline-flex; align-items: center; min-height: var(--tap-target); }

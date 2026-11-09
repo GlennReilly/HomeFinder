@@ -113,7 +113,7 @@ private fun FlowContent.naplanForm(school: School) {
         attributes[NaplanIds.CODE_ATTRIBUTE] = school.id
         attributes[Aria.LABEL] = "NAPLAN for ${school.name}"
         p("hint") {
-            +"Your own figure, typed in by hand: how far the school is above (+) or below (-) the national average."
+            +"Your own figure: how far the school is above (+) or below (-) the national average."
         }
         div("fields") {
             label {
