@@ -19,6 +19,7 @@ object Aria {
     const val SELECTED: String = "aria-selected"
     const val ACTIVE_DESCENDANT: String = "aria-activedescendant"
     const val ROLE: String = "role"
+    const val DESCRIBED_BY: String = "aria-describedby"
 }
 
 /** The classes of a card row and its value cell, shared by the Suburb Card and the Lot Card. */

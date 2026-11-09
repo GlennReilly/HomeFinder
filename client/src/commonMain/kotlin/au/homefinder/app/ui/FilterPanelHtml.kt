@@ -4,6 +4,8 @@ import au.homefinder.app.filter.FilterCriterion
 import au.homefinder.app.filter.FilterData
 import au.homefinder.app.filter.FilterGroups
 import au.homefinder.app.filter.FilterResult
+import au.homefinder.app.filter.ExportAvailability
+import au.homefinder.app.filter.SuburbExport
 import kotlinx.html.ButtonType
 import kotlinx.html.FlowContent
 import kotlinx.html.button
@@ -22,6 +24,11 @@ import kotlinx.html.span
 object FilterIds {
     const val SUMMARY: String = "filter-summary"
     const val RESET: String = "filter-reset"
+
+    /** The PDF export (ADR 0080): its button, the line under it that says what it does or why it is off, and its progress line. */
+    const val EXPORT: String = "filter-export"
+    const val EXPORT_HINT: String = "filter-export-hint"
+    const val EXPORT_STATUS: String = "filter-export-status"
 
     fun on(criterion: FilterCriterion): String = "filter-${criterion.key}-on"
     fun limit(criterion: FilterCriterion): String = "filter-${criterion.key}-limit"
@@ -101,6 +108,7 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
         attributes[Aria.ROLE] = "status"
         +filterSummaryText(initial)
     }
+    exportBlock(initial)
     val sources = FilterCriterion.entries.mapNotNull { criterion ->
         data.source(criterion)?.takeIf { data.hasData(criterion) }?.let { source ->
             val details = listOfNotNull(source.source, source.asOf?.let { "as of $it" }).joinToString(" · ")
@@ -111,6 +119,33 @@ fun FlowContent.filterPanel(data: FilterData, initial: FilterResult) {
     val notes = FilterCriterion.entries.mapNotNull { criterion -> criterion.detailsNote?.takeIf { data.source(criterion) != null } }
     // One closed "Details" section, as on the cards (ADR 0072).
     detailsFold(notes, sources, FILTER_SOURCES_CLASS, DetailsFold.SOURCE_FOR_PREFIX)
+}
+
+/** The class of the export button; styled like the other small buttons (ADR 0077). */
+const val EXPORT_BUTTON_CLASS: String = "export-pdf"
+
+/**
+ * The "Export PDF (N suburbs)" button (ADR 0080), off until a filter is on and between 1 and the cap of suburbs match; the hint under it says what it
+ * does or why it is off, and the status line (empty at first) reports the export. The page keeps the button's text, state and hint up to date.
+ */
+fun FlowContent.exportBlock(result: FilterResult) {
+    val availability = SuburbExport.availability(result)
+    div("filter-export") {
+        button(type = ButtonType.button, classes = EXPORT_BUTTON_CLASS) {
+            id = FilterIds.EXPORT
+            attributes[Aria.DESCRIBED_BY] = FilterIds.EXPORT_HINT
+            if (availability !is ExportAvailability.Ready) attributes["disabled"] = "disabled"
+            +SuburbExport.buttonText(availability)
+        }
+        p("hint") {
+            id = FilterIds.EXPORT_HINT
+            +SuburbExport.hintText(availability)
+        }
+        p("export-status") {
+            id = FilterIds.EXPORT_STATUS
+            attributes[Aria.ROLE] = "status"
+        }
+    }
 }
 
 /** The class that marks the filter panel's Details section. */

@@ -11,6 +11,7 @@ maplibreGl = "6.16.0"
 playwright = "1.64.0"
 junit = "6.1.3"
 mockk = "1.14.11"
+pdfbox = "3.0.5"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -31,6 +32,7 @@ junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "jun
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit" }
 playwright = { module = "com.microsoft.playwright:playwright", version.ref = "playwright" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+pdfbox = { module = "org.apache.pdfbox:pdfbox", version.ref = "pdfbox" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

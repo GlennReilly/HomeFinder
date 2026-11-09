@@ -189,4 +189,35 @@ class FilterPanelHtmlTest {
         assertFalse(FilterIds.limit(FilterCriterion.NAPLAN) in out)
         assertFalse("your own figures, typed in one school at a time" in out)
     }
+
+    private fun exportButton(out: String) = Regex("""<button[^>]*id="${FilterIds.EXPORT}"[^>]*>[^<]*</button>""").find(out)?.value.orEmpty()
+
+    @Test
+    fun `the export button is off with no filter on, and the hint says why`() {
+        val out = html(data(1000, 1100, null))
+        val button = exportButton(out)
+        assertTrue("disabled" in button, out)
+        assertTrue(""">Export PDF</button>""" in button, button)
+        assertTrue("""class="$EXPORT_BUTTON_CLASS"""" in button && """type="button"""" in button, button)
+        assertTrue("""${Aria.DESCRIBED_BY}="${FilterIds.EXPORT_HINT}"""" in button, button)
+        assertTrue("""<p class="hint" id="${FilterIds.EXPORT_HINT}">${au.homefinder.app.filter.SuburbExport.NO_FILTER_HINT}</p>""" in out, out)
+        assertTrue("""<p class="export-status" id="${FilterIds.EXPORT_STATUS}" ${Aria.ROLE}="status"></p>""" in out, out)
+    }
+
+    @Test
+    fun `the export button is on and counts the suburbs when a filter shades some`() {
+        val d = data(1000, 1100, null)
+        val out = createHTML().div { filterPanel(d, d.apply(FilterSelection(mapOf(FilterCriterion.ZONED to 1000.0)))) }
+        val button = exportButton(out)
+        assertFalse("disabled" in button, button)
+        assertTrue(""">Export PDF (2 suburbs)</button>""" in button, button)
+    }
+
+    @Test
+    fun `the export button is off when no suburb matches`() {
+        val d = data(1000, 1100, null)
+        val out = createHTML().div { filterPanel(d, d.apply(FilterSelection(mapOf(FilterCriterion.ZONED to 2000.0)))) }
+        assertTrue("disabled" in exportButton(out))
+        assertTrue(au.homefinder.app.filter.SuburbExport.NO_MATCH_HINT in out)
+    }
 }

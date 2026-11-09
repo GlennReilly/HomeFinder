@@ -1,7 +1,12 @@
 package au.homefinder.web
 
 import au.homefinder.app.api.ApiConfig
+import au.homefinder.app.api.ExportApi
+import au.homefinder.app.api.EXPORT_NOT_FOUND_MESSAGE
 import au.homefinder.app.api.FilterApi
+import au.homefinder.app.filter.ExportAvailability
+import au.homefinder.app.filter.SuburbExport
+import au.homefinder.shared.api.ApiContract
 import au.homefinder.app.filter.FilterCriterion
 import au.homefinder.app.filter.FilterData
 import au.homefinder.app.filter.FilterGroups
@@ -140,8 +145,11 @@ private fun start(apiKey: String) {
     wireSearch(scope, SearchApi(config, http), viewModel, map, ::showNotice)
     val side = wireSidePanel()
     // The filter values also carry each suburb's NAPLAN average, so every load (and the reload after a NAPLAN save or clear) redraws the map's NAPLAN labels (ADR 0076).
+    val layouts = CardLayouts()
     val reloadFilters = wireFilters(
         scope, FilterApi(config, http), map,
+        // The PDF export lists each suburb's rows in your Suburb Card's order and groups (ADR 0080).
+        export = FilterExport(ExportApi(config, http)) { layouts.suburb },
         onValues = { values -> map.showNaplan(NaplanLabels.from(values.suburbs)) },
     ) { result -> side.setFiltersLabel(filtersTabLabel(result)) }
     // A saved or cleared NAPLAN figure changes the NAPLAN filter's values (ADR 0074), so the panel reloads them, keeping what is switched on.
@@ -153,7 +161,6 @@ private fun start(apiKey: String) {
     }
     viewModel.ratingsVersion.onEach { refreshRatings() }.launchIn(scope)
 
-    val layouts = CardLayouts()
     var latest = MapUiState()
     val scrollMemory = CardScrollMemory()
     fun redraw() = renderCard(card, latest.card, latest.lotCard, layouts, scrollMemory)
@@ -304,12 +311,14 @@ private fun wireFilters(
     scope: CoroutineScope,
     api: FilterApi,
     view: SuburbMap,
+    export: FilterExport,
     onValues: (SuburbFiltersResponse) -> Unit,
     onResult: (FilterResult?) -> Unit,
 ): () -> Unit {
     val panel = element("filters")
     var data: FilterData? = null
     var loading: Job? = null
+    var exporting = false
 
     fun input(id: String) = document.getElementById(id) as? HTMLInputElement
 
@@ -327,6 +336,13 @@ private fun wireFilters(
         view.showFilter(result.passingIds)
         onResult(result)
         (document.getElementById(FilterIds.RESET) as? HTMLButtonElement)?.disabled = !result.selection.isActive
+        // The export button (ADR 0080) is on only while 1 to the cap of suburbs are shaded, and not while an export is under way.
+        val availability = SuburbExport.availability(result)
+        (document.getElementById(FilterIds.EXPORT) as? HTMLButtonElement)?.let {
+            it.disabled = exporting || availability !is ExportAvailability.Ready
+            it.textContent = SuburbExport.buttonText(availability)
+        }
+        document.getElementById(FilterIds.EXPORT_HINT)?.textContent = SuburbExport.hintText(availability)
         document.getElementById(FilterIds.SUMMARY)?.textContent = filterSummaryText(result)
         // The "N on" beside each group title (ADR 0066).
         val on = result.selection.limits.keys
@@ -340,8 +356,35 @@ private fun wireFilters(
         }
     }
 
+    // Sends the shaded suburbs to the server and downloads the PDF it makes; the status line says how it went.
+    fun exportPdf() {
+        val loaded = data ?: return
+        val request = SuburbExport.request(loaded.apply(selection()), loaded, export.layout()) ?: return
+        val count = request.suburbIds.size
+        exporting = true
+        refresh()
+        document.getElementById(FilterIds.EXPORT_STATUS)?.textContent = SuburbExport.exportingText(count)
+        scope.launch {
+            val outcome = export.api.suburbsPdf(request)
+            val message = when (outcome) {
+                is LookupResult.Found -> {
+                    val fileName = ApiContract.exportFileName(todayIsoDate())
+                    downloadFile(outcome.value, fileName, ApiContract.PDF_CONTENT_TYPE)
+                    SuburbExport.doneText(fileName, count)
+                }
+                LookupResult.Unauthorized -> SuburbExport.UNAUTHORIZED_TEXT
+                LookupResult.NotFound -> SuburbExport.failedText(EXPORT_NOT_FOUND_MESSAGE)
+                is LookupResult.Failed -> SuburbExport.failedText(outcome.reason)
+            }
+            exporting = false
+            document.getElementById(FilterIds.EXPORT_STATUS)?.textContent = message
+            refresh()
+        }
+    }
+
     // Reset all: every filter off, every slider back to the value it was drawn with (its starting end).
     panel.addEventListener("click", { event ->
+        if ((event.target as? HTMLElement)?.id == FilterIds.EXPORT) exportPdf()
         if ((event.target as? HTMLElement)?.id == FilterIds.RESET) {
             FilterCriterion.entries.forEach { criterion ->
                 input(FilterIds.on(criterion))?.checked = false
@@ -396,6 +439,9 @@ private fun wireFilters(
     load()
     return ::load
 }
+
+/** What the filter panel needs for the PDF export (ADR 0080): the API, and the Suburb Card layout kept in this browser at the moment of export. */
+private class FilterExport(val api: ExportApi, val layout: () -> CardLayout)
 
 /** The attribute (and its value) that shows a `details` open. */
 private const val HTML_OPEN: String = "open"

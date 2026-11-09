@@ -23,6 +23,7 @@ import au.homefinder.shared.model.SlopeSummary
 import au.homefinder.shared.model.FilterProvenance
 import au.homefinder.shared.model.SuburbFilterValue
 import au.homefinder.shared.model.SuburbFiltersResponse
+import au.homefinder.shared.model.SuburbExportRequest
 import au.homefinder.shared.model.SuburbRatingPoint
 import au.homefinder.shared.model.SuburbRatingsResponse
 import au.homefinder.shared.model.SuburbReport
@@ -54,6 +55,10 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
 
     @Volatile
     var failSavingRatings: Boolean = false
+
+    /** The last PDF export asked for (ADR 0080); the fake answers it with a tiny PDF and does not draw the suburbs. */
+    @Volatile
+    var lastExport: SuburbExportRequest? = null
 
     /** The NAPLAN figures typed in, by school code (ADR 0068); only the fake's schools 1 and 2 can have one. */
     val naplan: MutableMap<String, NaplanScore> = java.util.concurrent.ConcurrentHashMap()
@@ -150,6 +155,11 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
             .associate { it.substringBefore('=') to URLDecoder.decode(it.substringAfter('='), StandardCharsets.UTF_8) }
         when {
             path.startsWith("/tiles/") -> reply(exchange, 204, "application/vnd.mapbox-vector-tile", ByteArray(0))
+            path == "/v1/export/suburbs.pdf" && method == "POST" -> {
+                lastExport = ApiJson.decodeFromString<SuburbExportRequest>(exchange.requestBody.readBytes().toString(StandardCharsets.UTF_8))
+                exchange.responseHeaders.add("Content-Disposition", "attachment; filename=homefinder-suburbs-2026-11-09.pdf")
+                reply(exchange, 200, "application/pdf", MINIMAL_PDF.toByteArray(StandardCharsets.US_ASCII))
+            }
             path == "/v1/suburbs/at" -> json(exchange, 200, ApiJson.encodeToString(hamilton))
             path == "/v1/suburbs/filters" -> json(exchange, 200, ApiJson.encodeToString(filters()))
             path == "/v1/suburbs/ratings" -> json(exchange, 200, ApiJson.encodeToString(SuburbRatingsResponse(ratings())))
@@ -204,6 +214,9 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
         /** The zoned schools of the fake suburbs by school code, with their share: Hamilton's two match its card; Mayfield is all in school 2's zone. */
         val HAMILTON_ZONES: Map<String, Double> = mapOf("1" to 0.82, "2" to 0.76)
         val MAYFIELD_ZONES: Map<String, Double> = mapOf("2" to 1.0)
+
+        /** Enough of a PDF for the browser to save; its content is not checked. */
+        const val MINIMAL_PDF: String = "%PDF-1.4\n%%EOF\n"
     }
 
     private fun ratings(): List<SuburbRatingPoint> =

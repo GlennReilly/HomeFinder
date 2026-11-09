@@ -2,6 +2,7 @@ package au.homefinder.server
 
 import au.homefinder.shared.api.ApiContract
 import au.homefinder.shared.api.ApiError
+import au.homefinder.shared.model.SuburbReport
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -35,11 +36,14 @@ private suspend fun suburbAt(call: RoutingCall, directory: SuburbDirectory?) {
 
 private suspend fun suburbReport(call: RoutingCall, directory: SuburbDirectory?, ratings: RatingStore?, naplan: NaplanStore?) {
     val suburbId = call.parameters["suburbId"].orEmpty()
-    respondFrom(call, directory) { dir ->
-        val report = dir.find(suburbId)?.let { SuburbReportFactory.build(it, dir.stats(suburbId), ratings?.get(suburbId), dir.amenity(suburbId), dir.schools(suburbId), dir.census(suburbId), dir.seifa(suburbId), dir.crime(suburbId), dir.zones(suburbId)) }
-        // Your NAPLAN figures go on the schools listed (ADR 0068).
-        report?.let { found -> naplan?.let { store -> SchoolNaplans.attach(found, store.forSchools(SchoolNaplans.codes(found))) } ?: found }
-    }
+    respondFrom(call, directory) { dir -> loadSuburbReport(dir, suburbId, ratings, naplan) }
+}
+
+/** One suburb's full report, as the Suburb Card and the PDF export (ADR 0080) show it, or null when there is no such suburb. */
+suspend fun loadSuburbReport(dir: SuburbDirectory, suburbId: String, ratings: RatingStore?, naplan: NaplanStore?): SuburbReport? {
+    val report = dir.find(suburbId)?.let { SuburbReportFactory.build(it, dir.stats(suburbId), ratings?.get(suburbId), dir.amenity(suburbId), dir.schools(suburbId), dir.census(suburbId), dir.seifa(suburbId), dir.crime(suburbId), dir.zones(suburbId)) }
+    // Your NAPLAN figures go on the schools listed (ADR 0068).
+    return report?.let { found -> naplan?.let { store -> SchoolNaplans.attach(found, store.forSchools(SchoolNaplans.codes(found))) } ?: found }
 }
 
 /** Runs a lookup: 503 without a database or when it fails, 404 when nothing is found, otherwise the result as JSON. */
