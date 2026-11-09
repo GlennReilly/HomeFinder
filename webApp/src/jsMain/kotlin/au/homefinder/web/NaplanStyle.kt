@@ -27,12 +27,12 @@ object NaplanStyle {
     /** The cursor over a label, which can be clicked. */
     const val POINTER_CURSOR: String = "pointer"
 
-    private const val TEXT_SIZE = 12
+    private const val TEXT_SIZE = 14
     private const val HALO_WIDTH = 1.6
     private val FONT = arrayOf("Noto Sans Bold")
 
     /** The diamond, in CSS pixels, drawn at twice that for sharp screens, with a white outline so it reads on any background. */
-    private const val ICON_PX = 12
+    private const val ICON_PX = 14
     private const val ICON_PIXEL_RATIO = 2
     private const val ICON_OUTLINE_PX = 1.5
 
@@ -43,8 +43,8 @@ object NaplanStyle {
      * How far below the label point the NAPLAN label's middle sits: under a one-line suburb name (12 px text) or under the two-line Homely label (13 px
      * name over "★ 2.1", about 16 px each side of the point), with a small gap.
      */
-    private const val BELOW_NAME_PX = 17.0
-    private const val BELOW_RATED_PX = 26.0
+    private const val BELOW_NAME_PX = 19.0
+    private const val BELOW_RATED_PX = 28.0
 
     /** The text offset is in ems of the label's own text size. */
     private fun em(px: Double): Double = px / TEXT_SIZE
