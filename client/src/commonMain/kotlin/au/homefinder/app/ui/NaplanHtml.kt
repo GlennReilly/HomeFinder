@@ -43,9 +43,6 @@ const val NAPLAN_EDIT_TEXT: String = "Edit NAPLAN"
 const val NAPLAN_SCORE_LABEL: String = "Difference from national average (points, may be negative, e.g. -41)"
 const val NAPLAN_SCORE_PLACEHOLDER: String = "-41"
 
-/** The link in the form's hint: My School's home page, never a guessed page for one school. */
-const val NAPLAN_MY_SCHOOL_TEXT: String = "My School (opens myschool.edu.au)"
-
 /**
  * Gives each listing of a school on one card its own edit link id, so a school listed twice (a
  * central school zoned for both levels) never repeats an id: the first is `naplan-edit-1234`, the next `naplan-edit-1234-2`. [open] is the id of
@@ -76,7 +73,7 @@ fun FlowContent.schoolRankLink(school: School) {
 /**
  * One school in a Schools row, line by line (ADR 0071): its name with [detail] (zone, level or distance text); its ICSEA when published; its NAPLAN
  * figure, if any, with the "Add NAPLAN" / "Edit NAPLAN" button (ADR 0068); its links (own website, SchoolRank, ADR 0070). When this listing's
- * button is the open one, the small form follows under the school.
+ * button is the open one, the small form follows the NAPLAN line, above the links.
  */
 fun FlowContent.schoolEntry(school: School, detail: String?, slots: NaplanSlots) {
     val editId = slots.next(school.id)
@@ -97,6 +94,7 @@ fun FlowContent.schoolEntry(school: School, detail: String?, slots: NaplanSlots)
             +(if (school.naplan == null) NAPLAN_ADD_TEXT else NAPLAN_EDIT_TEXT)
         }
     }
+    if (open) naplanForm(school)
     val website = ExternalLinks.webAddress(school.website)
     val rank = ExternalLinks.schoolRankPage(school.id, school.name, school.locality)
     if (website != null || rank != null) {
@@ -105,7 +103,6 @@ fun FlowContent.schoolEntry(school: School, detail: String?, slots: NaplanSlots)
             schoolRankLink(school)
         }
     }
-    if (open) naplanForm(school)
 }
 
 /** The form (the difference only: no year, no note, ADR 0071, 0073), filled with the figure already kept, if any. Clear is offered only when there is something to clear. The message line starts empty. */
@@ -116,9 +113,7 @@ private fun FlowContent.naplanForm(school: School) {
         attributes[NaplanIds.CODE_ATTRIBUTE] = school.id
         attributes[Aria.LABEL] = "NAPLAN for ${school.name}"
         p("hint") {
-            +"Your own figure, typed in by hand: how far the school is above (+) or below (-) the national average, for your own use. Nothing is fetched. NAPLAN results are published by ACARA on "
-            externalLink(ExternalLinks.MY_SCHOOL_HOME, NAPLAN_MY_SCHOOL_TEXT)
-            +"."
+            +"Your own figure, typed in by hand: how far the school is above (+) or below (-) the national average."
         }
         div("fields") {
             label {

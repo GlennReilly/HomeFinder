@@ -148,11 +148,11 @@ progress { width: 100%; margin: 16px 0; }
    the plain text line above (not visible space, as for Details/Source); its bottom part stays clear of the next school's link. */
 /* One school, line by line (ADR 0071): name and detail, ICSEA, the NAPLAN figure with its button, then the links. */
 .naplan-line, .school-links { display: flex; align-items: center; column-gap: var(--inline-gap); flex-wrap: wrap; }
-.naplan-line { margin-top: calc(-1 * var(--summary-overlap)); }
+.naplan-line { margin-top: 4px; }
 .school-icsea, .naplan-figure { font-size: .85rem; }
 /* The school's links (own website, SchoolRank, ADR 0070): the same full-height tap box as the listing links. */
 .school-links .external-link { display: inline-flex; align-items: center; min-height: var(--tap-target); font-size: .85rem; }
-.naplan-edit { font: inherit; font-size: .85rem; padding: 0; min-height: var(--tap-target); border: 0; background: none; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.naplan-edit { font-size: .85rem; min-height: var(--tap-target); }
 .naplan-edit:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
 .naplan-form { padding: 4px 0 8px; }
 .listing-links { margin: 0; font-size: .85rem; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; }
