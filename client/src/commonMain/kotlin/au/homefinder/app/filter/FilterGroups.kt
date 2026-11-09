@@ -20,7 +20,7 @@ object FilterGroups {
         FilterGroup("People and area", listOf(FilterCriterion.SEIFA, FilterCriterion.RENTED), openByDefault = true),
         FilterGroup("Crime", listOf(FilterCriterion.VIOLENT, FilterCriterion.PROPERTY)),
         FilterGroup("Location", listOf(FilterCriterion.BEACH, FilterCriterion.PARKS)),
-        FilterGroup("Schools", listOf(FilterCriterion.ICSEA, FilterCriterion.ZONED, FilterCriterion.NAPLAN)),
+        FilterGroup("Schools", listOf(FilterCriterion.NAPLAN, FilterCriterion.ZONED)),
     )
 
     fun idOf(title: String): String = "filter-group-" + title.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
