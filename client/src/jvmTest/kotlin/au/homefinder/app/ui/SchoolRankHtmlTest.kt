@@ -11,7 +11,6 @@ import au.homefinder.shared.model.SchoolInfo
 import au.homefinder.shared.model.SchoolLevel
 import au.homefinder.shared.model.SchoolSector
 import au.homefinder.shared.model.SuburbReport
-import au.homefinder.shared.model.SuburbSchools
 import au.homefinder.shared.model.SuburbZone
 import au.homefinder.shared.model.SuburbZonedSchools
 import kotlinx.html.div
@@ -32,7 +31,6 @@ class SchoolRankHtmlTest {
     private val suburb = SuburbReport(
         "9001", "ELERMORE VALE", "2287", Attribute(1.0, Confidence.HIGH, "src"), u(), u(), u(), u(), u(), u(), u(), u(), u(), u(), u(), u(),
     ).copy(
-        schools = Attribute(SuburbSchools(listOf(elermore), emptyList(), 1000), Confidence.HIGH, "src"),
         zonedSchools = Attribute(SuburbZonedSchools(listOf(SuburbZone(elermore, 0.9), SuburbZone(noLocality, 0.8))), Confidence.MEDIUM, "src"),
     )
 
@@ -43,7 +41,7 @@ class SchoolRankHtmlTest {
     fun `each listing of a school with a locality gets a SchoolRank link that opens in a new tab`() {
         val out = createHTML().div { suburbCard(SuburbCardState.Loaded(suburb), groupOpen = mapOf("Schools" to true)) }
         val found = links(out)
-        assertEquals(2, found.size, "the Schools row and the Zoned schools row, not the school without a locality: $found")
+        assertEquals(1, found.size, "the one Schools row, not the school without a locality: $found")
         found.forEach { link ->
             assertTrue("""href="$href"""" in link, link)
             assertTrue("""target="_blank"""" in link && """rel="noopener noreferrer"""" in link && """class="external-link"""" in link, link)

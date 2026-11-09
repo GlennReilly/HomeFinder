@@ -45,29 +45,29 @@ class PostgisNaplanStoreIntegrationTest {
     @Test
     fun `a figure is saved, read back and replaced`() = withStore { store ->
         assertEquals(emptyMap(), store.forSchools(listOf("1234")))
-        val saved = assertIs<NaplanWrite.Saved>(store.put("1234", NaplanEntry(512, 2025)))
+        val saved = assertIs<NaplanWrite.Saved>(store.put("1234", NaplanEntry(512)))
         assertEquals(512, saved.naplan.score)
         // Dated today (the database's day may differ from this machine's by the time zone).
         val days = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.parse(saved.naplan.updatedOn.toString()), java.time.LocalDate.now())
         assertTrue(days in -1L..1L, "updated on ${saved.naplan.updatedOn}")
-        assertEquals(NaplanScore(512, 2025, saved.naplan.updatedOn), store.forSchools(listOf("1234"))["1234"])
-        store.put("1234", NaplanEntry(530, 2024))
-        assertEquals(NaplanScore(530, 2024, saved.naplan.updatedOn), store.forSchools(listOf("1234", "5678", "x"))["1234"])
+        assertEquals(NaplanScore(512, saved.naplan.updatedOn), store.forSchools(listOf("1234"))["1234"])
+        store.put("1234", NaplanEntry(530))
+        assertEquals(NaplanScore(530, saved.naplan.updatedOn), store.forSchools(listOf("1234", "5678", "x"))["1234"])
         assertEquals(1L, count("SELECT count(*) FROM school_naplan"))
     }
 
     @Test
     fun `a school known only from the catchments can have a figure, an unknown code cannot`() = withStore { store ->
-        assertIs<NaplanWrite.Saved>(store.put("5678", NaplanEntry(600, 2024)))
-        assertEquals(NaplanWrite.UnknownSchool, store.put("4242", NaplanEntry(600, 2024)))
-        assertEquals(NaplanWrite.UnknownSchool, store.put("not-a-code", NaplanEntry(600, 2024)))
+        assertIs<NaplanWrite.Saved>(store.put("5678", NaplanEntry(600)))
+        assertEquals(NaplanWrite.UnknownSchool, store.put("4242", NaplanEntry(600)))
+        assertEquals(NaplanWrite.UnknownSchool, store.put("not-a-code", NaplanEntry(600)))
         assertEquals(listOf("5678"), store.all().map { it.schoolCode })
     }
 
     @Test
     fun `a figure is removed, and removing again or a hostile code is fine`() = withStore { store ->
-        store.put("1234", NaplanEntry(512, 2025))
-        store.put("5678", NaplanEntry(600, 2024))
+        store.put("1234", NaplanEntry(512))
+        store.put("5678", NaplanEntry(600))
         store.delete("1234' OR '1'='1")
         assertEquals(2, store.all().size)
         store.delete("1234")
@@ -78,7 +78,7 @@ class PostgisNaplanStoreIntegrationTest {
 
     @Test
     fun `figures survive reloading the schools`() = withStore { store ->
-        store.put("1234", NaplanEntry(512, 2025))
+        store.put("1234", NaplanEntry(512))
         // What load-schools.sh does: replace the school table's contents.
         execute("TRUNCATE school")
         assertEquals(512, store.forSchools(listOf("1234"))["1234"]?.score)
@@ -86,25 +86,28 @@ class PostgisNaplanStoreIntegrationTest {
 
     @Test
     fun `a difference below the national average is saved and read back as negative`() = withStore { store ->
-        assertIs<NaplanWrite.Saved>(store.put("1234", NaplanEntry(-41, 2025)))
+        assertIs<NaplanWrite.Saved>(store.put("1234", NaplanEntry(-41)))
         assertEquals(-41, store.forSchools(listOf("1234"))["1234"]?.score)
-        store.put("5678", NaplanEntry(-1000, 2024))
+        store.put("5678", NaplanEntry(-1000))
         assertEquals(listOf(-41, -1000), store.all().map { it.naplan.score })
     }
 
     @Test
-    fun `a figure without a year saves and reads back with none, beside one with a year`() = withStore { store ->
-        store.put("1234", NaplanEntry(-41, null))
-        store.put("5678", NaplanEntry(25, 2025))
-        assertEquals(listOf(null, 2025), store.all().map { it.naplan.year })
-        assertEquals(NaplanScore(-41, null, store.all().first().naplan.updatedOn), store.forSchools(listOf("1234"))["1234"])
+    fun `a figure saves without a year, the year column stays empty, and a year left from before is not read or overwritten (ADR 0073)`() = withStore { store ->
+        store.put("1234", NaplanEntry(-41))
+        assertEquals(1L, count("SELECT count(*) FROM school_naplan WHERE school_code = 1234 AND year IS NULL"))
+        execute("UPDATE school_naplan SET year = 2024 WHERE school_code = 1234")
+        store.put("1234", NaplanEntry(30))
+        assertEquals(1L, count("SELECT count(*) FROM school_naplan WHERE school_code = 1234 AND year = 2024"), "the column is kept and not written")
+        store.put("1234", NaplanEntry(-41))
+        assertEquals(NaplanScore(-41, store.all().first().naplan.updatedOn), store.forSchools(listOf("1234"))["1234"])
     }
 
     @Test
     fun `a note left from before is neither read nor overwritten`() = withStore { store ->
         execute("INSERT INTO school_naplan (school_code, score, year, note) VALUES (1234, 512, 2024, 'old note')")
-        assertEquals(NaplanScore(512, 2024, store.forSchools(listOf("1234"))["1234"]?.updatedOn), store.forSchools(listOf("1234"))["1234"])
-        store.put("1234", NaplanEntry(-41, null))
+        assertEquals(NaplanScore(512, store.forSchools(listOf("1234"))["1234"]?.updatedOn), store.forSchools(listOf("1234"))["1234"])
+        store.put("1234", NaplanEntry(-41))
         assertEquals(-41, store.forSchools(listOf("1234"))["1234"]?.score)
         assertEquals(1L, count("SELECT count(*) FROM school_naplan WHERE note = 'old note'"), "the column is kept and not written")
     }
@@ -123,7 +126,7 @@ class PostgisNaplanStoreIntegrationTest {
         try {
             assertEquals(emptyMap(), store.forSchools(listOf("1234")))
             assertEquals(emptyList(), store.all())
-            assertFailsWith<java.sql.SQLException> { store.put("1234", NaplanEntry(512, 2025)) }
+            assertFailsWith<java.sql.SQLException> { store.put("1234", NaplanEntry(512)) }
         } finally {
             execute("ALTER TABLE school_naplan_hidden RENAME TO school_naplan")
         }

@@ -25,9 +25,9 @@ private const val MAX_CODES = 200
 
 /**
  * Your NAPLAN figures (ADR 0068), inside the API-key guarded `/v1` route: list them (all, or `?codes=` for some schools), set one and remove
- * one. Nothing is fetched from My School. [store] is null when no database is configured; [currentYear] bounds the year an entry may name.
+ * one. Nothing is fetched from My School. [store] is null when no database is configured.
  */
-fun Route.naplanRoutes(store: NaplanStore?, currentYear: () -> Int) {
+fun Route.naplanRoutes(store: NaplanStore?) {
     get(ApiContract.SCHOOL_NAPLAN_PATH.removePrefix(AUTHENTICATED_PREFIX)) {
         if (store == null) return@get call.respond(HttpStatusCode.ServiceUnavailable, ApiError(ApiError.UNAVAILABLE))
         val codes = call.request.queryParameters[ApiContract.CODES_PARAMETER]?.split(CODE_SEPARATOR)?.map { it.trim() }?.filter { it.isNotEmpty() }
@@ -43,7 +43,7 @@ fun Route.naplanRoutes(store: NaplanStore?, currentYear: () -> Int) {
     put(ApiContract.SCHOOLS_PATH.removePrefix(AUTHENTICATED_PREFIX) + "/{schoolCode}/naplan") {
         if (store == null) return@put call.respond(HttpStatusCode.ServiceUnavailable, ApiError(ApiError.UNAVAILABLE))
         val code = call.parameters["schoolCode"].orEmpty()
-        val entry = receiveEntry(call, currentYear()) ?: return@put
+        val entry = receiveEntry(call) ?: return@put
         if (PostgisNaplanStore.schoolCodeOf(code) == null) return@put call.respond(HttpStatusCode.NotFound, ApiError(ApiError.NOT_FOUND))
         when (val written = call.attempt { store.put(code, entry) }.getOrNull() ?: return@put) {
             is NaplanWrite.Saved -> call.respond(written.naplan)
@@ -58,7 +58,7 @@ fun Route.naplanRoutes(store: NaplanStore?, currentYear: () -> Int) {
 }
 
 /** The body as a checked entry, or a 400 and null: not JSON, not whole numbers, or outside [NaplanRules]. */
-private suspend fun receiveEntry(call: RoutingCall, currentYear: Int): NaplanEntry? {
+private suspend fun receiveEntry(call: RoutingCall): NaplanEntry? {
     val received = try {
         call.receive<NaplanEntry>()
     } catch (cancelled: CancellationException) {
@@ -67,7 +67,7 @@ private suspend fun receiveEntry(call: RoutingCall, currentYear: Int): NaplanEnt
         call.respond(HttpStatusCode.BadRequest, ApiError(ApiError.INVALID_NAPLAN))
         return null
     }
-    return when (val checked = NaplanRules.check(received, currentYear)) {
+    return when (val checked = NaplanRules.check(received)) {
         is NaplanCheck.Valid -> checked.entry
         is NaplanCheck.Invalid -> {
             call.respond(HttpStatusCode.BadRequest, ApiError(ApiError.INVALID_NAPLAN))

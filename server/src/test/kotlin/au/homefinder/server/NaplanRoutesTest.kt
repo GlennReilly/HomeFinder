@@ -24,6 +24,7 @@ import io.ktor.server.testing.testApplication
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 class NaplanRoutesTest {
@@ -42,7 +43,7 @@ class NaplanRoutesTest {
         override suspend fun put(schoolCode: String, entry: NaplanEntry): NaplanWrite {
             failure?.let { throw it }
             if (schoolCode !in known) return NaplanWrite.UnknownSchool
-            return NaplanWrite.Saved(NaplanScore(entry.score, entry.year, day).also { rows[schoolCode] = it })
+            return NaplanWrite.Saved(NaplanScore(entry.score, day).also { rows[schoolCode] = it })
         }
         override suspend fun delete(schoolCode: String) { failure?.let { throw it }; rows.remove(schoolCode) }
         override suspend fun all(): List<SchoolNaplan> { failure?.let { throw it }; return rows.map { (code, naplan) -> SchoolNaplan(code, naplan) } }
@@ -79,9 +80,9 @@ class NaplanRoutesTest {
     @Test
     fun `a figure is saved with the day and returned`() = FakeStore().let { store ->
         api(store) {
-            val response = put(path, """{"score":512,"year":2025,"note":"ignored by the server"}""")
+            val response = put(path, """{"score":512,"note":"ignored by the server"}""")
             assertEquals(HttpStatusCode.OK, response.status)
-            val expected = NaplanScore(512, 2025, day)
+            val expected = NaplanScore(512, day)
             assertEquals(expected, ApiJson.decodeFromString<NaplanScore>(response.bodyAsText()))
             assertEquals(expected, store.rows["1234"])
         }
@@ -91,29 +92,31 @@ class NaplanRoutesTest {
     fun `a difference below the national average is negative and is kept as typed`() = FakeStore().let { store ->
         api(store) {
             listOf(-41, 25, 0, -1000, 1000).forEach { points ->
-                assertEquals(HttpStatusCode.OK, put(path, """{"score":$points,"year":2025}""").status, "$points")
+                assertEquals(HttpStatusCode.OK, put(path, """{"score":$points}""").status, "$points")
                 assertEquals(points, store.rows["1234"]?.score)
             }
         }
     }
 
     @Test
-    fun `the year may be missing or null, and is then kept as none`() = FakeStore().let { store ->
+    fun `a year sent by an old client is tolerated and ignored, whatever it holds (ADR 0073)`() = FakeStore().let { store ->
         api(store) {
-            val response = put(path, """{"score":-41}""")
-            assertEquals(HttpStatusCode.OK, response.status)
-            assertEquals(NaplanScore(-41, null, day), ApiJson.decodeFromString<NaplanScore>(response.bodyAsText()))
-            assertEquals(HttpStatusCode.OK, put(path, """{"score":25,"year":null}""").status)
-            assertEquals(NaplanScore(25, null, day), store.rows["1234"])
+            listOf("2025", "null", "2007", "2999", "\"later\"").forEach { year ->
+                val response = put(path, """{"score":-41,"year":$year}""")
+                assertEquals(HttpStatusCode.OK, response.status, year)
+                assertEquals(NaplanScore(-41, day), ApiJson.decodeFromString<NaplanScore>(response.bodyAsText()), year)
+                assertFalse("year" in response.bodyAsText(), "the response carries no year: $year")
+            }
+            assertEquals(NaplanScore(-41, day), store.rows["1234"])
         }
     }
 
     @Test
     fun `saving again replaces the figure`() = FakeStore().let { store ->
         api(store) {
-            put(path, """{"score":512,"year":2024}""")
-            put(path, """{"score":530,"year":2025}""")
-            assertEquals(listOf(NaplanScore(530, 2025, day)), store.rows.values.toList())
+            put(path, """{"score":512}""")
+            put(path, """{"score":530}""")
+            assertEquals(listOf(NaplanScore(530, day)), store.rows.values.toList())
         }
     }
 
@@ -121,8 +124,7 @@ class NaplanRoutesTest {
     fun `a figure out of range, not whole numbers or malformed is a bad request and saves nothing`() = FakeStore().let { store ->
         api(store) {
             listOf(
-                """{"score":1001,"year":2025}""", """{"score":-1001,"year":2025}""", """{"score":-41.5,"year":2025}""", """{"score":512,"year":2007}""", """{"score":512,"year":2027}""",
-                """{"score":512.5,"year":2025}""", """{"score":"abc","year":2025}""", """{"year":2025}""", """{"score":512,"year":"later"}""", """{"score":512,"year":2025.5}""",
+                """{"score":1001}""", """{"score":-1001}""", """{"score":-41.5}""", """{"score":512.5}""", """{"score":"abc"}""", """{"year":2025}""",
                 """not json""", "", """[]""",
             ).forEach {
                 val response = put(path, it)
@@ -136,8 +138,8 @@ class NaplanRoutesTest {
     @Test
     fun `an unknown or malformed school code cannot be given a figure`() = FakeStore().let { store ->
         api(store) {
-            assertEquals(HttpStatusCode.NotFound, put(ApiContract.schoolNaplanPath("4242"), """{"score":512,"year":2025}""").status)
-            assertEquals(HttpStatusCode.NotFound, put(ApiContract.schoolNaplanPath("abc"), """{"score":512,"year":2025}""").status)
+            assertEquals(HttpStatusCode.NotFound, put(ApiContract.schoolNaplanPath("4242"), """{"score":512}""").status)
+            assertEquals(HttpStatusCode.NotFound, put(ApiContract.schoolNaplanPath("abc"), """{"score":512}""").status)
             assertEquals(emptyMap(), store.rows)
         }
     }
@@ -145,7 +147,7 @@ class NaplanRoutesTest {
     @Test
     fun `a figure can be removed, and removing a missing one is fine`() = FakeStore().let { store ->
         api(store) {
-            put(path, """{"score":512,"year":2025}""")
+            put(path, """{"score":512}""")
             assertEquals(HttpStatusCode.NoContent, keyed(path, delete = true).status)
             assertNull(store.rows["1234"])
             assertEquals(HttpStatusCode.NoContent, keyed(path, delete = true).status)
@@ -157,8 +159,8 @@ class NaplanRoutesTest {
         api(store) {
             fun list(text: String) = ApiJson.decodeFromString<SchoolNaplanResponse>(text).entries
             assertEquals(emptyList(), list(keyed(ApiContract.SCHOOL_NAPLAN_PATH).bodyAsText()))
-            put(path, """{"score":512,"year":2025}""")
-            put(ApiContract.schoolNaplanPath("5678"), """{"score":600,"year":2024}""")
+            put(path, """{"score":512}""")
+            put(ApiContract.schoolNaplanPath("5678"), """{"score":600}""")
             assertEquals(listOf("1234", "5678"), list(keyed(ApiContract.SCHOOL_NAPLAN_PATH).bodyAsText()).map { it.schoolCode })
             assertEquals(listOf("5678"), list(keyed("${ApiContract.SCHOOL_NAPLAN_PATH}?codes=5678,9999").bodyAsText()).map { it.schoolCode })
             val tooMany = (1..201).joinToString(",")
@@ -169,7 +171,7 @@ class NaplanRoutesTest {
     @Test
     fun `every NAPLAN call needs the key`() = FakeStore().let { store ->
         api(store) {
-            assertEquals(HttpStatusCode.Unauthorized, put(path, """{"score":512,"year":2025}""", withKey = false).status)
+            assertEquals(HttpStatusCode.Unauthorized, put(path, """{"score":512}""", withKey = false).status)
             assertEquals(HttpStatusCode.Unauthorized, delete(path).status)
             assertEquals(HttpStatusCode.Unauthorized, get(ApiContract.SCHOOL_NAPLAN_PATH).status)
             assertEquals(HttpStatusCode.Unauthorized, get("${ApiContract.SCHOOL_NAPLAN_PATH}?key=$key").status)
@@ -180,12 +182,12 @@ class NaplanRoutesTest {
     @Test
     fun `without a database or when it fails every NAPLAN call is unavailable`() {
         api(null) {
-            assertEquals(HttpStatusCode.ServiceUnavailable, put(path, """{"score":512,"year":2025}""").status)
+            assertEquals(HttpStatusCode.ServiceUnavailable, put(path, """{"score":512}""").status)
             assertEquals(HttpStatusCode.ServiceUnavailable, keyed(path, delete = true).status)
             assertEquals(HttpStatusCode.ServiceUnavailable, keyed(ApiContract.SCHOOL_NAPLAN_PATH).status)
         }
         api(FakeStore(IllegalStateException("db down"))) {
-            assertEquals(HttpStatusCode.ServiceUnavailable, put(path, """{"score":512,"year":2025}""").status)
+            assertEquals(HttpStatusCode.ServiceUnavailable, put(path, """{"score":512}""").status)
             assertEquals(HttpStatusCode.ServiceUnavailable, keyed(path, delete = true).status)
             assertEquals(HttpStatusCode.ServiceUnavailable, keyed(ApiContract.SCHOOL_NAPLAN_PATH).status)
         }
@@ -198,9 +200,9 @@ class NaplanRoutesTest {
             suspend fun lotSchool() = ApiJson.decodeFromString<LotReport>(keyed(ApiContract.LOTS_PATH + "/1001").bodyAsText()).schools.value!!.nearest.single().school
             assertNull(suburbSchool().naplan)
             assertNull(lotSchool().naplan)
-            put(path, """{"score":512,"year":2025}""")
-            assertEquals(NaplanScore(512, 2025, day), suburbSchool().naplan)
-            assertEquals(NaplanScore(512, 2025, day), lotSchool().naplan)
+            put(path, """{"score":512}""")
+            assertEquals(NaplanScore(512, day), suburbSchool().naplan)
+            assertEquals(NaplanScore(512, day), lotSchool().naplan)
             assertEquals(1051, suburbSchool().icsea, "the rest of the school is unchanged")
             keyed(path, delete = true)
             assertNull(suburbSchool().naplan)

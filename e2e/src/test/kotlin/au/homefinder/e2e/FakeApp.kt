@@ -89,7 +89,7 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
         zonedSchools = Attribute(
             SuburbZonedSchools(
                 listOf(
-                    SuburbZone(School("1", "Hamilton South Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, 1041, null, null, "primary, K-6", naplan["1"]), 0.82),
+                    SuburbZone(School("1", "Hamilton South Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, 1041, null, null, "primary, K-6", naplan["1"], locality = "Hamilton"), 0.82),
                     SuburbZone(School("2", "Newcastle High School", SchoolSector.PUBLIC, SchoolLevel.HIGH, 1017, null, null, "high, 7-12", naplan["2"]), 0.76),
                 ),
                 2026,
@@ -162,7 +162,7 @@ class FakeApp(private val webRoot: File) : AutoCloseable {
             path == "/v1/suburbs/9001/rating" && method == "DELETE" -> { rating = null; reply(exchange, 204, "application/json", ByteArray(0)) }
             path.matches(Regex("/v1/schools/[12]/naplan")) && method == "PUT" -> {
                 val entry = ApiJson.decodeFromString<NaplanEntry>(exchange.requestBody.readBytes().toString(StandardCharsets.UTF_8))
-                val kept = NaplanScore(entry.score, entry.year, LocalDate(2026, 11, 8))
+                val kept = NaplanScore(entry.score, LocalDate(2026, 11, 8))
                 naplan[path.split('/')[3]] = kept
                 json(exchange, 200, ApiJson.encodeToString(kept))
             }

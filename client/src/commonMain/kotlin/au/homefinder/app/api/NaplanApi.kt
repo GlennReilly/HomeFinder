@@ -13,9 +13,9 @@ private const val HTTP_BAD_REQUEST = 400
 private const val HTTP_UNAUTHORIZED = 401
 private const val HTTP_NOT_FOUND = 404
 
-/** What a 400 means: the difference or year was outside what the server accepts (ADR 0069, 0071). */
+/** What a 400 means: the difference was outside what the server accepts (ADR 0069, 0071). */
 const val MESSAGE_NOT_ACCEPTED: String =
-    "the server did not accept that figure (a whole number from ${NaplanRules.MIN_SCORE} to +${NaplanRules.MAX_SCORE}, a year from ${NaplanRules.FIRST_YEAR})"
+    "the server did not accept that figure (a whole number from ${NaplanRules.MIN_SCORE} to +${NaplanRules.MAX_SCORE})"
 
 /** The endpoints for your NAPLAN figures, one per school (ADR 0068). The key goes only in the request header. */
 class NaplanApi(private val config: ApiConfig, private val writes: HttpWrite) {

@@ -21,7 +21,6 @@ object NaplanIds {
     const val EDIT_PREFIX: String = "naplan-edit-"
     const val FORM: String = "naplan-form"
     const val SCORE: String = "naplan-score"
-    const val YEAR: String = "naplan-year"
     const val SAVE: String = "naplan-save"
     const val CLEAR: String = "naplan-clear"
     const val CANCEL: String = "naplan-cancel"
@@ -44,14 +43,11 @@ const val NAPLAN_EDIT_TEXT: String = "Edit NAPLAN"
 const val NAPLAN_SCORE_LABEL: String = "Difference from national average (points, may be negative, e.g. -41)"
 const val NAPLAN_SCORE_PLACEHOLDER: String = "-41"
 
-/** The year box may be left empty (ADR 0071). */
-const val NAPLAN_YEAR_LABEL: String = "Year (optional)"
-
 /** The link in the form's hint: My School's home page, never a guessed page for one school. */
 const val NAPLAN_MY_SCHOOL_TEXT: String = "My School (opens myschool.edu.au)"
 
 /**
- * Gives each listing of a school on one card its own edit link id, so a school listed twice (in the Schools and the Zoned schools rows, or a
+ * Gives each listing of a school on one card its own edit link id, so a school listed twice (a
  * central school zoned for both levels) never repeats an id: the first is `naplan-edit-1234`, the next `naplan-edit-1234-2`. [open] is the id of
  * the link whose form is open, or null. Make a new one for each drawing of a card.
  */
@@ -112,7 +108,7 @@ fun FlowContent.schoolEntry(school: School, detail: String?, slots: NaplanSlots)
     if (open) naplanForm(school)
 }
 
-/** The form (difference and year; no note, ADR 0071), filled with the figure already kept, if any. Clear is offered only when there is something to clear. The message line starts empty. */
+/** The form (the difference only: no year, no note, ADR 0071, 0073), filled with the figure already kept, if any. Clear is offered only when there is something to clear. The message line starts empty. */
 private fun FlowContent.naplanForm(school: School) {
     val current = school.naplan
     form(classes = "naplan-form") {
@@ -135,15 +131,6 @@ private fun FlowContent.naplanForm(school: School) {
                     attributes["required"] = "required"
                     attributes["placeholder"] = NAPLAN_SCORE_PLACEHOLDER
                     current?.let { attributes["value"] = NaplanRules.signed(it.score) }
-                }
-            }
-            label {
-                +NAPLAN_YEAR_LABEL
-                input(type = InputType.text, name = NaplanIds.YEAR) {
-                    id = NaplanIds.YEAR
-                    attributes["inputmode"] = "numeric"
-                    attributes["autocomplete"] = "off"
-                    current?.year?.let { attributes["value"] = it.toString() }
                 }
             }
         }

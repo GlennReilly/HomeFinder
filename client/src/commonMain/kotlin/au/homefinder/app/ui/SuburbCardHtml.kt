@@ -158,8 +158,7 @@ fun FlowContent.suburbCard(
                                 val links = ListingLinks.forSuburbRow(item.row.label, card.report)
                                 if (i >= 0) {
                                     val extra: (kotlinx.html.DIV.() -> Unit)? = when {
-                                        item.row.label == SuburbCardRows.SCHOOLS_LABEL -> schoolList(card.report, slots)
-                                        item.row.label == SuburbCardRows.ZONED_LABEL -> zoneList(card.report, slots)
+                                        item.row.label == SuburbCardRows.SCHOOLS_LABEL -> zoneList(card.report, slots)
                                         links != null -> ({ listingLinksLine(links) })
                                         else -> null
                                     }
@@ -247,25 +246,13 @@ private fun DETAILS.ratingFormBody(current: au.homefinder.shared.model.HomelyRat
     }
 }
 
-/** The zones under the Zoned schools row: each school with its kind and years and the share of the suburb it covers, then its ICSEA, NAPLAN and links on lines of their own. */
+/** The zones under the Schools row (ADR 0073): each school with its kind and years and the share of the suburb it covers, then its ICSEA, NAPLAN and links on lines of their own. */
 private fun zoneList(report: SuburbReport, slots: NaplanSlots): (kotlinx.html.DIV.() -> Unit)? {
     val zones = report.zonedSchools.value?.zones?.takeIf { it.isNotEmpty() } ?: return null
     return {
         ul("zones") {
             zones.forEach { zone ->
                 li { schoolEntry(zone.school, SuburbCardRows.zoneDetail(zone), slots) }
-            }
-        }
-    }
-}
-
-/** The schools under the Schools row: each with its kind and size, then its ICSEA, NAPLAN and links on lines of their own. */
-private fun schoolList(report: SuburbReport, slots: NaplanSlots): (kotlinx.html.DIV.() -> Unit)? {
-    val schools = report.schools.value?.publicSchoolsInside?.takeIf { it.isNotEmpty() } ?: return null
-    return {
-        ul("schools") {
-            schools.forEach { school ->
-                li { schoolEntry(school, SuburbCardRows.schoolDetail(school), slots) }
             }
         }
     }
