@@ -63,7 +63,7 @@ class NaplanHtmlTest {
         val figure = """<div class="school-icsea">ICSEA 1,051</div><div class="naplan-line"><span class="naplan-figure">NAPLAN -41 vs national</span><button"""
         assertTrue(figure in flat(out), out)
         assertEquals(1, Regex(">$NAPLAN_EDIT_TEXT<").findAll(out).count())
-        assertTrue("catchments; Your own figure, typed in. NAPLAN results are published by ACARA on My School." in out)
+        assertTrue("catchments; Your own figure, typed in." in out)
         assertFalse("Source: Australian Curriculum" in out, "the app does not say the figure came from ACARA")
         // The second school has no figure: still just the Add link.
         assertTrue("aria-label=\"$NAPLAN_ADD_TEXT for Newcastle High School\"" in out)
@@ -81,7 +81,7 @@ class NaplanHtmlTest {
         assertTrue("value=\"-41\"" in form)
         assertTrue("""${NaplanIds.CODE_ATTRIBUTE}="1"""" in form)
         assertFalse("naplan-note" in out || "Note (optional)" in out, "the note is gone (ADR 0071)")
-        assertTrue("""href="https://www.myschool.edu.au/"""" in form)
+        assertFalse("myschool.edu.au" in form, "no My School link in the form")
         assertTrue("""aria-expanded="true"""" in out)
     }
 
@@ -94,6 +94,14 @@ class NaplanHtmlTest {
         assertTrue("type=\"text\"" in box && "autocomplete=\"off\"" in box && "placeholder=\"-41\"" in box, box)
         assertFalse("inputmode" in box, "a numeric keypad can lack a minus key: $box")
         assertFalse("0 to 1000" in out)
+    }
+
+    @Test
+    fun `the form has no My School link or fetch note, and opens above the school's links`() {
+        val school = School("7", "Plain School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, icsea = 990, website = "https://plain.schools.nsw.gov.au", locality = "Plain")
+        val out = createHTML().div { schoolEntry(school, null, NaplanSlots("naplan-edit-7")) }
+        assertFalse("myschool.edu.au" in out || "Nothing is fetched" in out || "for your own use" in out)
+        assertTrue(out.indexOf(NaplanIds.FORM) in 0 until out.indexOf(SchoolLines.LINKS_LINE), "the form comes before the links")
     }
 
     @Test

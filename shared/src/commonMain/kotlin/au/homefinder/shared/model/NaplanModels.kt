@@ -19,7 +19,7 @@ data class NaplanScore(val score: Int, val updatedOn: LocalDate? = null) {
          * What a row's Source line adds when a school on it has a NAPLAN figure. Neutral on purpose (ADR 0069): the figure may be read from another
          * site, so the app does not say it came from My School or ACARA.
          */
-        const val SOURCE: String = "Your own figure, typed in. NAPLAN results are published by ACARA on My School."
+        const val SOURCE: String = "Your own figure, typed in."
     }
 }
 

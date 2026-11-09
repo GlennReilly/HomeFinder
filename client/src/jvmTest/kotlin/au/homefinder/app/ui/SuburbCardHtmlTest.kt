@@ -193,7 +193,7 @@ class SuburbCardHtmlTest {
     @Test
     fun `the schools are listed under the Schools row with their ICSEA, size and own website, and no separate My School line`() {
         val out = html(SuburbCardState.Loaded(withSchools(school("Hamilton Public School", 1051, "https://hamilton-p.schools.nsw.gov.au"), school("Small School", null, null, enrolments = null))))
-        assertTrue("Hamilton Public School (Primary School), Small School (Primary School)" in out, "one Schools row names the zoned schools (ADR 0073)")
+        assertFalse("Hamilton Public School (Primary School), Small School (Primary School)" in out, "no comma-separated names line above the list")
         assertFalse("Zoned schools</dt>" in out || "public schools" in out, "no second row and no in-suburb listing")
         // One line each (ADR 0071): name and kind, ICSEA, NAPLAN, links; the website link is on the links line, not the name.
         val flat = flat(out)
@@ -399,7 +399,7 @@ class SuburbCardHtmlTest {
             2026,
         )
         val out = html(SuburbCardState.Loaded(report.copy(zonedSchools = Attribute(zoned, Confidence.MEDIUM, "NSW DoE", null, "A note"))))
-        assertTrue("<dt>Schools</dt>" in out && "Zoned schools</dt>" !in out && "Hamilton Public School (primary), Newcastle High School (high)" in out, out)
+        assertTrue("<dt>Schools</dt>" in out && "Zoned schools</dt>" !in out && "Hamilton Public School (primary), Newcastle High School (high)" !in out, out)
         assertTrue("""href="https://hamilton-p.schools.nsw.gov.au"""" in out && " · primary, K-6 · 82% of the suburb's lots</span></div><div class=\"school-icsea\">ICSEA 1,041</div>" in flat(out), out)
         assertTrue("Newcastle High School</span>" in out && ">ICSEA 1,017<" in out, out)
     }

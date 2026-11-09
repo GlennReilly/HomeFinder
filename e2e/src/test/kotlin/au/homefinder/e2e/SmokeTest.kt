@@ -201,7 +201,8 @@ class SmokeTest {
         assertThat(page.locator("#card dl.rows dt", Page.LocatorOptions().setHasText("Zoned schools"))).hasCount(0)
         assertThat(page.locator("#card dl.rows dt", Page.LocatorOptions().setHasText(Pattern.compile("^Schools$")))).hasCount(1)
         val row = rows.first()
-        assertThat(row).containsText("Hamilton South Public School (primary), Newcastle High School (high)")
+        assertThat(row).not().containsText("Hamilton South Public School (primary), Newcastle High School (high)")
+        assertThat(row).containsText("Hamilton South Public School")
         assertThat(row).not().containsText("public school, average ICSEA")
         // Line by line (ADR 0071): name and zone, ICSEA, NAPLAN, then the links.
         assertThat(page.locator("#card ul.zones")).containsText("primary, K-6 · 82% of the suburb's lots")
@@ -255,7 +256,7 @@ class SmokeTest {
         assertEquals(-41, app.naplan["2"]?.score)
         assertThat(page.locator("#naplan-edit-2")).hasText("Edit NAPLAN")
         // The row's Source says it is your own figure, without claiming where it came from (ADR 0069).
-        assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Schools")).first()).containsText("Your own figure, typed in. NAPLAN results are published by ACARA on My School.")
+        assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Schools")).first()).containsText("Your own figure, typed in.")
 
         // There is no year at all (ADR 0073): no box in the form, none on the card, none sent.
         page.locator("#naplan-edit-2").click()

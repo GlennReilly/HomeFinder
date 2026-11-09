@@ -179,7 +179,9 @@ fun FlowContent.suburbCard(
                                         links != null -> ({ listingLinksLine(links) })
                                         else -> null
                                     }
-                                    cardRow(item, i, drawn.size, customising, extra)
+                                    // The schools are listed one by one below, so the comma-separated names line above them says nothing new.
+                                    val listed = item.row.label == SuburbCardRows.SCHOOLS_LABEL && extra != null
+                                    cardRow(item, i, drawn.size, customising, extra, showValue = !listed)
                                 } else if (links != null && !item.hidden) {
                                     listingLinksRow(links)
                                 }
@@ -287,6 +289,7 @@ private fun kotlinx.html.DL.cardRow(
     count: Int,
     customising: Boolean,
     extra: (kotlinx.html.DIV.() -> Unit)? = null,
+    showValue: Boolean = true,
 ) {
     val list = this
     val row = item.row
@@ -294,7 +297,7 @@ private fun kotlinx.html.DL.cardRow(
     div(CardRowClasses.row(item.hidden)) {
         list.dt { +row.label }
         val value = row.value
-        list.valueCell(value)
+        if (showValue) list.valueCell(value)
         list.provenanceDetails(row)
         extra?.invoke(this)
         if (customising) rowControls(item, first = index == 0, last = index == count - 1)
