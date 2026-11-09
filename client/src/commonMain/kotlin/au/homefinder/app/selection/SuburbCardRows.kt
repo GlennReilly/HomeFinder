@@ -13,7 +13,6 @@ import au.homefinder.shared.model.School
 import au.homefinder.shared.model.NaplanRules
 import au.homefinder.shared.model.NaplanScore
 import au.homefinder.shared.model.SchoolLevel
-import au.homefinder.shared.model.SuburbSchools
 import au.homefinder.shared.model.SuburbShopping
 import au.homefinder.shared.model.SuburbTransport
 import kotlin.math.abs
@@ -95,8 +94,7 @@ object SuburbCardRows {
         row("Violent crime", report.violentCrime, ::crime),
         row("Break-ins, car and home theft", report.propertyCrime, ::crime),
         row("Distance to the beach", report.beach, ::beach),
-        withNaplanSource(row(SCHOOLS_LABEL, report.schools, ::schools), report.schools.value?.publicSchoolsInside.orEmpty()),
-        withNaplanSource(row(ZONED_LABEL, report.zonedSchools, ::zonedSchools), report.zonedSchools.value?.zones.orEmpty().map { it.school }),
+        withNaplanSource(row(SCHOOLS_LABEL, report.zonedSchools, ::zonedSchools), report.zonedSchools.value?.zones.orEmpty().map { it.school }),
         row("Parks", report.parkAreaShare) { Formats.share(it) + " of the suburb is park" },
         row("Shopping", report.shopping, ::shopping),
         row("Transport", report.transport, ::transport),
@@ -163,8 +161,8 @@ object SuburbCardRows {
     private fun beach(distance: SuburbBeachDistance) =
         "${Formats.kilometres(distance.fromCentreM)} from the centre, ${Formats.kilometres(distance.fromNearestEdgeM)} from the nearest edge"
 
+    /** The one Schools row of the Suburb Card: the schools whose zone covers the suburb (ADR 0073). */
     const val SCHOOLS_LABEL: String = "Schools"
-    const val ZONED_LABEL: String = "Zoned schools"
 
     /** "Hamilton South Public School (primary), Newcastle High School (high)": the zones by name, the detail (share, years, ICSEA) is listed under the row. */
     private fun zonedSchools(zoned: SuburbZonedSchools): String =
@@ -173,23 +171,10 @@ object SuburbCardRows {
     /** The kind of zone in a word or two: "primary", "high, girls", "central school, primary years" (the first part of the label). */
     private fun zoneLevel(school: School): String = school.levelLabel?.substringBefore(", ").orEmpty().ifBlank { if (school.level == SchoolLevel.HIGH) "high" else "primary" }
 
-    /** One zone's first line under the Zoned schools row: its kind and years and the share of the suburb's lots it covers (ICSEA and NAPLAN have lines of their own, ADR 0071). */
+    /** One zone's first line under the Schools row: its kind and years and the share of the suburb's lots it covers (ICSEA and NAPLAN have lines of their own, ADR 0071). */
     fun zoneDetail(zone: SuburbZone): String = listOfNotNull(
         zone.school.levelLabel,
         "${Formats.share(zone.lotShare)} of the suburb's lots",
-    ).joinToString(" · ")
-
-    private fun schools(schools: SuburbSchools): String {
-        val count = schools.publicSchoolsInside.size
-        if (count == 0) return "No public schools inside the suburb"
-        val average = schools.averageIcsea?.let { ", average ICSEA ${Formats.grouped(it.toLong())} (1,000 is average)" }.orEmpty()
-        return (if (count == 1) "1 public school" else "$count public schools") + average
-    }
-
-    /** One school's first line under the Schools row: its kind and size (ICSEA and NAPLAN have lines of their own, ADR 0071). */
-    fun schoolDetail(school: School): String = listOfNotNull(
-        school.levelLabel ?: when (school.level) { SchoolLevel.PRIMARY -> "Primary"; SchoolLevel.HIGH -> "High school"; SchoolLevel.COMBINED -> "Combined" },
-        school.enrolments?.let { "${Formats.grouped(it.toLong())} students" },
     ).joinToString(" · ")
 
     private fun shopping(shopping: SuburbShopping) =

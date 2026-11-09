@@ -74,4 +74,24 @@ class CardLayoutTest {
         assertEquals(listOf("C", "A", "B", "D"), saved.arrange(rows).map { it.row.label })
         assertEquals(listOf("B"), saved.arrange(rows).filter { it.hidden }.map { it.row.label })
     }
+
+    @Test
+    fun `a layout saved with the removed Zoned schools row still works on the real Suburb Card (ADR 0073)`() {
+        val real = SuburbCardRows.of(
+            au.homefinder.shared.model.SuburbReport(
+                "9001", "HAMILTON", "2303", au.homefinder.shared.model.Attribute.unknown("a"), au.homefinder.shared.model.Attribute.unknown("a"),
+                au.homefinder.shared.model.Attribute.unknown("a"), au.homefinder.shared.model.Attribute.unknown("a"), au.homefinder.shared.model.Attribute.unknown("a"),
+                au.homefinder.shared.model.Attribute.unknown("a"), au.homefinder.shared.model.Attribute.unknown("a"), au.homefinder.shared.model.Attribute.unknown("a"),
+                au.homefinder.shared.model.Attribute.unknown("a"), au.homefinder.shared.model.Attribute.unknown("a"), au.homefinder.shared.model.Attribute.unknown("a"),
+                au.homefinder.shared.model.Attribute.unknown("a"), au.homefinder.shared.model.Attribute.unknown("a"),
+            ),
+        )
+        val saved = CardLayout(order = listOf("Parks", "Zoned schools", "Schools"), hidden = setOf("Zoned schools"))
+        val groups = saved.arrangeGroups(real, CardGroups.SUBURB)
+        val labels = groups.flatMap { g -> g.rows.map { it.row.label } }
+        assertFalse("Zoned schools" in labels)
+        assertEquals(1, labels.count { it == "Schools" })
+        assertTrue(groups.flatMap { it.rows }.none { it.hidden }, "the old hidden label does not hide the Schools row")
+        assertTrue(groups.none { it.title == CardGroups.OTHER_TITLE }, "no stray More group")
+    }
 }

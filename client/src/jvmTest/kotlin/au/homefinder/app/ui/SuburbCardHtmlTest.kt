@@ -39,7 +39,7 @@ class SuburbCardHtmlTest {
         assertTrue("<h2>HAMILTON</h2>" in out)
         assertTrue("Postcode 2303" in out)
         assertFalse("km²" in out)
-        assertEquals(18, Regex("""class="value unknown"""").findAll(out).count())
+        assertEquals(17, Regex("""class="value unknown"""").findAll(out).count())
         assertTrue("Some source" in out)
         assertTrue("Not computed yet" in out)
         // One closed Details section per row holds the note and then the source (ADR 0072); there is no separate Source section.
@@ -181,9 +181,9 @@ class SuburbCardHtmlTest {
     }
 
     private fun withSchools(vararg schools: au.homefinder.shared.model.School) = report.copy(
-        schools = Attribute(
-            au.homefinder.shared.model.SuburbSchools(schools.toList(), emptyList(), averageIcsea = 1032),
-            Confidence.HIGH, "NSW Department of Education", kotlinx.datetime.LocalDate(2026, 10, 2), "ICSEA measures advantage, not quality",
+        zonedSchools = Attribute(
+            SuburbZonedSchools(schools.map { SuburbZone(it, 1.0) }),
+            Confidence.MEDIUM, "NSW Department of Education", kotlinx.datetime.LocalDate(2026, 10, 2), "ICSEA measures advantage, not quality",
         ),
     )
 
@@ -193,15 +193,16 @@ class SuburbCardHtmlTest {
     @Test
     fun `the schools are listed under the Schools row with their ICSEA, size and own website, and no separate My School line`() {
         val out = html(SuburbCardState.Loaded(withSchools(school("Hamilton Public School", 1051, "https://hamilton-p.schools.nsw.gov.au"), school("Small School", null, null, enrolments = null))))
-        assertTrue("1 public school" !in out && "2 public schools, average ICSEA 1,032 (1,000 is average)" in out)
+        assertTrue("Hamilton Public School (Primary School), Small School (Primary School)" in out, "one Schools row names the zoned schools (ADR 0073)")
+        assertFalse("Zoned schools</dt>" in out || "public schools" in out, "no second row and no in-suburb listing")
         // One line each (ADR 0071): name and kind, ICSEA, NAPLAN, links; the website link is on the links line, not the name.
         val flat = flat(out)
-        assertTrue("""<div class="school-line"><span class="school-name">Hamilton Public School</span><span class="detail"> · Primary School · 412 students</span></div><div class="school-icsea">ICSEA 1,051</div><div class="naplan-line">""" in flat, flat)
+        assertTrue("""<div class="school-line"><span class="school-name">Hamilton Public School</span><span class="detail"> · Primary School · 100% of the suburb's lots</span></div><div class="school-icsea">ICSEA 1,051</div><div class="naplan-line">""" in flat, flat)
         assertTrue("""<div class="school-links"><a href="https://hamilton-p.schools.nsw.gov.au" target="_blank" class="external-link" rel="noopener noreferrer" title="Hamilton Public School: school website (opens in a new tab)">School website</a>""" in flat, flat)
-        assertTrue("""<div class="school-line"><span class="school-name">Small School</span><span class="detail"> · Primary School</span></div><div class="naplan-line">""" in flat, "no ICSEA line without an ICSEA: $flat")
+        assertTrue("""<div class="school-line"><span class="school-name">Small School</span><span class="detail"> · Primary School · 100% of the suburb's lots</span></div><div class="naplan-line">""" in flat, "no ICSEA line without an ICSEA: $flat")
         assertFalse("Look these schools up" in out || "myschool.edu.au" in out, "the My School line is gone; only the NAPLAN form links there")
         val row = out.indexOf("Schools</dt>")
-        assertTrue(row in 0 until out.indexOf("Hamilton Public School") && out.indexOf("Hamilton Public School") < out.indexOf("Zoned schools</dt>"), "the list sits inside the Schools row")
+        assertTrue(row in 0 until out.indexOf("Hamilton Public School"), "the list sits inside the Schools row")
     }
 
     @Test
@@ -212,11 +213,12 @@ class SuburbCardHtmlTest {
     }
 
     @Test
-    fun `a suburb with no public school shows no list and no My School link`() {
-        val out = html(SuburbCardState.Loaded(withSchools()))
-        assertTrue("No public schools inside the suburb" in out)
+    fun `a suburb with no zone data shows the Schools row as Unknown with the reason, no list and no My School link`() {
+        val out = html(SuburbCardState.Loaded(report))
+        assertTrue(Regex("""<dt>Schools</dt>""").containsMatchIn(out) && "Not computed yet" in out)
+        assertFalse("Zoned schools</dt>" in out)
         assertFalse("myschool.edu.au" in out)
-        assertFalse("""class="schools"""" in out)
+        assertFalse("""class="zones"""" in out)
     }
 
     private fun custom(layout: CardLayout, customising: Boolean, showUnknown: Boolean = true) =
@@ -237,8 +239,8 @@ class SuburbCardHtmlTest {
     @Test
     fun `customising shows every row with controls, hidden ones dimmed, and Done and Reset`() {
         val out = custom(CardLayout().toggle("Parks"), customising = true)
-        assertEquals(18, labelsIn(out).size)
-        assertEquals(18, Regex("""class="row-controls"""").findAll(out).count())
+        assertEquals(17, labelsIn(out).size)
+        assertEquals(17, Regex("""class="row-controls"""").findAll(out).count())
         assertEquals(1, Regex("""class="row row-hidden"""").findAll(out).count())
         assertTrue("""aria-label="Show Parks"""" in out)
         assertTrue("""aria-label="Hide Shopping"""" in out)
@@ -291,7 +293,7 @@ class SuburbCardHtmlTest {
         val out = html(SuburbCardState.Loaded(report), showUnknown = false)
         assertEquals(listOf("Houses for sale", "Units for sale"), labelsIn(out), "every row of this report is unknown; only the for-sale links (ADR 0061) are left")
         assertEquals(0, Regex("""class="value unknown"""").findAll(out).count())
-        assertTrue("18 rows without data are hidden." in out, out)
+        assertTrue("17 rows without data are hidden." in out, out)
         assertTrue("""data-action="show-unknown"""" in out && ">Show them<" in out)
         assertTrue(CARD_DISCLAIMER in out && "<h2>HAMILTON</h2>" in out)
         assertFalse(ALL_HIDDEN_HINT in out, "rows are left off because they are unknown, not because you hid them all")
@@ -300,17 +302,17 @@ class SuburbCardHtmlTest {
     @Test
     fun `showing the unknown rows draws them with their reasons and offers to hide them again`() {
         val out = html(SuburbCardState.Loaded(report), showUnknown = true)
-        assertEquals(18, labelsIn(out).size)
-        assertTrue("Showing 18 rows without data." in out && """data-action="hide-unknown"""" in out && ">Hide them again<" in out)
+        assertEquals(17, labelsIn(out).size)
+        assertTrue("Showing 17 rows without data." in out && """data-action="hide-unknown"""" in out && ">Hide them again<" in out)
     }
 
     @Test
     fun `customising lists every row and no note, and rows you hid yourself are not counted`() {
         val customising = custom(CardLayout(), customising = true, showUnknown = false)
-        assertEquals(18, labelsIn(customising).size)
+        assertEquals(17, labelsIn(customising).size)
         assertFalse("without data" in customising)
         val oneHidden = createHTML().div { suburbCard(SuburbCardState.Loaded(report), CardLayout(hidden = setOf("Parks")), customising = false, showUnknown = false) }
-        assertTrue("17 rows without data are hidden." in oneHidden, oneHidden)
+        assertTrue("16 rows without data are hidden." in oneHidden, oneHidden)
     }
 
     @Test
@@ -368,7 +370,7 @@ class SuburbCardHtmlTest {
     }
 
     @Test
-    fun `the zoned schools row lists each zone under it, with a link to the school's website when it has one`() {
+    fun `the Schools row lists each zone under it, with a link to the school's website when it has one`() {
         val zoned = SuburbZonedSchools(
             listOf(
                 SuburbZone(School("10", "Hamilton Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, icsea = 1041, website = "https://hamilton-p.schools.nsw.gov.au", levelLabel = "primary, K-6"), 0.82),
@@ -377,7 +379,7 @@ class SuburbCardHtmlTest {
             2026,
         )
         val out = html(SuburbCardState.Loaded(report.copy(zonedSchools = Attribute(zoned, Confidence.MEDIUM, "NSW DoE", null, "A note"))))
-        assertTrue("Zoned schools" in out && "Hamilton Public School (primary), Newcastle High School (high)" in out, out)
+        assertTrue("<dt>Schools</dt>" in out && "Zoned schools</dt>" !in out && "Hamilton Public School (primary), Newcastle High School (high)" in out, out)
         assertTrue("""href="https://hamilton-p.schools.nsw.gov.au"""" in out && " · primary, K-6 · 82% of the suburb's lots</span></div><div class=\"school-icsea\">ICSEA 1,041</div>" in flat(out), out)
         assertTrue("Newcastle High School</span>" in out && ">ICSEA 1,017<" in out, out)
     }

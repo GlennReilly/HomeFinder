@@ -14,7 +14,6 @@ import au.homefinder.shared.model.SchoolInfo
 import au.homefinder.shared.model.SchoolLevel
 import au.homefinder.shared.model.SchoolSector
 import au.homefinder.shared.model.SuburbReport
-import au.homefinder.shared.model.SuburbSchools
 import au.homefinder.shared.model.SuburbZone
 import au.homefinder.shared.model.SuburbZonedSchools
 import kotlinx.datetime.LocalDate
@@ -30,14 +29,13 @@ private fun flat(html: String): String = html.replace(Regex(">\\s+<"), "><")
 
 class NaplanHtmlTest {
     private fun <T> u() = Attribute.unknown<T>("src", note = "Not computed yet")
-    private val score = NaplanScore(-41, 2025, LocalDate(2026, 11, 8))
+    private val score = NaplanScore(-41, LocalDate(2026, 11, 8))
     private fun school(id: String, name: String, naplan: NaplanScore? = null, level: SchoolLevel = SchoolLevel.PRIMARY) =
         School(id, name, SchoolSector.PUBLIC, level, 1051, naplan = naplan)
 
     private fun suburb(scored: Boolean) = SuburbReport(
         "9001", "HAMILTON", "2303", Attribute(1.0, Confidence.HIGH, "src"), u(), u(), u(), u(), u(), u(), u(), u(), u(), u(), u(), u(),
     ).copy(
-        schools = Attribute(SuburbSchools(listOf(school("1", "Hamilton Public School", score.takeIf { scored })), emptyList(), 1051), Confidence.HIGH, "Department of Education"),
         zonedSchools = Attribute(
             SuburbZonedSchools(listOf(SuburbZone(school("1", "Hamilton Public School", score.takeIf { scored }), 0.8), SuburbZone(school("2", "Newcastle High School", level = SchoolLevel.HIGH), 0.7))),
             Confidence.MEDIUM, "catchments",
@@ -50,23 +48,22 @@ class NaplanHtmlTest {
     private fun ids(out: String) = Regex("""id="(naplan-edit-[^"]*)"""").findAll(out).map { it.groupValues[1] }.toList()
 
     @Test
-    fun `every school listed gets its own Add NAPLAN link, and a school listed twice never repeats an id`() {
+    fun `every school listed gets its own Add NAPLAN link`() {
         val out = suburbHtml(scored = false)
-        assertEquals(listOf("naplan-edit-1", "naplan-edit-1-2", "naplan-edit-2"), ids(out))
-        assertEquals(3, Regex(">$NAPLAN_ADD_TEXT<").findAll(out).count())
+        assertEquals(listOf("naplan-edit-1", "naplan-edit-2"), ids(out))
+        assertEquals(2, Regex(">$NAPLAN_ADD_TEXT<").findAll(out).count())
         assertFalse("vs national" in out)
         assertFalse(NaplanIds.FORM in out, "no form until a link is pressed")
         assertFalse("Your own figure" in out, "the Source wording goes with a figure")
     }
 
     @Test
-    fun `a saved figure has its own line under the ICSEA in both rows, the button says Edit and the Source says it is your own figure`() {
+    fun `a saved figure has its own line under the ICSEA in the Schools row, the button says Edit and the Source says it is your own figure`() {
         val out = suburbHtml(scored = true)
-        val figure = """<div class="school-icsea">ICSEA 1,051</div><div class="naplan-line"><span class="naplan-figure">NAPLAN -41 vs national (2025)</span><button"""
+        val figure = """<div class="school-icsea">ICSEA 1,051</div><div class="naplan-line"><span class="naplan-figure">NAPLAN -41 vs national</span><button"""
         assertTrue(figure in flat(out), out)
-        assertTrue(figure in flat(out).substringAfter("80% of the suburb"))
-        assertEquals(2, Regex(">$NAPLAN_EDIT_TEXT<").findAll(out).count())
-        assertTrue("Department of Education; Your own figure, typed in. NAPLAN results are published by ACARA on My School." in out)
+        assertEquals(1, Regex(">$NAPLAN_EDIT_TEXT<").findAll(out).count())
+        assertTrue("catchments; Your own figure, typed in. NAPLAN results are published by ACARA on My School." in out)
         assertFalse("Source: Australian Curriculum" in out, "the app does not say the figure came from ACARA")
         // The second school has no figure: still just the Add link.
         assertTrue("aria-label=\"$NAPLAN_ADD_TEXT for Newcastle High School\"" in out)
@@ -74,15 +71,14 @@ class NaplanHtmlTest {
 
     @Test
     fun `the open form sits under the school whose link was pressed, filled with the saved figure`() {
-        val out = suburbHtml(scored = true, open = "naplan-edit-1-2")
+        val out = suburbHtml(scored = true, open = "naplan-edit-1")
         assertEquals(1, Regex("""id="${NaplanIds.FORM}"""").findAll(out).count())
-        val form = out.substringAfter("""id="naplan-edit-1-2"""")
+        val form = out.substringAfter("""id="naplan-edit-1"""")
         assertTrue(form.indexOf(NaplanIds.FORM) < form.indexOf("naplan-edit-2"), "the form comes before the next school")
-        assertTrue(out.substringBefore("""id="naplan-edit-1-2"""").contains(NaplanIds.FORM).not(), "not under the first listing")
-        listOf(NaplanIds.SCORE, NaplanIds.YEAR, NaplanIds.SAVE, NaplanIds.CLEAR, NaplanIds.CANCEL, NaplanIds.MESSAGE).forEach {
+        listOf(NaplanIds.SCORE, NaplanIds.SAVE, NaplanIds.CLEAR, NaplanIds.CANCEL, NaplanIds.MESSAGE).forEach {
             assertTrue("id=\"$it\"" in form, it)
         }
-        assertTrue("value=\"-41\"" in form && "value=\"2025\"" in form)
+        assertTrue("value=\"-41\"" in form)
         assertTrue("""${NaplanIds.CODE_ATTRIBUTE}="1"""" in form)
         assertFalse("naplan-note" in out || "Note (optional)" in out, "the note is gone (ADR 0071)")
         assertTrue("""href="https://www.myschool.edu.au/"""" in form)
@@ -105,19 +101,15 @@ class NaplanHtmlTest {
         val out = createHTML().div {
             suburbCard(SuburbCardState.Loaded(suburb(scored = false).let { r -> r.copy(zonedSchools = r.zonedSchools.copy(value = r.zonedSchools.value!!.copy(zones = r.zonedSchools.value!!.zones.map { it.copy(school = it.school.copy(naplan = score.copy(score = 25))) }))) }), groupOpen = mapOf("Schools" to true), naplanOpen = "naplan-edit-2")
         }
-        assertTrue("NAPLAN +25 vs national (2025)" in out)
+        assertTrue("NAPLAN +25 vs national" in out)
         assertTrue("value=\"+25\"" in out)
     }
 
     @Test
-    fun `the year box is optional and a figure without a year shows no bracket`() {
-        val r = suburb(scored = false)
-        val noYear = r.copy(schools = r.schools.copy(value = r.schools.value!!.copy(publicSchoolsInside = r.schools.value!!.publicSchoolsInside.map { it.copy(naplan = score.copy(year = null)) })))
-        val out = createHTML().div { suburbCard(SuburbCardState.Loaded(noYear), groupOpen = mapOf("Schools" to true), naplanOpen = "naplan-edit-1") }
+    fun `the form has no year box and the figure shows no year (ADR 0073)`() {
+        val out = suburbHtml(scored = true, open = "naplan-edit-1")
+        assertFalse("naplan-year" in out || "Year" in out.substringAfter(NaplanIds.FORM), out)
         assertTrue("""<span class="naplan-figure">NAPLAN -41 vs national</span>""" in out, out)
-        assertTrue(NAPLAN_YEAR_LABEL in out && NAPLAN_YEAR_LABEL == "Year (optional)")
-        val box = Regex("<input[^>]*id=\"${NaplanIds.YEAR}\"[^>]*>").find(out)!!.value
-        assertFalse("required" in box || "value=" in box, box)
     }
 
     @Test
@@ -134,7 +126,7 @@ class NaplanHtmlTest {
             lines(base.copy(icsea = 990, naplan = score, website = "https://plain.schools.nsw.gov.au", locality = "Plain")),
         )
         val withFigure = flat(createHTML().div { schoolEntry(base.copy(naplan = score), null, NaplanSlots(null)) })
-        assertTrue(Regex("""<div class="naplan-line"><span class="naplan-figure">NAPLAN -41 vs national \(2025\)</span><button[^>]*>$NAPLAN_EDIT_TEXT</button></div>""").containsMatchIn(withFigure), withFigure)
+        assertTrue(Regex("""<div class="naplan-line"><span class="naplan-figure">NAPLAN -41 vs national</span><button[^>]*>$NAPLAN_EDIT_TEXT</button></div>""").containsMatchIn(withFigure), withFigure)
         val noFigure = flat(createHTML().div { schoolEntry(base, null, NaplanSlots(null)) })
         assertTrue(Regex("""<div class="naplan-line"><button[^>]*>$NAPLAN_ADD_TEXT</button></div>""").containsMatchIn(noFigure), noFigure)
     }
@@ -165,7 +157,7 @@ class NaplanHtmlTest {
         val out = createHTML().div { lotCard(LotCardState.Loaded(lot), groupOpen = mapOf("Schools" to true), naplanOpen = "naplan-edit-2") }
         assertEquals(listOf("naplan-edit-1", "naplan-edit-2"), ids(out))
         assertTrue("naplan-schools" in out)
-        assertTrue("""<span class="school-name">Hamilton Public School</span><span class="detail"> · primary, K-6</span></div><div class="school-icsea">ICSEA 1,051</div><div class="naplan-line"><span class="naplan-figure">NAPLAN -41 vs national (2025)</span>""" in flat(out), out)
+        assertTrue("""<span class="school-name">Hamilton Public School</span><span class="detail"> · primary, K-6</span></div><div class="school-icsea">ICSEA 1,051</div><div class="naplan-line"><span class="naplan-figure">NAPLAN -41 vs national</span>""" in flat(out), out)
         assertTrue("""<span class="school-name">Newcastle High School</span><span class="detail"> · 900 m away</span>""" in flat(out), out)
         assertTrue(out.indexOf(NaplanIds.FORM) > out.indexOf("naplan-edit-2"))
     }

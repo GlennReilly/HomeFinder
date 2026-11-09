@@ -5,15 +5,15 @@ import kotlinx.serialization.Serializable
 
 /**
  * One NAPLAN figure for a school, typed in by you (ADR 0068, 0069): [score] is the school's difference from the national average in points, above (+)
- * or below (-), for example -41; then, if you give it, the year it is from (ADR 0071). There is no note any more (ADR 0071). This is what `PUT /v1/schools/{schoolCode}/naplan` takes.
+ * or below (-), for example -41. There is no year and no note (ADR 0071, 0073); a year or note sent by an old client is ignored. This is what `PUT /v1/schools/{schoolCode}/naplan` takes.
  * Nothing is ever fetched. Check it with [NaplanRules.check].
  */
 @Serializable
-data class NaplanEntry(val score: Int, val year: Int? = null)
+data class NaplanEntry(val score: Int)
 
 /** A NAPLAN figure as kept: what you typed and the day you last saved it. It rides on [School.naplan] in the suburb and lot reports. */
 @Serializable
-data class NaplanScore(val score: Int, val year: Int? = null, val updatedOn: LocalDate? = null) {
+data class NaplanScore(val score: Int, val updatedOn: LocalDate? = null) {
     companion object {
         /**
          * What a row's Source line adds when a school on it has a NAPLAN figure. Neutral on purpose (ADR 0069): the figure may be read from another
@@ -31,7 +31,7 @@ data class SchoolNaplan(val schoolCode: String, val naplan: NaplanScore)
 data class SchoolNaplanResponse(val entries: List<SchoolNaplan>)
 
 /** Why a NAPLAN entry was refused. */
-enum class NaplanProblem { SCORE_OUT_OF_RANGE, YEAR_OUT_OF_RANGE }
+enum class NaplanProblem { SCORE_OUT_OF_RANGE }
 
 /** What checking an entry came to: the entry as it will be kept, or the reason it is refused. */
 sealed interface NaplanCheck {
@@ -45,20 +45,12 @@ object NaplanRules {
     const val MIN_SCORE: Int = -1000
     const val MAX_SCORE: Int = 1000
 
-    /** NAPLAN was first sat in 2008, so no figure is older. */
-    const val FIRST_YEAR: Int = 2008
+    /** Checks an entry: the difference must be within the bounds. */
+    fun check(entry: NaplanEntry): NaplanCheck =
+        if (entry.score in MIN_SCORE..MAX_SCORE) NaplanCheck.Valid(entry) else NaplanCheck.Invalid(NaplanProblem.SCORE_OUT_OF_RANGE)
 
-    /** Checks an entry. The year may be missing (ADR 0071); a given year after [currentYear] is refused, as no such results exist yet. */
-    fun check(entry: NaplanEntry, currentYear: Int): NaplanCheck {
-        return when {
-            entry.score !in MIN_SCORE..MAX_SCORE -> NaplanCheck.Invalid(NaplanProblem.SCORE_OUT_OF_RANGE)
-            entry.year != null && entry.year !in FIRST_YEAR..currentYear -> NaplanCheck.Invalid(NaplanProblem.YEAR_OUT_OF_RANGE)
-            else -> NaplanCheck.Valid(entry)
-        }
-    }
-
-    /** "NAPLAN -41 vs national (2025)": how a figure reads beside a school's ICSEA. */
-    fun label(naplan: NaplanScore): String = "NAPLAN ${signed(naplan.score)} vs national" + naplan.year?.let { " ($it)" }.orEmpty()
+    /** "NAPLAN -41 vs national": how a figure reads beside a school's ICSEA (no year, ADR 0073). */
+    fun label(naplan: NaplanScore): String = "NAPLAN ${signed(naplan.score)} vs national"
 
     /** The difference with its sign always shown: "-41", "+25", and "0" for no difference. */
     fun signed(points: Int): String = if (points > 0) "+$points" else points.toString()

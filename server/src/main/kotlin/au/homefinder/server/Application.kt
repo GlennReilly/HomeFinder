@@ -72,7 +72,7 @@ fun Application.module(
             }
             // The literal paths (ratings, filters, at) are tried before the {suburbId} path, so they are not mistaken for ids.
             ratingRoutes(ratings, suburbs, today)
-            naplanRoutes(naplan) { today().year }
+            naplanRoutes(naplan)
             filterRoutes(suburbs)
             suburbRoutes(suburbs, ratings, naplan)
             lotRoutes(lots, naplan)

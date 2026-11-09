@@ -192,46 +192,39 @@ class SmokeTest {
     }
 
     @Test
-    fun `the Schools row lists the public schools with their ICSEA and own website, and links to My School and SchoolRank`() {
+    fun `the one Schools row names the zoned schools and lists each with its share of the suburb, ICSEA, own website and SchoolRank link`() {
         openWithKey()
         tapSuburb()
-        val row = page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Schools"))
-        assertThat(row.first()).containsText("1 public school, average ICSEA 1,051 (1,000 is average)")
-        // Line by line (ADR 0071): name and kind, ICSEA, NAPLAN, then the links.
-        assertThat(page.locator("#card ul.schools .school-links a", Page.LocatorOptions().setHasText("School website"))).hasAttribute("href", "https://hamilton-p.schools.nsw.gov.au")
-        assertThat(page.locator("#card ul.schools .school-line")).containsText("Hamilton Public School · Primary School · 412 students")
-        assertThat(page.locator("#card ul.schools .school-icsea")).hasText("ICSEA 1,051")
+        val rows = page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Schools"))
+        assertThat(page.locator("#card dl.rows dt", Page.LocatorOptions().setHasText("Zoned schools"))).hasCount(0)
+        assertThat(page.locator("#card dl.rows dt", Page.LocatorOptions().setHasText(Pattern.compile("^Schools$")))).hasCount(1)
+        val row = rows.first()
+        assertThat(row).containsText("Hamilton South Public School (primary), Newcastle High School (high)")
+        assertThat(row).not().containsText("public school, average ICSEA")
+        // Line by line (ADR 0071): name and zone, ICSEA, NAPLAN, then the links.
+        assertThat(page.locator("#card ul.zones")).containsText("primary, K-6 · 82% of the suburb's lots")
+        assertThat(page.locator("#card ul.zones")).containsText("high, 7-12 · 76% of the suburb's lots")
+        assertThat(page.locator("#card ul.zones .school-icsea")).hasText(arrayOf("ICSEA 1,041", "ICSEA 1,017"))
+        assertThat(page.locator("#card ul.schools")).hasCount(0)
         page.locator("#card details.card-group[data-group='Schools'] > summary").click()
-        // The "Look these schools up on My School" line is gone; My School is linked only from the NAPLAN form.
+        // My School is linked only from the NAPLAN form.
         assertThat(page.locator("#card a[href='https://www.myschool.edu.au/']")).hasCount(0)
         // One closed "Details" per row holds the note and the source (ADR 0072); there is no separate Source fold.
-        val details = row.first().locator("details.details-fold")
+        val details = row.locator("details.details-fold")
         assertThat(details).hasCount(1)
         assertThat(details).not().hasAttribute("open", "")
-        assertThat(row.first().locator("details.source-details, details.note-details")).hasCount(0)
+        assertThat(row.locator("details.source-details, details.note-details")).hasCount(0)
         details.locator("summary").click()
-        assertThat(details.locator("p.details-source")).isVisible()
-        assertThat(details.locator("p.details-source")).containsText("Source: Test schools")
+        assertThat(details.locator("p.details-source")).containsText("Source: Test catchments")
+        assertThat(details.locator("p.details-note")).containsText("Catchments change")
         // A SchoolRank link built from the school's name and locality (ADR 0070); never fetched. The zoned school without a locality gets none.
         page.waitForFunction("() => document.querySelectorAll('#card a[href^=\"https://schoolrank.com.au/school/\"]').length > 0")
-        val rank = page.locator("#card ul.schools a[href='https://schoolrank.com.au/school/hamilton-public-school-hamilton-nsw']")
+        val rank = page.locator("#card ul.zones a[href='https://schoolrank.com.au/school/hamilton-south-public-school-hamilton-nsw']")
         assertThat(rank).hasText("SchoolRank")
         assertThat(rank).hasAttribute("target", "_blank")
         assertThat(rank).hasAttribute("rel", "noopener noreferrer")
         assertThat(rank).isVisible()
-        assertThat(page.locator("#card ul.zones a", Page.LocatorOptions().setHasText("SchoolRank"))).hasCount(0)
-    }
-
-    @Test
-    fun `the Zoned schools row names the zones and lists each with its share of the suburb and ICSEA`() {
-        openWithKey()
-        tapSuburb()
-        val row = page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Zoned schools"))
-        assertThat(row.first()).containsText("Hamilton South Public School (primary), Newcastle High School (high)")
-        assertThat(page.locator("#card ul.zones")).containsText("primary, K-6 · 82% of the suburb's lots")
-        assertThat(page.locator("#card ul.zones")).containsText("high, 7-12 · 76% of the suburb's lots")
-        assertThat(page.locator("#card ul.zones .school-icsea")).hasText(arrayOf("ICSEA 1,041", "ICSEA 1,017"))
-        assertThat(row.first()).containsText("Catchments change")
+        assertThat(page.locator("#card ul.zones a", Page.LocatorOptions().setHasText("SchoolRank"))).hasCount(1)
     }
 
     @Test
@@ -247,28 +240,27 @@ class SmokeTest {
         assertThat(page.locator("#card ul.zones li", Page.LocatorOptions().setHasText("Newcastle High School")).locator("#naplan-form")).isVisible()
         assertThat(page.locator("#naplan-clear")).hasCount(0)
         page.locator("#naplan-score").fill("-1200")
-        page.locator("#naplan-year").fill("2025")
         page.locator("#naplan-save").click()
         assertThat(page.locator("#naplan-message")).hasText("The difference must be a whole number from -1000 to +1000")
         assertTrue(app.naplan.isEmpty())
         page.locator("#naplan-score").fill("-41")
         page.locator("#naplan-save").click()
-        page.waitForFunction("() => document.getElementById('naplan-form') === null && document.querySelector('#card ul.zones')?.textContent.includes('NAPLAN -41 vs national (2025)')")
+        page.waitForFunction("() => document.getElementById('naplan-form') === null && document.querySelector('#card ul.zones')?.textContent.includes('NAPLAN -41 vs national')")
         // The figure has its own line under the ICSEA, with the Edit button beside it (ADR 0071).
         val newcastle = page.locator("#card ul.zones li", Page.LocatorOptions().setHasText("Newcastle High School"))
-        assertThat(newcastle.locator(".naplan-line .naplan-figure")).hasText("NAPLAN -41 vs national (2025)")
+        assertThat(newcastle.locator(".naplan-line .naplan-figure")).hasText("NAPLAN -41 vs national")
         assertThat(newcastle.locator(".school-icsea")).hasText("ICSEA 1,017")
         assertEquals(-41, app.naplan["2"]?.score)
         assertThat(page.locator("#naplan-edit-2")).hasText("Edit NAPLAN")
         // The row's Source says it is your own figure, without claiming where it came from (ADR 0069).
-        assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Zoned schools")).first()).containsText("Your own figure, typed in. NAPLAN results are published by ACARA on My School.")
+        assertThat(page.locator("#card dl.rows .row", Page.LocatorOptions().setHasText("Schools")).first()).containsText("Your own figure, typed in. NAPLAN results are published by ACARA on My School.")
 
-        // The year is optional (ADR 0071): saved without one, the card shows no bracket.
+        // There is no year at all (ADR 0073): no box in the form, none on the card, none sent.
         page.locator("#naplan-edit-2").click()
-        page.locator("#naplan-year").fill("")
+        assertThat(page.locator("#naplan-year")).hasCount(0)
+        assertThat(page.locator("#naplan-form")).not().containsText("Year")
         page.locator("#naplan-save").click()
         page.waitForFunction("() => document.getElementById('naplan-form') === null && document.querySelector('#card ul.zones')?.textContent.includes('NAPLAN -41 vs national') && !document.querySelector('#card ul.zones')?.textContent.includes('NAPLAN -41 vs national (')")
-        assertEquals(null, app.naplan["2"]?.year)
 
         // Opening it again fills the boxes; Cancel closes it without a change; Clear removes the score.
         page.locator("#naplan-edit-2").click()

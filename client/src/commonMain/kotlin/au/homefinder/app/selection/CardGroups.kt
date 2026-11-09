@@ -22,7 +22,7 @@ object CardGroups {
         ),
         CardGroup("Crime", listOf("Violent crime", "Break-ins, car and home theft")),
         CardGroup("Location", listOf("Distance to the beach", "Parks", "Shopping", "Transport")),
-        CardGroup("Schools", listOf(SuburbCardRows.SCHOOLS_LABEL, SuburbCardRows.ZONED_LABEL)),
+        CardGroup("Schools", listOf(SuburbCardRows.SCHOOLS_LABEL)),
     )
 
     val LOT: List<CardGroup> = listOf(

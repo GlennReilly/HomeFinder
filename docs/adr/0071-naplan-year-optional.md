@@ -1,6 +1,6 @@
 # 0071. The NAPLAN year is optional and the note is removed
 
-Status: Accepted. Supersedes the year part of ADR 0069 (and of ADR 0068, which 0069 kept).
+Status: Partly superseded by 0073 (the optional year is removed altogether; the note removal stands). Supersedes the year part of ADR 0069 (and of ADR 0068, which 0069 kept).
 
 ## Context
 ADR 0068 and 0069 required a year with every NAPLAN figure. The figure you copy (a difference from the national average) does not always come

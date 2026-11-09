@@ -1,6 +1,6 @@
 # 0062. School catchments on the Suburb Card and an ICSEA filter on them
 
-Status: Accepted
+Status: Partly superseded by 0073 (the separate 'Zoned schools' row; the zones, the 25% rule and the zoned-ICSEA filter stand)
 
 ## Context
 ADR 0056 loaded the NSW public school catchments (intake zones) and showed the zones a *lot* lies in. A suburb is usually split between several zones, so the Suburb

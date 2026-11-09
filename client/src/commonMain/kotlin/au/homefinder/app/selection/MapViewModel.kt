@@ -16,9 +16,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.todayIn
-import kotlin.time.Clock
 
 /** What the Suburb Card shows. */
 sealed interface SuburbCardState {
@@ -74,16 +71,12 @@ sealed interface NaplanOutcome {
     data class Failed(val message: String) : NaplanOutcome
 }
 
-/** This year on this device: a NAPLAN figure cannot be from a later one. */
-fun currentYear(): Int = Clock.System.todayIn(TimeZone.currentSystemDefault()).year
-
 class MapViewModel(
     private val api: SuburbApi,
     private val scope: CoroutineScope,
     private val lots: LotApi? = null,
     private val ratings: RatingApi? = null,
     private val naplan: NaplanApi? = null,
-    private val thisYear: () -> Int = ::currentYear,
 ) {
     private val mutableRatingsVersion = MutableStateFlow(0)
 
@@ -155,9 +148,9 @@ class MapViewModel(
     }
 
     /** Saves the NAPLAN figure typed in for one school, then reloads the card on show (suburb or lot) so every listing of the school shows it. */
-    suspend fun saveNaplan(schoolCode: String, scoreText: String, yearText: String): NaplanOutcome {
+    suspend fun saveNaplan(schoolCode: String, scoreText: String): NaplanOutcome {
         val api = naplan ?: return NaplanOutcome.Failed(MESSAGE_NAPLAN_UNAVAILABLE)
-        val entry = when (val input = NaplanInput.parse(scoreText, yearText, thisYear())) {
+        val entry = when (val input = NaplanInput.parse(scoreText)) {
             is ParsedNaplan.Invalid -> return NaplanOutcome.Rejected(input.message)
             is ParsedNaplan.Valid -> input.entry
         }

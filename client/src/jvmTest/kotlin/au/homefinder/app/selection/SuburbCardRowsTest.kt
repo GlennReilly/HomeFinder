@@ -47,22 +47,22 @@ class SuburbCardRowsTest {
     private val girlsHigh = School("20", "Newcastle Girls High", SchoolSector.PUBLIC, SchoolLevel.HIGH, icsea = null, levelLabel = "high, girls, 7-12")
 
     @Test
-    fun `the zoned schools row names each zone and its kind, and each zone's first line gives its years and share, ICSEA its own line`() {
+    fun `the Schools row is the zoned schools and names each zone and its kind, and each zone's first line gives its years and share, ICSEA its own line`() {
         val zoned = SuburbZonedSchools(listOf(SuburbZone(hamiltonPs, 0.82), SuburbZone(girlsHigh, 0.255)), 2026)
-        val row = SuburbCardRows.of(allKnown.copy(zonedSchools = known(zoned))).first { it.label == SuburbCardRows.ZONED_LABEL }
+        val row = SuburbCardRows.of(allKnown.copy(zonedSchools = known(zoned))).first { it.label == SuburbCardRows.SCHOOLS_LABEL }
         assertEquals("Hamilton Public School (primary), Newcastle Girls High (high)", row.value)
         assertEquals("primary, K-6 · 82% of the suburb's lots", SuburbCardRows.zoneDetail(zoned.zones[0]))
         assertEquals("ICSEA 1,041", SuburbCardRows.icseaText(zoned.zones[0].school))
         assertEquals("high, girls, 7-12 · 26% of the suburb's lots", SuburbCardRows.zoneDetail(zoned.zones[1]))
         assertEquals(null, SuburbCardRows.icseaText(zoned.zones[1].school), "no ICSEA, no line")
-        assertTrue(SuburbCardRows.of(allUnknown).first { it.label == SuburbCardRows.ZONED_LABEL }.isUnknown)
+        assertTrue(SuburbCardRows.of(allUnknown).first { it.label == SuburbCardRows.SCHOOLS_LABEL }.isUnknown)
     }
 
     @Test
     fun `the rows have no area and put the typical block size under the median house price`() {
         assertEquals(
             listOf("Median house price", "Typical block size", "Median unit price", "Price change, 12 months",
-                "Socio-economic advantage", "Disadvantage (SEIFA)", "Economic resources (SEIFA)", "Education and occupation (SEIFA)", "Homes rented", "Houses and units", "Violent crime", "Break-ins, car and home theft", "Distance to the beach", "Schools", "Zoned schools", "Parks", "Shopping", "Transport"),
+                "Socio-economic advantage", "Disadvantage (SEIFA)", "Economic resources (SEIFA)", "Education and occupation (SEIFA)", "Homes rented", "Houses and units", "Violent crime", "Break-ins, car and home theft", "Distance to the beach", "Schools", "Parks", "Shopping", "Transport"),
             SuburbCardRows.of(allUnknown).map { it.label },
         )
     }
@@ -76,7 +76,7 @@ class SuburbCardRowsTest {
             assertEquals(Confidence.NONE, it.confidence, it.label)
             assertEquals("Not computed yet", it.note, it.label)
         }
-        assertEquals(listOf("A", "E", "B", "C", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS 2021 Census", "ABS 2021 Census", "NSW BOCSAR", "NSW BOCSAR", "H", "I", "NSW Department of Education", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
+        assertEquals(listOf("A", "E", "B", "C", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS SEIFA 2021", "ABS 2021 Census", "ABS 2021 Census", "NSW BOCSAR", "NSW BOCSAR", "H", "NSW Department of Education", "J", "K", "L"), rows.map { it.source }, "each row keeps the source of its own factor")
     }
 
     @Test
@@ -122,7 +122,6 @@ class SuburbCardRowsTest {
         assertEquals("Decile 8 of 10 (10 is the most advantaged)", advantaged.value)
         assertEquals("58% houses, 25% townhouses, 15% units", rows["Houses and units"])
         assertEquals("3.5 km from the centre, 2.4 km from the nearest edge", rows["Distance to the beach"])
-        assertEquals("1 public school", rows["Schools"])
         assertEquals("7% of the suburb is park", rows["Parks"])
         assertEquals("2 shopping centres and 5 supermarkets, inside or within 2 km", rows["Shopping"])
         assertEquals("2 train, 0 light rail, 0 ferry, 96 bus stops; best stop 8 an hour at peak", rows["Transport"])
@@ -164,19 +163,13 @@ class SuburbCardRowsTest {
     }
 
     @Test
-    fun `schools read as a count with the average ICSEA, and none says so`() {
-        fun value(schools: au.homefinder.shared.model.SuburbSchools) = SuburbCardRows.of(allKnown.copy(schools = known(schools))).first { it.label == "Schools" }.value
-        val one = school.copy(icsea = 1051)
-        assertEquals("3 public schools, average ICSEA 1,032 (1,000 is average)", value(au.homefinder.shared.model.SuburbSchools(listOf(one, one, one), emptyList(), 1032)))
-        assertEquals("1 public school, average ICSEA 960 (1,000 is average)", value(au.homefinder.shared.model.SuburbSchools(listOf(school), emptyList(), 960)))
-        assertEquals("2 public schools", value(au.homefinder.shared.model.SuburbSchools(listOf(school, school), emptyList(), null)))
-        assertEquals("No public schools inside the suburb", value(au.homefinder.shared.model.SuburbSchools(emptyList(), emptyList(), null)))
-    }
-
-    @Test
-    fun `a school's first line gives its kind and size as far as published, and ICSEA is separate`() {
-        assertEquals("Primary School · 412 students", SuburbCardRows.schoolDetail(school.copy(icsea = 1051, enrolments = 412, levelLabel = "Primary School")))
-        assertEquals("Secondary School", SuburbCardRows.schoolDetail(school.copy(levelLabel = "Secondary School")))
-        assertEquals("High school · 1,204 students", SuburbCardRows.schoolDetail(school.copy(level = SchoolLevel.HIGH, icsea = 1012, enrolments = 1204)))
+    fun `the Schools row ignores the schools inside the suburb and has no row of its own for the zones (ADR 0073)`() {
+        val rows = SuburbCardRows.of(allKnown.copy(zonedSchools = known(SuburbZonedSchools(listOf(SuburbZone(hamiltonPs, 0.82))))))
+        assertEquals(1, rows.count { it.label == "Schools" })
+        assertFalse(rows.any { it.label == "Zoned schools" })
+        assertEquals("Hamilton Public School (primary)", rows.first { it.label == "Schools" }.value)
+        val none = SuburbCardRows.of(allKnown).first { it.label == "Schools" }
+        assertTrue(none.isUnknown, "no zone data: Unknown, with the reason in the note")
+        assertEquals("Not computed yet", none.note)
     }
 }
