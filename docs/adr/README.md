@@ -78,3 +78,4 @@
 | [0074](0074-zoned-naplan-filter.md) | A suburb filter on the NAPLAN figures you typed for the zoned schools | Accepted |
 | [0075](0075-schoolrank-address-overrides.md) | SchoolRank address overrides, by school code | Accepted |
 | [0076](0076-naplan-map-label.md) | Each suburb's NAPLAN average as a clickable map label | Accepted |
+| [0077](0077-smaller-buttons-same-touch-area.md) | Buttons drawn smaller, with the same 44 px touch area | Accepted |
