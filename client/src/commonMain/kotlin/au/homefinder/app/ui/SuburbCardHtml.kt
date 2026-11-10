@@ -296,8 +296,10 @@ private fun kotlinx.html.DL.cardRow(
         if (showValue || customising) list.dt { +row.label }
         val value = row.value
         if (showValue) list.valueCell(value)
-        list.provenanceDetails(row)
+        // With no value line the Details fold would float alone under the heading, so it follows the list it describes (ADR 0083).
+        if (showValue) list.provenanceDetails(row)
         extra?.invoke(this)
+        if (!showValue) list.provenanceDetails(row)
         if (customising) rowControls(item, first = index == 0, last = index == count - 1)
     }
 }

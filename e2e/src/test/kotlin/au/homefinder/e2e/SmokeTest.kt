@@ -219,6 +219,8 @@ class SmokeTest {
         assertThat(details).hasCount(1)
         assertThat(details).not().hasAttribute("open", "")
         assertThat(row.locator("details.source-details, details.note-details")).hasCount(0)
+        // The fold has no value line to sit under, so it follows the list of schools instead of floating above it (ADR 0083).
+        assertThat(row.locator("ul.zones + dd.row-details details.details-fold")).hasCount(1)
         details.locator("summary").click()
         assertThat(details.locator("p.details-source")).containsText("Source: Test catchments")
         assertThat(details.locator("p.details-note")).containsText("Catchments change")

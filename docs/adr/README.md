@@ -84,3 +84,4 @@
 | [0080](0080-pdf-export-of-filtered-suburbs.md) | A PDF export of the suburbs the filters shade, made on the server | Accepted |
 | [0081](0081-class-name-constants.md) | Class names as named constants | Accepted |
 | [0082](0082-map-compass.md) | A compass that is always on the map | Accepted |
+| [0083](0083-schools-details-placement.md) | The Schools row's Details fold follows the list of schools | Accepted |
