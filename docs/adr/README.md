@@ -81,6 +81,7 @@
 | [0077](0077-smaller-buttons-same-touch-area.md) | Buttons drawn smaller, with the same 44 px touch area | Accepted |
 | [0078](0078-remove-in-suburb-icsea-filter.md) | Remove the in-suburb ICSEA filter; NAPLAN first in Schools | Accepted |
 | [0079](0079-labels-from-zoom-11.md) | The Homely and NAPLAN map labels show from zoom 11 | Accepted |
-| [0080](0080-pdf-export-of-filtered-suburbs.md) | A PDF export of the suburbs the filters shade, made on the server | Accepted |
+| [0080](0080-pdf-export-of-filtered-suburbs.md) | A PDF export of the suburbs the filters shade, made on the server | Accepted (rows with no data: see 0083) |
 | [0081](0081-class-name-constants.md) | Class names as named constants | Accepted |
 | [0082](0082-map-compass.md) | A compass that is always on the map | Accepted |
+| [0083](0083-pdf-leaves-out-rows-with-no-data.md) | The PDF leaves out rows with no data | Accepted |

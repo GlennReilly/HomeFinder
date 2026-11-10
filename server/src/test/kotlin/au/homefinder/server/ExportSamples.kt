@@ -19,7 +19,7 @@ import kotlinx.datetime.LocalDate
 object ExportSamples {
     private fun <T> unknown() = Attribute.unknown<T>("test", note = "Not computed yet")
 
-    fun report(id: String = "9001", name: String = "HAMILTON", postcode: String? = "2303", rated: Boolean = false, naplan: Int? = 5): SuburbReport = SuburbReport(
+    fun report(id: String = "9001", name: String = "HAMILTON", postcode: String? = "2303", rated: Boolean = false, naplan: Int? = 5, zoned: Boolean = true): SuburbReport = SuburbReport(
         suburbId = id, name = name, postcode = postcode, areaKm2 = Attribute(1.46, Confidence.HIGH, "Test boundary"),
         medianHousePriceAud = Attribute(900_000L, Confidence.HIGH, "Test sales", LocalDate(2026, 10, 9)),
         medianUnitPriceAud = Attribute(600_000L, Confidence.MEDIUM, "Test sales", LocalDate(2026, 10, 9)),
@@ -28,7 +28,7 @@ object ExportSamples {
         blockSize = Attribute(BlockSizeSpread(560.0, 300.0, 900.0), Confidence.HIGH, "Test cadastre"),
         floodShare = unknown(), brickShare = unknown(), beach = unknown(),
         schools = Attribute(SuburbSchools(emptyList(), emptyList(), null), Confidence.HIGH, "Test schools"),
-        zonedSchools = Attribute(
+        zonedSchools = if (!zoned) unknown() else Attribute(
             SuburbZonedSchools(
                 listOf(
                     SuburbZone(School("1", "Hamilton South Public School", SchoolSector.PUBLIC, SchoolLevel.PRIMARY, 1041, null, null, "primary, K-6", naplan?.let { NaplanScore(it) }), 0.82),

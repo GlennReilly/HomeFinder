@@ -131,7 +131,7 @@ object SuburbPdf {
         if (newPage) writer.newPage() else writer.gap(SECTION_GAP * 2)
         writer.paragraph(suburb.name, writer.bold, SUBURB_SIZE)
         suburb.postcode?.let { writer.paragraph("Postcode $it", writer.regular, BODY_SIZE, grey = true) }
-        if (suburb.groups.isEmpty()) writer.paragraph("No data for this suburb yet.", writer.regular, BODY_SIZE)
+        if (suburb.groups.isEmpty()) writer.paragraph("Nothing to show for this suburb yet.", writer.regular, BODY_SIZE)
         suburb.groups.forEach { group ->
             writer.gap(GROUP_GAP)
             // A group title is never left alone at the foot of a page: it needs room for itself and its first row.
