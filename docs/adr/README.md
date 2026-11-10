@@ -83,3 +83,4 @@
 | [0079](0079-labels-from-zoom-11.md) | The Homely and NAPLAN map labels show from zoom 11 | Accepted |
 | [0080](0080-pdf-export-of-filtered-suburbs.md) | A PDF export of the suburbs the filters shade, made on the server | Accepted |
 | [0081](0081-class-name-constants.md) | Class names as named constants | Accepted |
+| [0082](0082-map-compass.md) | A compass that is always on the map | Accepted |

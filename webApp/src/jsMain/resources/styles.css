@@ -211,6 +211,19 @@ button.export-pdf:disabled { opacity: .75; color: var(--muted); border-style: da
 /* The map's zoom buttons (a MapLibre control) get the same tap size. */
 .maplibregl-ctrl-group button { width: var(--tap-target); height: var(--tap-target); }
 
+/* The compass (MapLibre's NavigationControl button, always shown, ADR 0082): a red north arrow with an "N" over a grey south half, turning with
+   the map's bearing, in a button of the tap size like the zoom buttons. MapLibre's own rule for the icon has the same weight as a plain
+   selector and comes later, so ours names the group too, or its small grey arrow wins. The icon box is 31 px so that, turned, its corners
+   (31 x 1.414 = 44 px) stay inside the 44 px button; the drawing sits inside a circle, so no part of it is clipped. */
+.maplibregl-ctrl-group button.maplibregl-ctrl-zoom-in,
+.maplibregl-ctrl-group button.maplibregl-ctrl-zoom-out,
+.maplibregl-ctrl-group button.maplibregl-ctrl-compass { width: var(--tap-target); height: var(--tap-target); }
+.maplibregl-ctrl.maplibregl-ctrl-group button.maplibregl-ctrl-compass .maplibregl-ctrl-icon {
+  display: block; width: 31px; height: 31px; margin: 6px auto; background-size: 100% 100%; background-repeat: no-repeat; background-position: center;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ctext x='16' y='12' text-anchor='middle' font-family='sans-serif' font-size='13' font-weight='700' fill='%23b71c1c'%3EN%3C/text%3E%3Cpath d='M16 14 23 23H9z' fill='%23d32f2f'/%3E%3Cpath d='M16 31 9 23H23z' fill='%23757575'/%3E%3C/svg%3E");
+}
+@media (forced-colors: active) { .maplibregl-ctrl.maplibregl-ctrl-group button.maplibregl-ctrl-compass .maplibregl-ctrl-icon { forced-color-adjust: none; } }
+
 /* The close button is a cross. */
 button.close { font-size: 1.3rem; line-height: 1; padding: 2px 10px; min-width: var(--tap-target); min-height: var(--tap-target); cursor: pointer; }
 /* One closed "Details" section per row and in the filter panel (ADR 0072): the note, then the "Source:" lines a little below it. The summary keeps a

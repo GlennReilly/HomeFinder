@@ -168,6 +168,8 @@ The Suburb Card's beach, parks and shopping rows come from the OpenStreetMap rol
 
 A metric scale bar (bottom right of the map, just left of the right-hand panel; above the folded tab strip on a narrow window, where an open sheet can cover it) is always on the map and follows the zoom; the side panel and the bottom sheet never cover it.
 
+A compass (a big red north arrow with an "N", under the zoom buttons at the top left) is always on the map; it turns with the map's bearing and a click or Enter turns the map back to north (ADR 0082).
+
 Tap a suburb to select it: it is highlighted and a card opens (a bottom sheet on narrow windows, a side panel on wide
 ones). Escape or Close clears it. From zoom 16 a tap selects a lot instead (outlines appear at the same zoom) and opens the basic lot card. Taps need the API and its key. See
 [ADR 0017](docs/adr/0017-suburb-selection-and-card.md).

@@ -699,6 +699,43 @@ class SmokeTest {
     }
 
     @Test
+    fun `a compass is always visible, big enough to tap, and turns with the map`() {
+        openWithKey()
+        val compass = page.locator(".maplibregl-ctrl-compass")
+        assertThat(compass).isVisible()
+        assertThat(compass).hasAttribute("aria-label", Pattern.compile("Compass"))
+        page.waitForFunction("() => { const r = document.querySelector('.maplibregl-ctrl-compass').getBoundingClientRect(); return r.width >= 44 && r.height >= 44 }")
+        page.locator(".maplibregl-ctrl-zoom-in").click()
+        assertThat(compass).isVisible()
+        // Turned, the arrow turns the other way and stays on screen; clicking it puts north back up.
+        page.evaluate("() => { window.homefinderMap.setBearing(40) }")
+        page.waitForFunction("() => document.querySelector('.maplibregl-ctrl-compass .maplibregl-ctrl-icon').style.transform.includes('-40')")
+        assertThat(compass).isVisible()
+        // It is the red arrow with an N, not MapLibre's small grey one (a screenshot showed that once), and turned it stays inside its 44 px button.
+        val drawing = page.evaluate("() => getComputedStyle(document.querySelector('.maplibregl-ctrl-compass .maplibregl-ctrl-icon')).backgroundImage") as String
+        assertTrue(drawing.contains("%23d32f2f") && drawing.contains("%3EN%3C"), "the compass is not the red north arrow with an N: $drawing")
+        val button = checkNotNull(compass.boundingBox())
+        val box = checkNotNull(page.locator(".maplibregl-ctrl-compass .maplibregl-ctrl-icon").boundingBox())
+        val view = checkNotNull(page.viewportSize())
+        assertTrue(box.x >= button.x - 0.5 && box.y >= button.y - 0.5 && box.x + box.width <= button.x + button.width + 0.5 && box.y + box.height <= button.y + button.height + 0.5, "the turned compass overflows its button: $box in $button")
+        assertTrue(box.x >= 0 && box.y >= 0 && box.x + box.width <= view.width && box.y + box.height <= view.height, "the compass is off screen")
+        compass.click()
+        page.waitForFunction("() => Math.abs(window.homefinderMap.getBearing()) < 0.5")
+        // Beside the zoom buttons, not over them; on a narrow window too.
+        fun clearOfZoom() {
+            val c = checkNotNull(compass.boundingBox())
+            val zoomOut = checkNotNull(page.locator(".maplibregl-ctrl-zoom-out").boundingBox())
+            assertTrue(c.y >= zoomOut.y + zoomOut.height - 1, "the compass overlaps the zoom buttons")
+        }
+        clearOfZoom()
+        page.setViewportSize(400, 700)
+        assertThat(compass).isVisible()
+        clearOfZoom()
+        page.locator("#tab-suburb").click()
+        assertThat(compass).isVisible()
+    }
+
+    @Test
     fun `a metric scale bar is always on the map, changes with the zoom and is not covered by the panel`() {
         openWithKey()
         val scale = page.locator(".maplibregl-ctrl-scale")
