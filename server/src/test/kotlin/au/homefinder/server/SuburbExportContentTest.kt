@@ -10,17 +10,32 @@ import kotlin.test.assertTrue
 
 class SuburbExportContentTest {
     @Test
-    fun `every row is listed under the card's groups in the default order, rows with no data saying so`() {
+    fun `every row is listed under the card's groups in the default order, rows with no value left out`() {
         val suburb = SuburbExportContent.suburb(ExportSamples.report(), CardLayout())
         assertEquals("HAMILTON", suburb.name)
         assertEquals("2303", suburb.postcode)
-        assertEquals(CardGroups.SUBURB.map { it.title }, suburb.groups.map { it.title })
+        // People and area and Crime hold only rows with no data in the sample, so they are left out.
+        assertEquals(listOf("Prices and blocks", "Location", CardGroups.SCHOOLS_TITLE), suburb.groups.map { it.title })
         val prices = suburb.groups.first().lines
         assertEquals(SuburbCardRows.MEDIAN_HOUSE_LABEL, prices.first().label)
         assertEquals("$900,000", prices.first().value)
         assertEquals("Test sales · as of 2026-10-09 · high confidence", prices.first().source)
-        val transport = suburb.groups.flatMap { it.lines }.single { it.label == "Transport" }
-        assertEquals(SuburbExportContent.NO_DATA, transport.value)
+        val lines = suburb.groups.flatMap { it.lines }
+        assertTrue(lines.none { it.label == "Transport" }, "a row with no value is left out")
+        assertTrue(lines.all { it.value != null || it.subLines.isNotEmpty() }, "every listed row has something to show")
+        assertEquals(emptyList(), forbiddenPhrases(suburb))
+    }
+
+    @Test
+    fun `a suburb with no zoned schools has no Schools row`() {
+        val suburb = SuburbExportContent.suburb(ExportSamples.report(zoned = false), CardLayout())
+        assertTrue(suburb.groups.none { it.title == CardGroups.SCHOOLS_TITLE || it.lines.any { l -> l.label == SuburbCardRows.SCHOOLS_LABEL } })
+        assertEquals(emptyList(), forbiddenPhrases(suburb))
+    }
+
+    private fun forbiddenPhrases(suburb: ExportSuburb): List<String> {
+        val text = suburb.groups.flatMap { g -> g.lines.flatMap { listOfNotNull(it.label, it.value, it.source, it.note) + it.subLines } }
+        return text.filter { "No data" in it || "Not computed yet" in it }
     }
 
     @Test

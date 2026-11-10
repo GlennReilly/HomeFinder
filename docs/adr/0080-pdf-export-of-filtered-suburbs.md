@@ -1,6 +1,6 @@
 # 0080. A PDF export of the suburbs the filters shade, made on the server
 
-Status: Accepted
+Status: Accepted (the "No data" rows are superseded by 0083)
 
 ## Context
 You asked for "a pdf export option of the details of all suburbs that are shaded by selected filters", and chose that the PDF is made on the server and

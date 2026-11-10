@@ -34,6 +34,15 @@ class SuburbPdfTest {
     }
 
     @Test
+    fun `neither No data nor Not computed yet appears anywhere in the PDF`() {
+        val empty = ExportSuburb("EMPTY", null, emptyList())
+        val bytes = SuburbPdf.render(ExportDocument("2026-11-09", emptyList(), document(2).suburbs + empty))
+        val text = text(bytes)
+        assertTrue("Nothing to show for this suburb yet." in text, text)
+        for (phrase in listOf("No data", "Not computed yet")) assertTrue(phrase !in text, "$phrase in $text")
+    }
+
+    @Test
     fun `the page count grows with the suburbs`() {
         assertTrue(pages(SuburbPdf.render(document(5))) > pages(SuburbPdf.render(document(2))))
     }

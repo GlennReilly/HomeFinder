@@ -139,7 +139,7 @@ Under the match count on the **Filters** tab, **Export PDF (N suburbs)** downloa
 ([ADR 0080](docs/adr/0080-pdf-export-of-filtered-suburbs.md)). It is off (dashed) until at least one filter is on and 1 to 200 suburbs match; the line under it
 says why. The PDF opens with the date, the filters used (as the panel words them) and the disclaimer, then
 gives each suburb its full details (the first follows the cover on the same page, the rest start new pages) with its full Suburb Card details: every row, under the card's groups, in your Customise order (rows you
-hid with Customise are left out, and a row with no data says "No data" and why), each with its note and whole source line, then the Homely score you entered. The server
+hid with Customise are left out, and so is a row with no data, as on the card, ADR 0083), each with its note and whole source line, then the Homely score you entered. The server
 makes the PDF (`POST /v1/export/suburbs.pdf` with `{"suburbIds": [...], "filters": [...], "cardLayout": "..."}` and the `X-API-Key` header; 400 for an
 empty list or more than 200 suburbs) with Apache PDFBox and the standard Helvetica font, so nothing is fetched from other sites. A status line under the
 button says "Making the PDF…", then the file name it downloaded, or why it failed.
